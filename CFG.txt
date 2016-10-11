@@ -1,0 +1,62 @@
+Notation
+----------
+NAME        Non-terminals
+A/B         If the derivation attempt on A failed, then try B.
+"text"      Text or regular expressions (depends on the context), where
+                .       is a character except \n .
+                {n}     matches the previous element exactly n times.
+                {n,}    matches the previous element at least n times.
+                +       matches the previous element at least once.
+                +?      matches the previous element at least once, as few times as possible.
+
+My "CFG" representation of Wikitext
+-------------------------------------
+NOTE: I'm rather a newbie at this. If there's something
+inappropriate or wrong with the following representation,
+please notify me to fix or formalize it.
+
+CXuesong, 2016
+
+SINGLE_INLINE   is  the same as INLINE except that \n will cause SINGLE_INLINE to terminate,
+                    and a warning should be emitted in this case, because it usually means
+                    an open tag is closed by the line-break (e.g. '''Bold\nText''').
+                   
+# Hierarchical & lexical syntax
+
+WIKITEXT    -> LINE "\n" WIKITEXT / LINE
+
+LINE        -> LIST_ITEM / HEADING / HORIZONTAL_RULER / PARAGRAPH
+
+LIST_ITEM   -> "[*#:;]+| " SINGLE_INLINE                            # Flatten the list hierarchy
+                                                                    # Known Issue: Cannot handle code like
+                                                                    # ; Term : Defination
+HEADING     -> "={6}" SINGLE_INLINE "={6}"
+            / "={5}" SINGLE_INLINE "={5}"
+            / ...
+            / "={1}" SINGLE_INLINE "={1}"
+HORIZONTAL_RULER    -> "-{4,}"
+PARAGRAPH   -> INLINE "\n"
+
+INLINE      -> WIKI_LINK / EXTERNAL_LINK / FORMAT / TEMPLATE / ARGUMENT_REF
+            / TAG / COMMENT / PLAIN_TEXT
+
+WIKI_LINK       -> "[[" TITLE "]]" / "[[" TITLE "|" TEXT" ]]"
+EXTERNAL_LINK   -> "[" URL "\s+" TEXT "]" / "[" URL "]" / URL
+FORMAT          -> '''SINGLE_INLINE''' / ''SINGLE_INLINE''
+
+TEMPLATE        -> "{{" TEXT TEMPLATE_ARGS "}}"
+TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
+TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT                 # [[abc|def]]={{def}} is valid!
+ARGUMENT_REF    -> "{{{" TEXT "|" WIKITEXT "}}}" / "{{{" TEXT "}}}"
+
+TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
+TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
+TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""                  # <tag attr="value">
+            /  IDENTIFIER "\s*=\s*'" "[^\s]*" "'"                   # <tag attr='value'>
+            /  IDENTIFIER "\s*=\s*" "[^\s]*"                        # <tag attr=value> or <tag attr= >
+            /  IDENTIFIER "\s*"                                     # <tag attr>
+            
+COMMENT     -> "<!--" ".*?" "-->"
+
+PLAIN_TEXT  -> CHAR PLAIN_TEXT / CHAR
+CHAR        -> "."
