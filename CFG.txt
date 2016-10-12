@@ -37,17 +37,18 @@ HEADING     -> "={6}" SINGLE_INLINE "={6}"
 HORIZONTAL_RULER    -> "-{4,}"
 PARAGRAPH   -> INLINE "\n"
 
-INLINE      -> WIKI_LINK / EXTERNAL_LINK / FORMAT / TEMPLATE / ARGUMENT_REF
+INLINE      -> WIKI_LINK / EXTERNAL_LINK / TEXT
+TEXT        -> FORMAT / TEMPLATE / ARGUMENT_REF
             / TAG / COMMENT / PLAIN_TEXT
 
 WIKI_LINK       -> "[[" TITLE "]]" / "[[" TITLE "|" TEXT" ]]"
 EXTERNAL_LINK   -> "[" URL "\s+" TEXT "]" / "[" URL "]" / URL
 FORMAT          -> '''SINGLE_INLINE''' / ''SINGLE_INLINE''
 
-TEMPLATE        -> "{{" TEXT TEMPLATE_ARGS "}}"
+TEMPLATE        -> "{{" INLINE TEMPLATE_ARGS "}}"
 TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
 TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT                 # [[abc|def]]={{def}} is valid!
-ARGUMENT_REF    -> "{{{" TEXT "|" WIKITEXT "}}}" / "{{{" TEXT "}}}"
+ARGUMENT_REF    -> "{{{" INLINE "|" WIKITEXT "}}}" / "{{{" INLINE "}}}"
 
 TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
 TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
