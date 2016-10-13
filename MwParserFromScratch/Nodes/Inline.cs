@@ -6,6 +6,23 @@ using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
 {
+
+    public enum SimpleFormatType
+    {
+        /// <summary>
+        /// Invalid value.
+        /// </summary>
+        None = 0,
+        /// <summary>
+        /// Switch font-bold for the content.
+        /// </summary>
+        SwitchBold,
+        /// <summary>
+        /// Switch font-italics for the content.
+        /// </summary>
+        SwitchItalics,
+    }
+
     public abstract class InlineNode : Node
     {
         
@@ -13,6 +30,15 @@ namespace MwParserFromScratch.Nodes
 
     public class PlainText : InlineNode
     {
+        public PlainText() : this(null)
+        {
+        }
+
+        public PlainText(string content)
+        {
+            Content = content;
+        }
+
         public string Content { get; set; }
 
         protected override Node CloneCore()
@@ -86,12 +112,7 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// Whether to switch font-bold for the content.
         /// </summary>
-        public bool SwitchBold { get; set; }
-
-        /// <summary>
-        /// Whether to switch font-italics for the content.
-        /// </summary>
-        public bool SwitchItalics { get; set; }
+        public SimpleFormatType FormatType { get; set; }
 
         public Run Content
         {
@@ -101,11 +122,24 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new SimpleFormat {SwitchBold = SwitchBold, SwitchItalics = SwitchItalics, Content = Content};
+            var n = new SimpleFormat {FormatType = FormatType, Content = Content};
             return n;
         }
 
-        public override string ToString() => (SwitchBold ? "B" : "") + (SwitchItalics ? "I" : "") + $"[|{Content}|]";
+        public override string ToString()
+        {
+            var flag = "?";
+            switch (FormatType)
+            {
+                case SimpleFormatType.SwitchBold:
+                    flag = "B";
+                    break;
+                case SimpleFormatType.SwitchItalics:
+                    flag = "I";
+                    break;
+            }
+            return flag + $"[|{Content}|]";
+        }
     }
 
     public class Template : InlineNode
@@ -256,8 +290,17 @@ namespace MwParserFromScratch.Nodes
         public override string ToString() => $" {Name}={Value}";
     }
 
-    public class Comment : Node
+    public class Comment : InlineNode
     {
+        public Comment() : this(null)
+        {
+        }
+
+        public Comment(string content)
+        {
+            Content = content;
+        }
+
         public string Content { get; set; }
 
         protected override Node CloneCore()

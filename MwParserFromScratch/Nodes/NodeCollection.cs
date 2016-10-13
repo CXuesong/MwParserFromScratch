@@ -53,8 +53,17 @@ namespace MwParserFromScratch.Nodes
             // Add the child.
             node.ParentItemInserter = this;
             node.PreviousNode = LastNode;
-            LastNode.NextNode = node;
-            LastNode = node;
+            if (LastNode == null)
+            {
+                Debug.Assert(FirstNode == null);
+                FirstNode = node;
+                LastNode = node;
+            }
+            else
+            {
+                LastNode.NextNode = node;
+                LastNode = node;
+            }
         }
 
         /// <summary>
@@ -113,6 +122,18 @@ namespace MwParserFromScratch.Nodes
                 Debug.Assert(LastNode == node);
                 newNode.NextNode = null;
                 LastNode = newNode;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the collection is empty.
+        /// </summary>
+        public bool IsEmpty
+        {
+            get
+            {
+                Debug.Assert((FirstNode != null) == (LastNode != null));
+                return LastNode == null;
             }
         }
 

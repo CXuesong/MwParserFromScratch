@@ -21,11 +21,13 @@ namespace MwParserFromScratch.Nodes
             n.Lines.Add(Lines);
             return n;
         }
+
+        public override string ToString() => string.Join("\n", Lines);
     }
 
     public abstract class LineNode : Node
     {
-        
+
     }
 
     public class ListItem : LineNode
@@ -35,7 +37,7 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// Prefix of the item.
         /// </summary>
-        /// <remarks>The prefix consists of one or more *#:;, or is simply a space.</remarks>
+        /// <remarks>The prefix consists of one or more *#:;, or is simply a space. For HR, the prefix is at least 4 dashes.</remarks>
         public string Prefix { get; set; }
 
         public Run Content
@@ -63,7 +65,7 @@ namespace MwParserFromScratch.Nodes
     public class Heading : LineNode
     {
         private int _Level;
-        private InlineNode _Title;
+        private Run _Title;
 
         /// <summary>
         /// Heading level.
@@ -84,7 +86,7 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        public InlineNode Title
+        public Run Title
         {
             get { return _Title; }
             set { _Title = value == null ? null : Attach(value); }
@@ -102,20 +104,6 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public class HorizontalRuler : LineNode
-    {
-        protected override Node CloneCore()
-        {
-            var n = new HorizontalRuler();
-            return n;
-        }
-
-        public override string ToString()
-        {
-            return "HR";
-        }
-    }
-
     public class Paragraph : LineNode
     {
         private Run _Content;
@@ -124,6 +112,50 @@ namespace MwParserFromScratch.Nodes
         {
             get { return _Content; }
             set { _Content = value == null ? null : Attach(value); }
+        }
+
+        /// <summary>
+        /// Whether to remove one trailing new-line, if possible.
+        /// </summary>
+        /// <remarks>
+        /// <para>There should be 2 new-line characters (\n\n) after a paragraph. But if the next line
+        /// is LIST_ITEM or HEADING, use 1 new-line character to end a paragraph is possible.</para>
+        /// <para>For the last paragraph in the <see cref="Wikitext"/>, the expected number of new-line
+        /// characters decreases by 1. That is, 1 for normal, 0 for compact.</para>
+        /// </remarks>
+        public bool Compact { get; set; }
+
+        /// <summary>
+        /// Append a <see cref="PlainText"/> node to the end of the paragraph.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> in the end of the paragraph.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
+        public PlainText Append(string text)
+        {
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            if (Content == null) Content = new Run();
+            var pt = Content.Inlines.LastNode as PlainText;
+            if (pt == null) Content.Inlines.Add(pt = new PlainText());
+            pt.Content += text;
+            return pt;
+        }
+
+        /// <summary>
+        /// Appends the children of <see cref="Run"/> to the end of the paragraph.
+        /// </summary>
+        /// <param name="run">The <see cref="Run"/> whose child will be copied and inserted.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="run"/> is <c>null</c>.</exception>
+
+        public void Append(Run run)
+        {
+            if (run == null) throw new ArgumentNullException(nameof(run));
+            if (Content == null)
+            {
+                Content = (Run) run.Clone();
+                return;
+            }
+            Content.Inlines.Add(run.Inlines);
         }
 
         protected override Node CloneCore()
@@ -140,19 +172,23 @@ namespace MwParserFromScratch.Nodes
 
     public class Run : Node
     {
-        public Run()
+        public Run() : this((IEnumerable<InlineNode>) null)
+        {
+        }
+
+        public Run(params InlineNode[] nodes) : this((IEnumerable<InlineNode>) nodes)
+        {
+        }
+
+        public Run(IEnumerable<InlineNode> nodes)
         {
             Inlines = new NodeCollection<InlineNode>(this);
+            if (nodes != null) Inlines.Add(nodes);
         }
 
         public NodeCollection<InlineNode> Inlines { get; }
 
-        protected override Node CloneCore()
-        {
-            var n = new Run();
-            n.Inlines.Add(Inlines);
-            return n;
-        }
+        protected override Node CloneCore() => new Run(Inlines);
 
         public override string ToString()
         {
