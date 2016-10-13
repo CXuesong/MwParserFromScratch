@@ -37,7 +37,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="IWikitextLineInfo.cs" />
-    <Compile Include="Nodes\ChildrenTypeAttribute.cs" />
     <Compile Include="Nodes\Inline.cs" />
     <Compile Include="Nodes\NodeCollection.cs" />
     <Compile Include="Nodes\Node.cs" />

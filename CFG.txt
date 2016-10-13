@@ -4,10 +4,13 @@ NAME        Non-terminals
 A/B         If the derivation attempt on A failed, then try B.
 "text"      Text or regular expressions (depends on the context), where
                 .       is a character except \n .
+                \s      is a whitespace character including \n .
                 {n}     matches the previous element exactly n times.
                 {n,}    matches the previous element at least n times.
                 +       matches the previous element at least once.
                 +?      matches the previous element at least once, as few times as possible.
+>| "text"   Text or regular expressions used as a terminator (that terminates PLAIN_TEXT)
+            Otherwise, there's no terminator for PLAIN_TEXT, and it can stretch to the end of the document
 
 My "CFG" representation of Wikitext
 -------------------------------------
@@ -16,39 +19,55 @@ inappropriate or wrong with the following representation,
 please notify me to fix or formalize it.
 
 CXuesong, 2016
-
-SINGLE_INLINE   is  the same as INLINE except that \n will cause SINGLE_INLINE to terminate,
-                    and a warning should be emitted in this case, because it usually means
-                    an open tag is closed by the line-break (e.g. '''Bold\nText''').
-                   
+                  
+# Basic
+IDENTIFIER  -> [^>\s]       # Tag identifier
+PLAIN_TEXT  -> ".+"         # Repeats until a terminator is met
+                  
 # Hierarchical & lexical syntax
 
 WIKITEXT    -> LINE "\n" WIKITEXT / LINE
+            >| "\n"
 
-LINE        -> LIST_ITEM / HEADING / HORIZONTAL_RULER / PARAGRAPH
+LINE        -> LIST_ITEM / HEADING / HORIZONTAL_RULER PARAGRAPH # "---- abcd" is valid
+            / HORIZONTAL_RULER / PARAGRAPH
 
-LIST_ITEM   -> "[*#:;]+| " SINGLE_INLINE                            # Flatten the list hierarchy
-                                                                    # Known Issue: Cannot handle code like
-                                                                    # ; Term : Defination
-HEADING     -> "={6}" SINGLE_INLINE "={6}"
-            / "={5}" SINGLE_INLINE "={5}"
-            / ...
-            / "={1}" SINGLE_INLINE "={1}"
+LIST_ITEM   -> "[*#:;]+| " RUN                                  # Flatten the list hierarchy
+            >| "\n"                                             # Known Issue: Cannot handle code like
+                                                                # ; Term : Defination
+HEADING     -> "={6}" RUN "={6}"
+            /  "={5}" RUN "={5}"
+            /  ...
+            /  "={1}" RUN "={1}"
+            >| "\n"
 HORIZONTAL_RULER    -> "-{4,}"
-PARAGRAPH   -> INLINE "\n"
+PARAGRAPH   -> RUN "\n"
+            >| "\n\n"
 
-INLINE      -> WIKI_LINK / EXTERNAL_LINK / TEXT
-TEXT        -> FORMAT / TEMPLATE / ARGUMENT_REF
-            / TAG / COMMENT / PLAIN_TEXT
+RUN         -> INLINE_SEG RUN / INLINE_SEG
+INLINE      -> WIKI_LINK / EXTERNAL_LINK / FORMAT / EXPANDABLE / PLAIN_TEXT
+EXPANDABLE  -> TEMPLATE / ARGUMENT_REF / TAG / COMMENT          # COMMENT expands to ""
 
-WIKI_LINK       -> "[[" TITLE "]]" / "[[" TITLE "|" TEXT" ]]"
-EXTERNAL_LINK   -> "[" URL "\s+" TEXT "]" / "[" URL "]" / URL
-FORMAT          -> '''SINGLE_INLINE''' / ''SINGLE_INLINE''
+EXPANDABLE_TEXT -> EXPANDABLE EXPANDABLE_TEXT
+                /  PLAIN_TEXT EXPANDABLE_TEXT
+                /  EXPANDABLE
+                /  PLAIN_TEXT
+                
+EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
+                /  EXPANDABLE
+                /  URL
 
-TEMPLATE        -> "{{" INLINE TEMPLATE_ARGS "}}"
+WIKI_LINK       -> "[[" EXPANDABLE_TEXT "]]" / "[[" EXPANDABLE_TEXT "|" TEXT_SEG" ]]"
+                >| "]]" / "\n"
+EXTERNAL_LINK   -> "[" EXPANDABLE_URL "[ \t]+" TEXT_SEG "]" / "[" EXPANDABLE_URL "]" / URL
+                >| "]" / "\n"
+FORMAT          -> '''''RUN''''' / '''RUN''' / ''RUN''
+                >| "\n"
+
+TEMPLATE        -> "{{" WIKITEXT TEMPLATE_ARGS "}}"
 TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
 TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT                 # [[abc|def]]={{def}} is valid!
-ARGUMENT_REF    -> "{{{" INLINE "|" WIKITEXT "}}}" / "{{{" INLINE "}}}"
+ARGUMENT_REF    -> "{{{" WIKITEXT "|" WIKITEXT "}}}" / "{{{" WIKITEXT "}}}"
 
 TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
 TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
@@ -58,6 +77,3 @@ TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""                  # <tag attr=
             /  IDENTIFIER "\s*"                                     # <tag attr>
             
 COMMENT     -> "<!--" ".*?" "-->"
-
-PLAIN_TEXT  -> CHAR PLAIN_TEXT / CHAR
-CHAR        -> "."

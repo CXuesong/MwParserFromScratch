@@ -6,39 +6,64 @@ using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
 {
-    [ChildrenType(typeof(ListItem))]
-    [ChildrenType(typeof(Heading))]
-    [ChildrenType(typeof(HorizontalRuler))]
-    [ChildrenType(typeof(Paragraph))]
-    public class Wikitext : ContainerNode
+    public class Wikitext : Node
     {
+        public Wikitext()
+        {
+            Lines = new NodeCollection<LineNode>(this);
+        }
+
+        public NodeCollection<LineNode> Lines { get; }
+
         protected override Node CloneCore()
         {
             var n = new Wikitext();
-            n.Add(Children);
+            n.Lines.Add(Lines);
             return n;
         }
     }
 
-    public class ListItem : ContainerNode
+    public abstract class LineNode : Node
     {
+        
+    }
+
+    public class ListItem : LineNode
+    {
+        private Run _Content;
+
         /// <summary>
         /// Prefix of the item.
         /// </summary>
         /// <remarks>The prefix consists of one or more *#:;, or is simply a space.</remarks>
         public string Prefix { get; set; }
 
+        public Run Content
+        {
+            get { return _Content; }
+            set { _Content = value == null ? null : Attach(value); }
+        }
+
         protected override Node CloneCore()
         {
-            var n = new ListItem {Prefix = Prefix};
-            n.Add(Children);
+            var n = new ListItem {Prefix = Prefix, Content = Content};
             return n;
+        }
+
+        /// <summary>
+        /// Gets the wikitext representation of the node.
+        /// </summary>
+
+        public override string ToString()
+        {
+            return $"{Prefix}[|{Content}|]";
         }
     }
 
-    public class Heading : ContainerNode
+    public class Heading : LineNode
     {
         private int _Level;
+        private InlineNode _Title;
 
         /// <summary>
         /// Heading level.
@@ -59,30 +84,79 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        public InlineNode Title
+        {
+            get { return _Title; }
+            set { _Title = value == null ? null : Attach(value); }
+        }
+
         protected override Node CloneCore()
         {
-            var n = new Heading {Level = Level};
-            n.Add(Children);
+            var n = new Heading {Level = Level, Title = Title};
             return n;
+        }
+
+        public override string ToString()
+        {
+            return $"H{Level}[|{Title}|]";
         }
     }
 
-    public class HorizontalRuler : Node
+    public class HorizontalRuler : LineNode
     {
         protected override Node CloneCore()
         {
             var n = new HorizontalRuler();
             return n;
         }
+
+        public override string ToString()
+        {
+            return "HR";
+        }
     }
 
-    public class Paragraph : ContainerNode
+    public class Paragraph : LineNode
     {
+        private Run _Content;
+
+        public Run Content
+        {
+            get { return _Content; }
+            set { _Content = value == null ? null : Attach(value); }
+        }
+
         protected override Node CloneCore()
         {
-            var n = new Paragraph();
-            n.Add(Children);
+            var n = new Paragraph {Content = Content};
             return n;
+        }
+
+        public override string ToString()
+        {
+            return $"P[|{Content}|]";
+        }
+    }
+
+    public class Run : Node
+    {
+        public Run()
+        {
+            Inlines = new NodeCollection<InlineNode>(this);
+        }
+
+        public NodeCollection<InlineNode> Inlines { get; }
+
+        protected override Node CloneCore()
+        {
+            var n = new Run();
+            n.Inlines.Add(Inlines);
+            return n;
+        }
+
+        public override string ToString()
+        {
+            return string.Join(" ", Inlines);
         }
     }
 }

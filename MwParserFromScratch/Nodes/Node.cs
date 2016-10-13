@@ -30,7 +30,12 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// The parent node.
         /// </summary>
-        public ContainerNode ParentNode { get; internal set; }
+        public Node ParentNode { get; internal set; }
+
+        /// <summary>
+        /// The parent node.
+        /// </summary>
+        internal IInsertItem ParentItemInserter { get; set; }
 
         /// <summary>
         /// Inserts a sibling node before the current node.
@@ -41,8 +46,8 @@ namespace MwParserFromScratch.Nodes
         public void InsertBefore(Node node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
-            if (ParentNode == null) throw new InvalidOperationException("Cannot insert the sibling node when ParentNode is null.");
-            ParentNode.InsertBefore(this, node);
+            if (ParentItemInserter == null) throw new InvalidOperationException("Cannot insert the sibling node.");
+            ParentItemInserter.InsertBefore(this, node);
         }
 
         /// <summary>
@@ -54,11 +59,28 @@ namespace MwParserFromScratch.Nodes
         public void InsertAfter(Node node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
-            if (ParentNode == null) throw new InvalidOperationException("Cannot insert the sibling node when ParentNode is null.");
-            ParentNode.InsertAfter(this, node);
+            if (ParentItemInserter == null) throw new InvalidOperationException("Cannot insert the sibling node.");
+            ParentItemInserter.InsertAfter(this, node);
+        }
+
+        internal TNode Attach<TNode>(TNode newNode)
+            where TNode : Node
+        {
+            // Make a deep copy, if needed.
+            if (newNode.ParentNode != null)
+                newNode = (TNode) newNode.Clone();
+            newNode.ParentNode = this;
+            return newNode;
+        }
+
+        internal void Detach(Node node)
+        {
+            node.ParentNode = null;
+            // Then disconnect the node in caller function.
         }
         #endregion
 
+        #region LineInfo
         /// <summary>
         /// Gets the current line number. 
         /// </summary>
@@ -86,6 +108,7 @@ namespace MwParserFromScratch.Nodes
             _LineNumber = lineNumber;
             _LinePosition = linePosition;
         }
+        #endregion
 
         protected abstract Node CloneCore();
 
@@ -98,118 +121,6 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(newInst != null);
             Debug.Assert(newInst.GetType() == this.GetType());
             return newInst;
-        }
-    }
-
-    /// <summary>
-    /// Represents a node that can contain other nodes.
-    /// </summary>
-    public abstract class ContainerNode : Node
-    {
-        /// <summary>
-        /// Initializes a <see cref="ContainerNode"/> with no children.
-        /// </summary>
-        protected ContainerNode()
-        {
-
-        }
-
-        /// <summary>
-        /// The collection of children.
-        /// </summary>
-        public NodeCollection Children { get; } = new NodeCollection();
-
-        private void AssertCanInsert(Node newNode)
-        {
-            Debug.Assert(newNode != null);
-            var nodeType = newNode.GetType().GetTypeInfo();
-            if (!GetType().GetTypeInfo().GetCustomAttributes<ChildrenTypeAttribute>().Any(a =>
-                a.ChildrenType.GetTypeInfo().IsAssignableFrom(nodeType)))
-                throw new ArgumentException($"Invalid node type: {newNode} .");
-        }
-
-        /// <summary>
-        /// Appends a new node into the children collection.
-        /// </summary>
-        /// <param name="node">The node to be added.</param>
-        /// <remarks>A clone of <paramref name="node"/> will be added into the children collection if the node has already attached to the syntax tree.</remarks>
-        /// <exception cref="ArgumentNullException"><paramref name="node"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">The type of <paramref name="node"/> is invalid for the container.</exception>
-        public void Add(Node node)
-        {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            AssertCanInsert(node);
-            // Make a deep copy, if needed.
-            if (node.ParentNode != null)
-                node = node.Clone();
-            // Add the child.
-            node.ParentNode = this;
-            node.PreviousNode = Children.LastNode;
-            Children.LastNode.NextNode = node;
-            Children.LastNode = node;
-        }
-
-        /// <summary>
-        /// Appends new nodes into the children collection.
-        /// </summary>
-        /// <param name="nodes">The nodes to be added.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">The type of a element in <paramref name="nodes"/> is invalid for the container.</exception>
-        public void Add(IEnumerable<Node> nodes)
-        {
-            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-            foreach (var n in nodes)
-                Add(n);
-        }
-
-        internal void InsertBefore(Node node, Node newNode)
-        {
-            Debug.Assert(node != null);
-            Debug.Assert(node.ParentNode == this);
-            Debug.Assert(newNode != null);
-            AssertCanInsert(node);
-            // Make a deep copy, if needed.
-            if (newNode.ParentNode != null)
-                newNode = newNode.Clone();
-            var prev = node.PreviousNode;
-            if (prev != null)
-            {
-                prev.NextNode = newNode;
-                newNode.PreviousNode = prev;
-            }
-            else
-            {
-                Debug.Assert(Children.FirstNode == node);
-                Children.FirstNode = newNode;
-                newNode.PreviousNode = null;
-            }
-            newNode.NextNode = node;
-            node.PreviousNode = newNode;
-        }
-
-        internal void InsertAfter(Node node, Node newNode)
-        {
-            Debug.Assert(node != null);
-            Debug.Assert(node.ParentNode == this);
-            Debug.Assert(newNode != null);
-            AssertCanInsert(node);
-            // Make a deep copy, if needed.
-            if (newNode.ParentNode != null)
-                newNode = newNode.Clone();
-            node.NextNode = newNode;
-            newNode.PreviousNode = node;
-            var next = node.NextNode;
-            if (next != null)
-            {
-                newNode.NextNode = next;
-                next.PreviousNode = newNode;
-            }
-            else
-            {
-                Debug.Assert(Children.LastNode == node);
-                newNode.NextNode = null;
-                Children.LastNode = newNode;
-            }
         }
     }
 }
