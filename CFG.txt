@@ -79,6 +79,7 @@ EXPANDABLE_TEXT -> EXPANDABLE EXPANDABLE_TEXT
 EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
                 /  EXPANDABLE
                 /  URL
+                /  empty
 
 # Known issue: Current implementation will parse [[http://abc]] as WIKI_LINK,
 # while actually it should be trated as "[" EXTERNAL_LINK "]"

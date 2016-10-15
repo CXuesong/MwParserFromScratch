@@ -57,7 +57,7 @@ namespace MwParserFromScratch.Nodes
             return new WikiLink {Target = Target, Text = Text};
         }
 
-        public override string ToString() => $"[[{Target}|{Text}]]";
+        public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
     }
 
     public class ExternalLink : InlineNode
@@ -77,12 +77,17 @@ namespace MwParserFromScratch.Nodes
             set { _Text = value == null ? null : Attach(value); }
         }
 
+        /// <summary>
+        /// Whether the link is contained in square brackets.
+        /// </summary>
+        public bool Brackets { get; set; }
+
         protected override Node CloneCore()
         {
             return new ExternalLink { Target = Target, Text = Text };
         }
 
-        public override string ToString() => $"[{Target} {Text}]";
+        public override string ToString() => Text == null ? $"[{Target}]" : $"[{Target} {Text}]";
     }
 
     /// <summary>

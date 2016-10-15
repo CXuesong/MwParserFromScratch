@@ -25,14 +25,88 @@ namespace MwParserFromScratch.Nodes
         public override string ToString() => string.Join("\n", Lines);
     }
 
-    public abstract class LineNode : Node
+    public abstract class InlineContainer : Node
     {
+        /// <summary>
+        /// Content of the inline container.
+        /// </summary>
+        public NodeCollection<InlineNode> Inlines { get; }
 
+        public InlineContainer() : this(null)
+        {
+        }
+
+        public InlineContainer(IEnumerable<InlineNode> nodes)
+        {
+            Inlines = new NodeCollection<InlineNode>(this);
+            if (nodes != null) Inlines.Add(nodes);
+        }
+
+        /// <summary>
+        /// Append a <see cref="PlainText"/> node to the end of the paragraph.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> in the end of the paragraph.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
+        public PlainText Append(string text)
+        {
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            var pt = Inlines.LastNode as PlainText;
+            if (pt == null) Inlines.Add(pt = new PlainText());
+            pt.Content += text;
+            return pt;
+        }
+    }
+
+    /// <summary>
+    /// A single-line run.
+    /// </summary>
+    public class Run : InlineContainer
+    {
+        public Run()
+        {
+        }
+
+        public Run(params InlineNode[] nodes) : base(nodes)
+        {
+        }
+
+        public Run(IEnumerable<InlineNode> nodes) : base(nodes)
+        {
+        }
+
+        protected override Node CloneCore() => new Run(Inlines);
+
+        public override string ToString()
+        {
+            return string.Join(null, Inlines);
+        }
+    }
+
+    public abstract class LineNode : InlineContainer
+    {
+        public LineNode()
+        {
+        }
+
+        public LineNode(IEnumerable<InlineNode> nodes) : base(nodes)
+        {
+        }
     }
 
     public class ListItem : LineNode
     {
-        private Run _Content;
+        public ListItem()
+        {
+        }
+
+        public ListItem(params InlineNode[] nodes) : base(nodes)
+        {
+        }
+
+        public ListItem(IEnumerable<InlineNode> nodes) : base(nodes)
+        {
+        }
 
         /// <summary>
         /// Prefix of the item.
@@ -40,15 +114,9 @@ namespace MwParserFromScratch.Nodes
         /// <remarks>The prefix consists of one or more *#:;, or is simply a space. For HR, the prefix is at least 4 dashes.</remarks>
         public string Prefix { get; set; }
 
-        public Run Content
-        {
-            get { return _Content; }
-            set { _Content = value == null ? null : Attach(value); }
-        }
-
         protected override Node CloneCore()
         {
-            var n = new ListItem {Prefix = Prefix, Content = Content};
+            var n = new ListItem(Inlines) {Prefix = Prefix};
             return n;
         }
 
@@ -58,14 +126,26 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"{Prefix}[|{Content}|]";
+            return $"{Prefix}[|{string.Join(null, Inlines)}|]";
         }
     }
 
     public class Heading : LineNode
     {
         private int _Level;
-        private Run _Title;
+
+        public Heading()
+        {
+        }
+
+        public Heading(params InlineNode[] nodes) : base(nodes)
+        {
+        }
+
+        public Heading(IEnumerable<InlineNode> nodes) : base(nodes)
+        {
+        }
+
 
         /// <summary>
         /// Heading level.
@@ -86,21 +166,15 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        public Run Title
-        {
-            get { return _Title; }
-            set { _Title = value == null ? null : Attach(value); }
-        }
-
         protected override Node CloneCore()
         {
-            var n = new Heading {Level = Level, Title = Title};
+            var n = new Heading(Inlines) {Level = Level};
             return n;
         }
 
         public override string ToString()
         {
-            return $"H{Level}[|{Title}|]";
+            return $"H{Level}[|{string.Join(null, Inlines)}|]";
         }
     }
 
@@ -110,17 +184,12 @@ namespace MwParserFromScratch.Nodes
         {
         }
 
-        public Paragraph(Run content)
+        public Paragraph(params InlineNode[] nodes) : base(nodes)
         {
-            Content = content;
         }
 
-        private Run _Content;
-
-        public Run Content
+        public Paragraph(IEnumerable<InlineNode> nodes) : base(nodes)
         {
-            get { return _Content; }
-            set { _Content = value == null ? null : Attach(value); }
         }
 
         /// <summary>
@@ -134,74 +203,15 @@ namespace MwParserFromScratch.Nodes
         /// </remarks>
         public bool Compact { get; set; }
 
-        /// <summary>
-        /// Append a <see cref="PlainText"/> node to the end of the paragraph.
-        /// </summary>
-        /// <param name="text">The text to be inserted.</param>
-        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> in the end of the paragraph.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
-        public PlainText Append(string text)
-        {
-            if (text == null) throw new ArgumentNullException(nameof(text));
-            if (Content == null) Content = new Run();
-            var pt = Content.Inlines.LastNode as PlainText;
-            if (pt == null) Content.Inlines.Add(pt = new PlainText());
-            pt.Content += text;
-            return pt;
-        }
-
-        /// <summary>
-        /// Appends the children of <see cref="Run"/> to the end of the paragraph.
-        /// </summary>
-        /// <param name="run">The <see cref="Run"/> whose child will be copied and inserted.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="run"/> is <c>null</c>.</exception>
-
-        public void Append(Run run)
-        {
-            if (run == null) throw new ArgumentNullException(nameof(run));
-            if (Content == null)
-            {
-                Content = (Run) run.Clone();
-                return;
-            }
-            Content.Inlines.Add(run.Inlines);
-        }
-
         protected override Node CloneCore()
         {
-            var n = new Paragraph {Content = Content};
+            var n = new Paragraph(Inlines) {Compact = Compact};
             return n;
         }
 
         public override string ToString()
         {
-            return $"P{(Compact ? "C" : null)}[|{Content}|]";
-        }
-    }
-
-    public class Run : Node
-    {
-        public Run() : this((IEnumerable<InlineNode>) null)
-        {
-        }
-
-        public Run(params InlineNode[] nodes) : this((IEnumerable<InlineNode>) nodes)
-        {
-        }
-
-        public Run(IEnumerable<InlineNode> nodes)
-        {
-            Inlines = new NodeCollection<InlineNode>(this);
-            if (nodes != null) Inlines.Add(nodes);
-        }
-
-        public NodeCollection<InlineNode> Inlines { get; }
-
-        protected override Node CloneCore() => new Run(Inlines);
-
-        public override string ToString()
-        {
-            return string.Join("", Inlines);
+            return $"P{(Compact ? "C" : null)}[|{string.Join(null, Inlines)}|]";
         }
     }
 }
