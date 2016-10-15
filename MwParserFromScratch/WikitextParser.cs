@@ -174,7 +174,8 @@ namespace MwParserFromScratch
                 var extraPara = ParseParagraphClose(para);
                 if (extraPara == null)
                 {
-                    // The paragraph is not closed, and more content incoming.
+                    // Failed to close the paragraph, and more content incoming.
+                    Debug.Assert(para.Compact);
                     if (unclosedParagraph == null)
                     {
                         unclosedParagraph = para;
@@ -189,6 +190,7 @@ namespace MwParserFromScratch
                     extraNode = extraPara;
                     if (unclosedParagraph == null) return ParseSuccessful(para);
                     Debug.Assert(unclosedParagraph == para);
+                    unclosedParagraph = null;
                     return ParseSuccessful(EmptyLineNode, false);
                 }
             }
@@ -205,7 +207,7 @@ namespace MwParserFromScratch
         private LineNode ParseParagraphClose(Paragraph lastParagraph)
         {
             Debug.Assert(lastParagraph != null);
-            Debug.Assert(lastParagraph.Compact);
+            Debug.Assert(lastParagraph.Compact, "Attempt to close a closed paragraph.");
             ParseStart();
             // 2 line breaks (\n\n) or \n Terminator closes the paragraph,
             // so do a look-ahead here. Note that a \n will be consumed in ParseWikitext .
@@ -217,44 +219,50 @@ namespace MwParserFromScratch
             // P        Closed paragraph
             // abc TERM     PC[|abc|]
             // abc\n TERM   P[|abc|]
-            // abc\n\n TERM PC[|abc|]PC[||]
+            // abc\n\s*?\n  TERM PC[|abc|]PC[||]
             // Note that MediaWiki editor will automatically trim the trailing whitespaces,
             // leaving a \n after the content. This one \n will be removed when the page is transcluded.
             if (ConsumeToken(@"\n") != null)
             {
+                // Whitespaces between 2 \n, assuming there's a second \n after trailingWs
+                var trailingWs = ConsumeToken(@"[\f\r\t\v\x85\p{Z}]+");
                 // Already consumed a \n, attempt to consume another \n
+                // We need to consume rather than look-ahead so that NeedsTerminate() will work
                 ParseStart();
                 if (ConsumeToken(@"\n") != null)
                 {
-                    // abc\n\n TERM PC[|abc|]PC[||]
+                    // 2 Line breaks received.
+                    // abc\n trailingWs \n TERM --> PC[|abc|]PC[|trailingWs|]
                     // Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
                     {
-                        Debug.Assert(lastParagraph.Compact);
                         // Might as well consume 2 \n here. Leave the TERM to WIKITEXT parser.
                         Accept();
                         // Note that we already had lastParagraph.Compact == true
-                        return ParseSuccessful(new Paragraph {Compact = true});
+                        var anotherparagraph = new Paragraph();
+                        if (trailingWs != null) anotherparagraph.Append(trailingWs);
+                        return ParseSuccessful(anotherparagraph);
                     }
-                    // More content incoming.
-                    // abc\n\n def
-                    // Consuem a \n to closed the current paragraph. Leave a \n to WIKITEXT parser.
-                    lastParagraph.Compact = false;
+                    // After the paragraph, more content incoming.
+                    // abc\n trailingWs \n def
+                    // Consume the 1st \n to close the current paragraph. Leave the 2nd \n to WIKITEXT parser.
                     Fallback();
+                    lastParagraph.Append("\n" + trailingWs);
                     return ParseSuccessful(EmptyLineNode, false);
                 }
                 // The attempt to consume the 2nd \n failed. Fallback first.
-                // This won't change the position.
+                // This won't change the position. We're still after the whitespaces after the 1st \n .
                 Fallback();
                 if (NeedsTerminate())
                 {
-                    // abc\n TERM   P[|abc|]
-                    lastParagraph.Compact = false;
+                    // abc \n TERM   P[|abc|]
+                    // Still need to close the paragraph.
+                    lastParagraph.Append("\n" + trailingWs);
                     return ParseSuccessful(EmptyLineNode, false);
                 }
             }
             // abc \n def
-            // That's not the end of a prargraph.
+            // That's not the end of a prargraph. Fallback to before the 1st \n .
             return ParseFailed<LineNode>();
         }
 
@@ -320,16 +328,12 @@ namespace MwParserFromScratch
         /// <remarks>The parsing operation will always succeed.</remarks>
         private Paragraph ParseCompactParagraph(Paragraph mergeTo)
         {
-            Debug.Assert(mergeTo == null || mergeTo.Compact);
+            Debug.Assert(mergeTo == null || mergeTo.Compact, "Attempt to merge to a closed paragraph.");
             // Create a new paragraph, or merge the new line to the existing paragraph.
             ParseStart();
-            var node = mergeTo;
             mergeTo?.Append("\n");
-            if (node == null)
-            {
-                node = new Paragraph {Compact = true};
-            }
-            // Allows an empty paragraph. (content == null)
+            var node = mergeTo ?? new Paragraph();
+            // Allows an empty paragraph.
             ParseRun(RunParsingMode.Run, node);
             return ParseSuccessful(node, mergeTo == null);
         }

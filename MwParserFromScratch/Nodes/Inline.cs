@@ -299,6 +299,6 @@ namespace MwParserFromScratch.Nodes
             return new Comment {Content = Content};
         }
 
-        public override string ToString() => $"C[|{Content}|]";
+        public override string ToString() => $"![{Content}]";
     }
 }

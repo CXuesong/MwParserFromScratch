@@ -33,6 +33,19 @@ namespace MwParserFromScratch.Nodes
         public Node ParentNode { get; internal set; }
 
         /// <summary>
+        /// Enumerates the sibling nodes after this node.
+        /// </summary>
+        public IEnumerable<Node> EnumNextNodes()
+        {
+            var node = NextNode;
+            while (node != null)
+            {
+                yield return node;
+                node = node.NextNode;
+            }
+        }
+
+        /// <summary>
         /// The parent node.
         /// </summary>
         internal IInsertItem ParentItemInserter { get; set; }

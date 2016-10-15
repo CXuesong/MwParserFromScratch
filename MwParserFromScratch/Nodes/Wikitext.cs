@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
@@ -126,7 +127,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"{Prefix}[|{string.Join(null, Inlines)}|]";
+            return $"{Prefix}[{string.Join(null, Inlines)}]";
         }
     }
 
@@ -174,7 +175,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"H{Level}[|{string.Join(null, Inlines)}|]";
+            return $"H{Level}[{string.Join(null, Inlines)}]";
         }
     }
 
@@ -192,6 +193,8 @@ namespace MwParserFromScratch.Nodes
         {
         }
 
+        private static readonly Regex ParagraphCloseMatcher = new Regex(@"\n\s*$");
+
         /// <summary>
         /// Whether to remove one trailing new-line, if possible.
         /// </summary>
@@ -200,18 +203,28 @@ namespace MwParserFromScratch.Nodes
         /// is LIST_ITEM or HEADING, use 1 new-line character to end a paragraph is possible.</para>
         /// <para>For the last paragraph in the <see cref="Wikitext"/>, the expected number of new-line
         /// characters decreases by 1. That is, 1 for normal, 0 for compact.</para>
+        /// <para>This property is <c>false</c> only if the last node of the paragraph is
+        /// <see cref="PlainText"/>, and it ends with \n\s*. </para>
         /// </remarks>
-        public bool Compact { get; set; }
+        public bool Compact
+        {
+            get
+            {
+                var pt = Inlines.LastNode as PlainText;
+                if (pt == null) return true;
+                return !ParagraphCloseMatcher.IsMatch(pt.Content);
+            }
+        }
 
         protected override Node CloneCore()
         {
-            var n = new Paragraph(Inlines) {Compact = Compact};
+            var n = new Paragraph(Inlines);
             return n;
         }
 
         public override string ToString()
         {
-            return $"P{(Compact ? "C" : null)}[|{string.Join(null, Inlines)}|]";
+            return $"P[{string.Join(null, Inlines)}]";
         }
     }
 }
