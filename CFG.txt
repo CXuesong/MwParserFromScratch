@@ -1,3 +1,13 @@
+My "CFG" representation of Wikitext
+-------------------------------------
+NOTE: I'm rather a newbie at this. If there's something
+inappropriate or wrong with the following representation,
+please notify me to fix or formalize it.
+
+NOTE: The following representation is subject to change.
+
+CXuesong, 2016
+
 Notation
 ----------
 NAME        Non-terminals
@@ -11,50 +21,50 @@ A/B         If the derivation attempt on A failed, then try B.
                 +?      matches the previous element at least once, as few times as possible.
                 
 Terminator Sepcifications
->| "text"   Text or regular expressions used as a terminator (that terminates PLAIN_TEXT).
+    Terminator is used to terminate PLAIN_TEXT, WIKITEXT, and RUN.
+    Terminators by default can be inherited from a derivation to its children deriviations,
+        unless it's prevented by overriding, in which case the child doesn't inherit terminators
+        from its parents.
+    EOF is always a terminator.
+    
+>| "text"   Text or regular expressions used as a terminator. This will also override parent terminators.
 >|          There's no terminator for PLAIN_TEXT, and it can stretch to the end of the document.
 +| "text"   The same as >| , except that it also inherits the terminators from the parent derivation.
-            If there's no terminator sepcification for a derivation, by default it inherits terminators
-            from the parent derviation.
--| "text"   Inherits terminators from the parent derviation, while prevents "text" from terminates PLAIN_TEXT.
-            
-My "CFG" representation of Wikitext
--------------------------------------
-NOTE: I'm rather a newbie at this. If there's something
-inappropriate or wrong with the following representation,
-please notify me to fix or formalize it.
+-| "text"   Inherits terminators from the parent deriviation, while prevents "text" from terminates PLAIN_TEXT.
+           
 
-CXuesong, 2016
-                  
 # Basic
-IDENTIFIER  -> [^>\s]       # Tag identifier
-PLAIN_TEXT  -> ".+"         # Repeats until a terminator is met
-                  
+IDENTIFIER  -> "[^>\s]"     # Tag identifier
+PLAIN_TEXT  -> ".+"         # Repeats until a terminator or suspectable plain-text end is met
+
 # Hierarchical & lexical syntax
 
 WIKITEXT    -> LINE "\n" WIKITEXT / LINE / empty                # An empty WIKITEXT contains no children
-            +| "\n"                                             # The last line has no trailing \n
+            +| "\n"                                             # The last line has no extra trailing \n
 
-LINE        -> LIST_ITEM / HEADING / PARAGRAPH / PARAGRAPH_COMPACT
+LINE        -> LIST_ITEM / HEADING / PARAGRAPH
 
+# Known Issue: Cannot handle code like
+#   ; Term : Defination
 LIST_ITEM   -> "[*#:;]+|-{4,}| " RUN?                           # Flatten the list hierarchy
                                                                 # Note that "---- abcd" is valid
-                                                                # Known Issue: Cannot handle code like
-                                                                # ; Term : Defination
+                                                                                                
 HEADING     -> "={6}" RUN "={6}"
-                >| "={6}"
+                >| "={6}$"
             /  "={5}" RUN "={5}"
-                >| "={5}"
+                >| "={5}$"
             /  ...
             /  "={1}" RUN "={1}"
-                >| "={1}"
-            +| "\n"
+                >| "={1}$"
+
 HORIZONTAL_RULER    -> "-{4,}" RUN?    
 
-PARAGRAPH           -> RUN "\n" PARAGRAPH                       # Only when the next line cannot be parsed as LIST_ITEM or HEADING
-                    /  RUN
-                    /  empty   
-PARAGRAPH_COMPACT   -> RUN                                      # The derivation used before LIST_ITEM / HEADING / $
+# A normal/closed PARAGRAPH ends up with \n, while a compact/unclosed PARAGRAPH doesn't have an extra \n
+# Note that there's another \n between each LINE
+# A compact paragraph can exists only when the next token in WIKITEXT derivation is LIST_ITEM / HEADING / Terminators
+PARAGRAPH           -> RUN "\n" PARAGRAPH                       # 
+                    /  RUN                                      # (i.e. RUN \n RUN) Only when PARAGRAPH is compact
+                    /  empty                                    # (i.e. RUN \n RUN \n) 
 
 RUN         -> INLINE RUN / INLINE
 INLINE      -> EXPANDABLE / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
@@ -70,15 +80,28 @@ EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
                 /  EXPANDABLE
                 /  URL
 
-WIKI_LINK       -> "[[" EXPANDABLE_TEXT "]]" / "[[" EXPANDABLE_TEXT "|" RUN "]]"
-                +| "]]" / "\n"
-EXTERNAL_LINK   -> "[" EXPANDABLE_URL "[ \t]" RUN "]" / "[" EXPANDABLE_URL "]" / URL
-                +| "]" / "\n"
-FORMAT          -> '''RUN'''                                    # Known Issue: Cannot handle '''ab''cd'''efg''
-                    +| "'''"
-                /  ''RUN''
-                    +| "''"
+# Known issue: Current implementation will parse [[http://abc]] as WIKI_LINK,
+# while actually it should be trated as "[" EXTERNAL_LINK "]"
+WIKI_LINK       -> "[[" WIKI_LINK_TARGET "]]" / "[[" WIKI_LINK_TARGET "|" WIKI_LINK_TEXT "]]"
+                >| "\n"                                         # Link stops at new line
+WIKI_LINK_TARGET    -> EXPANDABLE_TEXT
+                    +| "]]" / "|"
+WIKI_LINK_TEXT      -> RUN
+                    +| "]]"                                     # Pipes are allowed here
 
+EXTERNAL_LINK           -> "[" EXTERNAL_LINK "[ \t]" EXTERNAL_LINK_TEXT "]" / "[" EXTERNAL_LINK "]"
+                        /  URL
+EXTERNAL_LINK_TARGET    -> EXPANDABLE_URL
+                        +| "]" / "[ \t]"
+EXTERNAL_LINK_TEXT      -> RUN
+                        +| "]"                                  # Pipes are allowed here
+
+FORMAT_SWITCH       -> "'{5}(?!')" / "'{3}(?!')" / "'{2}(?!')"  # Also handles '''ab''cd'''efg''
+
+# Known Issue: The derivation is ambiguous for {{{{T}}}} .
+# Current implementation will treat it as {{{ {T} }}}, where {T} is rendered as normal text,
+# while actually it should be treated as { {{{T}}} }.
+# Note that there's no ambiguity for nested brackets delimited with spaces, e.g. {{ {{T}} }}
 TEMPLATE        -> "{{" WIKITEXT TEMPLATE_ARGS "}}"
                 >| "}}"
 TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
@@ -87,6 +110,7 @@ TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT             # [[abc|def]]={{
 ARGUMENT_REF    -> "{{{" WIKITEXT "|" WIKITEXT "}}}" / "{{{" WIKITEXT "}}}"
                 +| "|"
 
+# Template expansion is disabled in TAG
 TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
 TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
 TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""              # <tag attr="value">
@@ -95,3 +119,18 @@ TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""              # <tag attr="val
             /  IDENTIFIER "\s*"                                 # <tag attr>
             
 COMMENT     -> "<!--" ".*?" "-->"
+
+
+WIKITEXT Corner Cases
+-----------------------
+TERM == Terminators
+
+TERM                Empty WIKITEXT
+abc TERM            A compact paragraph.
+abc\n TERM          A normal paragraph.
+abc\n\n TERM        Two compact paragraphs, as the last line has no extra trailing \n .
+abc\n\n\n TERM      A normal paragraph and two compact paragraphs, as the last line has no extra trailing \n .
+abc\ndef\n TERM     A normal paragraph "abc\ndef".
+* abc TERM          A WIKITEXT containing a LIST_ITEM.
+* abc\n TERM        A WIKITEXT containing a LIST_ITEM and a compact paragraph.
+* abc\n\n TERM      A WIKITEXT containing a LIST_ITEM and a normal paragraph.

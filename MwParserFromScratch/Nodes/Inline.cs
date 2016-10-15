@@ -6,23 +6,6 @@ using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
 {
-
-    public enum SimpleFormatType
-    {
-        /// <summary>
-        /// Invalid value.
-        /// </summary>
-        None = 0,
-        /// <summary>
-        /// Switch font-bold for the content.
-        /// </summary>
-        SwitchBold,
-        /// <summary>
-        /// Switch font-italics for the content.
-        /// </summary>
-        SwitchItalics,
-    }
-
     public abstract class InlineNode : Node
     {
         
@@ -105,40 +88,43 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// Represents wikitext with bold / italics.
     /// </summary>
-    public class SimpleFormat : InlineNode
+    public class FormatSwitch : InlineNode
     {
-        private Run _Content;
+        public FormatSwitch() : this(false, false)
+        {
+        }
+
+        public FormatSwitch(bool switchBold, bool switchItalics)
+        {
+            SwitchBold = switchBold;
+            SwitchItalics = switchItalics;
+        }
 
         /// <summary>
-        /// Whether to switch font-bold for the content.
+        /// Whether to switch font-bold of the incoming content.
         /// </summary>
-        public SimpleFormatType FormatType { get; set; }
+        public bool SwitchBold { get; set; }
 
-        public Run Content
-        {
-            get { return _Content; }
-            set { _Content = value == null ? null : Attach(value); }
-        }
+        /// <summary>
+        /// Whether to switch font-italics of the incoming content.
+        /// </summary>
+        public bool SwitchItalics { get; set; }
 
         protected override Node CloneCore()
         {
-            var n = new SimpleFormat {FormatType = FormatType, Content = Content};
+            var n = new FormatSwitch {SwitchBold = SwitchBold, SwitchItalics = SwitchItalics};
             return n;
         }
 
         public override string ToString()
         {
-            var flag = "?";
-            switch (FormatType)
-            {
-                case SimpleFormatType.SwitchBold:
-                    flag = "B";
-                    break;
-                case SimpleFormatType.SwitchItalics:
-                    flag = "I";
-                    break;
-            }
-            return flag + $"[|{Content}|]";
+            if (SwitchBold && SwitchItalics)
+                return "[BI]";
+            if (SwitchBold)
+                return "[B]";
+            if (SwitchItalics)
+                return "[I]";
+            return "[]";
         }
     }
 

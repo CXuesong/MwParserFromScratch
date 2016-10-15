@@ -25,6 +25,7 @@ namespace UnitTestProject1
             var root = parser.Parse(text);
             var rootExpr = root.ToString();
             Trace.WriteLine(rootExpr);
+            Trace.WriteLine("");
             Assert.AreEqual(expectedExpression, rootExpr);
             return root;
         }

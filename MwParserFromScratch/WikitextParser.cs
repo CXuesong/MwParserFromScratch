@@ -14,7 +14,7 @@ namespace MwParserFromScratch
     public class WikitextParser
     {
         private string fulltext;
-        private int position;        // Starting index of the string to be consumed.
+        private int position; // Starting index of the string to be consumed.
         private int lineNumber, linePosition;
         private Stack<ParsingContext> contextStack;
 
@@ -33,7 +33,10 @@ namespace MwParserFromScratch
             contextStack = new Stack<ParsingContext>();
             // Then parse
             var root = ParseWikitext();
-            Debug.Assert(position == fulltext.Length, "Detected unparsed wikitext after parsing. There might be a bug with parser.");
+            Debug.Assert(position == fulltext.Length,
+                "Detected unparsed wikitext after parsing. There might be a bug with parser.");
+            Debug.Assert(contextStack.Count == 0,
+                "Detected remaining ParsingContext on context stack. There might be a bug with parser.");
             // Cleanup
             fulltext = null;
             contextStack = null;
@@ -43,18 +46,12 @@ namespace MwParserFromScratch
         /// <summary>
         /// Looks ahead and checks whether to terminate the current matching.
         /// </summary>
-        private bool NeedsTerminate()
+        private bool NeedsTerminate(Terminator ignoredTerminator = null)
         {
             if (position >= fulltext.Length) return true;
-            Terminator removedTerminator = null;
             foreach (var context in contextStack)
             {
-                if (context.RemovedTerminator != null)
-                {
-                    Debug.Assert(removedTerminator == null, "You need a HashSet to contain removedTerminators. (This is likely a bug in parsing, because usually the assertion will pass.)");
-                    removedTerminator = context.RemovedTerminator;
-                }
-                if (context.Terminator != removedTerminator && context.IsTerminated(fulltext, position))
+                if (context.Terminator != ignoredTerminator && context.IsTerminated(fulltext, position))
                     return true;
                 if (context.OverridesTerminator) break;
             }
@@ -68,64 +65,53 @@ namespace MwParserFromScratch
         private int FindTerminator()
         {
             if (position >= fulltext.Length) return -1;
-            Terminator removedTerminator = null;
             int index = -1;
             foreach (var context in contextStack)
             {
-                if (context.RemovedTerminator != null)
-                {
-                    Debug.Assert(removedTerminator == null,
-                        "You need a HashSet to contain removedTerminators. (This is likely a bug in parsing, because usually the assertion will pass.)");
-                    removedTerminator = context.RemovedTerminator;
-                }
-                if (context.Terminator != removedTerminator)
-                {
-                    var newIndex = context.FindTerminator(fulltext, position);
-                    if (newIndex >= 0 && (index < 0 || newIndex < index))
-                        index = newIndex;
-                }
+                var newIndex = context.FindTerminator(fulltext, position);
+                if (newIndex >= 0 && (index < 0 || newIndex < index))
+                    index = newIndex;
             }
             return index;
         }
 
         private void ParseStart()
         {
-            ParseStart(null, null, false);
+            ParseStart(null, false);
         }
 
         private void ParseStart(string terminatorExpr, bool overridesTerminator)
         {
-            ParseStart(terminatorExpr, null, overridesTerminator);
-        }
-
-        private void ParseStart(string terminatorExpr, string removedTerminatorExpr)
-        {
-            ParseStart(terminatorExpr, removedTerminatorExpr, false);
-        }
-
-        private void ParseStart(string terminatorExpr, string removedTerminatorExpr, bool overridesTerminator)
-        {
-            var context = new ParsingContext(terminatorExpr, removedTerminatorExpr, overridesTerminator,
-                position, lineNumber, linePosition);
+            var context = new ParsingContext(terminatorExpr == null ? null : Terminator.Get(terminatorExpr),
+                overridesTerminator, position, lineNumber, linePosition);
             contextStack.Push(context);
         }
+
+        private ParsingContext CurrentContext => contextStack.Peek();
 
         private T ParseSuccessful<T>(T value, bool setLineNumber = true) where T : Node
         {
             Debug.Assert(value != null);
-            var context = contextStack.Pop();
+            var context = Accept();
             if (setLineNumber) value.SetLineInfo(context.StartingLineNumber, context.StartingLinePosition);
             return value;
         }
 
+        private ParsingContext Accept() => contextStack.Pop();
+
         private T ParseFailed<T>(T node = default(T)) where T : Node
+        {
+            Fallback();
+            return default(T);
+        }
+
+        private void Fallback()
         {
             var context = contextStack.Pop();
             // Fallback
             position = context.StartingPosition;
             lineNumber = context.StartingLineNumber;
             linePosition = context.StartingLinePosition;
-            return default(T);
         }
 
         /// <summary>
@@ -136,15 +122,15 @@ namespace MwParserFromScratch
         {
             ParseStart();
             var node = new Wikitext();
-            Paragraph lastParagraph = null;
+            Paragraph unclosedParagraph = null;
             while (!NeedsTerminate())
             {
-                var line = ParseLine(ref lastParagraph);
+                LineNode extraNode;
+                var line = ParseLine(ref unclosedParagraph, out extraNode);
+                Debug.Assert(extraNode != null, "extraNode shouldn't be null, but it can be <EmptyLineNode>.");
                 if (line == null) break;
-                if (line != EmptyLineNode)
-                {
-                    node.Lines.Add(line);
-                }
+                if (line != EmptyLineNode) node.Lines.Add(line);
+                if (extraNode != EmptyLineNode) node.Lines.Add(extraNode);
                 if (ConsumeToken(@"\n") == null) break;
             }
             return ParseSuccessful(node);
@@ -153,18 +139,20 @@ namespace MwParserFromScratch
         /// <summary>
         /// Indicates the parsing is successful, but no node should be inserted to the list.
         /// </summary>
-        private static readonly LineNode EmptyLineNode = new Paragraph();
+        private static readonly LineNode EmptyLineNode = new Paragraph(new Run(new PlainText("--EmptyLineNode--")));
 
         /// <summary>
         /// LINE
         /// </summary>
         /// <remarks>The parsing will always succeed.</remarks>
-        private LineNode ParseLine(ref Paragraph unclosedParagraph)
+        private LineNode ParseLine(ref Paragraph unclosedParagraph, out LineNode extraNode)
         {
-            // We use lastLine to handle breaks in paragraphs more easily.
+            // We use unclosedParagraph to handle breaks in paragraphs more easily.
+            // This function may return more than one node; that's why extraNode exists.
+            extraNode = EmptyLineNode;
             ParseStart(@"\n", false);
             LineNode node;
-            // LIST_ITEM / HEADING automatically close PARAGRAPH
+            // LIST_ITEM / HEADING automatically closes the last PARAGRAPH
             if ((node = ParseListItem()) != null)
             {
                 unclosedParagraph = null;
@@ -175,20 +163,93 @@ namespace MwParserFromScratch
                 unclosedParagraph = null;
                 return ParseSuccessful(node);
             }
-            // 2 line breaks closes the paragraph
-            if (unclosedParagraph != null && ConsumeToken(@"\n") != null)
+            Paragraph para;
+            if ((para = ParseCompactParagraph(unclosedParagraph)) != null)
             {
-                unclosedParagraph.Compact = false;
-                unclosedParagraph = null;
-                return ParseSuccessful(EmptyLineNode, false);
-            }
-            if ((node = unclosedParagraph = ParseParagraph(unclosedParagraph)) != null)
-            {
-                // while 1 line break might only be displayed as a space in the paragraph
-                return ParseSuccessful(node);
+                var extraPara = ParseParagraphClose(para);
+                if (extraPara == null)
+                {
+                    // The paragraph is not closed, and more content incoming.
+                    if (unclosedParagraph == null)
+                    {
+                        unclosedParagraph = para;
+                        return ParseSuccessful(para);
+                    }
+                    Debug.Assert(unclosedParagraph == para);
+                    return ParseSuccessful(EmptyLineNode, false);
+                }
+                else
+                {
+                    // The paragraph is closed.
+                    extraNode = extraPara;
+                    if (unclosedParagraph == null) return ParseSuccessful(para);
+                    Debug.Assert(unclosedParagraph == para);
+                    return ParseSuccessful(EmptyLineNode, false);
+                }
             }
             // Note ParseParagraph will always succeed.
-            Debug.Assert(node != null);
+            Debug.Assert(false);
+            return ParseFailed<LineNode>();
+        }
+
+        /// <summary>
+        /// Parses a PARAGRPAH_CLOSE .
+        /// </summary>
+        /// <param name="lastParagraph">The lastest parsed paragrpah.</param>
+        /// <returns>The extra paragraph, or <see cref="EmptyLineNode"/>. If the parsing attmpt failed, <c>null</c>.</returns>
+        private LineNode ParseParagraphClose(Paragraph lastParagraph)
+        {
+            Debug.Assert(lastParagraph != null);
+            Debug.Assert(lastParagraph.Compact);
+            ParseStart();
+            // 2 line breaks (\n\n) or \n Terminator closes the paragraph,
+            // so do a look-ahead here. Note that a \n will be consumed in ParseWikitext .
+            // Note that this look-ahead will also bypass the \n terminator defined in WIKITEXT
+
+            // For the last paragraph
+            // TERM     Terminators
+            // PC       Compact/unclosed paragraph
+            // P        Closed paragraph
+            // abc TERM     PC[|abc|]
+            // abc\n TERM   P[|abc|]
+            // abc\n\n TERM PC[|abc|]PC[||]
+            // Note that MediaWiki editor will automatically trim the trailing whitespaces,
+            // leaving a \n after the content. This one \n will be removed when the page is transcluded.
+            if (ConsumeToken(@"\n") != null)
+            {
+                // Already consumed a \n, attempt to consume another \n
+                ParseStart();
+                if (ConsumeToken(@"\n") != null)
+                {
+                    // abc\n\n TERM PC[|abc|]PC[||]
+                    // Note here TERM excludes \n
+                    if (NeedsTerminate(Terminator.Get(@"\n")))
+                    {
+                        Debug.Assert(lastParagraph.Compact);
+                        // Might as well consume 2 \n here. Leave the TERM to WIKITEXT parser.
+                        Accept();
+                        // Note that we already had lastParagraph.Compact == true
+                        return ParseSuccessful(new Paragraph {Compact = true});
+                    }
+                    // More content incoming.
+                    // abc\n\n def
+                    // Consuem a \n to closed the current paragraph. Leave a \n to WIKITEXT parser.
+                    lastParagraph.Compact = false;
+                    Fallback();
+                    return ParseSuccessful(EmptyLineNode, false);
+                }
+                // The attempt to consume the 2nd \n failed. Fallback first.
+                // This won't change the position.
+                Fallback();
+                if (NeedsTerminate())
+                {
+                    // abc\n TERM   P[|abc|]
+                    lastParagraph.Compact = false;
+                    return ParseSuccessful(EmptyLineNode, false);
+                }
+            }
+            // abc \n def
+            // That's not the end of a prargraph.
             return ParseFailed<LineNode>();
         }
 
@@ -200,56 +261,74 @@ namespace MwParserFromScratch
             ParseStart();
             var prefix = ConsumeToken("[*#:;]+|-{4,}| ");
             if (prefix == null) return ParseFailed<ListItem>();
-            var content = ParseRun(RunParsingMode.Run);   // optional
+            var content = ParseRun(RunParsingMode.Run); // optional
             return ParseSuccessful(new ListItem {Prefix = prefix, Content = content});
         }
-
-        private static readonly Regex HeadingPrefixMatcher = new Regex("^={1,6}");
-        private static readonly Regex HeadingSuffixMatcher = new Regex("={1,6}$", RegexOptions.Multiline);
 
         /// <summary>
         /// HEADING
         /// </summary>
         private Heading ParseHeading()
         {
-            // Look ahead to determine the level, if the line is a valid heading.
-            var prefix = HeadingPrefixMatcher.Match(fulltext, position);
-            if (!prefix.Success) return null;
-            var suffix = HeadingSuffixMatcher.Match(fulltext, position);
-            if (!suffix.Success) return null;
-            var bar = prefix.Length > suffix.Length ? suffix.Value : prefix.Value;
-            // TODO Handle the following case
-            // ====== , which is the same as == == ==
-            // This is where the real parsing starts.
-            ParseStart(bar + "(?m)$", true);
-            var token = ConsumeToken(bar);
-            Debug.Assert(token != null);
+            // Look ahead to determine the maximum level, assuming the line is a valid heading.
+            var prefix = LookAheadToken("={1,6}");
+            if (prefix == null) return null;
 
-            var content = ParseRun(RunParsingMode.Run);
-            if (content == null) return ParseFailed<Heading>();
+            // Note that here we require all the headings terminate with \n or EOF, so this won't be recognized
+            // {{{ARG|== Default Heading ==}}}\n
+            // But this will work
+            // {{{ARG|== Default Heading ==
+            // }}}
+            // Note that this should be recognized as heading
+            //  == {{T|
+            //  arg1}} ==
 
-            token = ConsumeToken(bar);
-            if (token == null) return ParseFailed<Heading>();
-
-            return ParseSuccessful(new Heading {Level = bar.Length, Title = content});
+            // Test different levels of heading
+            for (var level = prefix.Length; level > 0; level--)
+            {
+                var prefixExpr = "={" + level + "}";
+                var suffixExpr = "(?m)={" + level + "}$";
+                ParseStart(suffixExpr, false);
+                ConsumeToken(prefixExpr);
+                var content = ParseRun(RunParsingMode.Run);
+                if (content == null)
+                {
+                    ParseFailed<Heading>();
+                    continue;
+                }
+                if (ConsumeToken(suffixExpr) == null)
+                {
+                    ParseFailed<Heading>();
+                    continue;
+                }
+                return ParseSuccessful(new Heading {Level = level, Title = content});
+            }
+            // Failed (E.g. ^=== Title )
+            return null;
         }
 
         /// <summary>
         /// PARAGRAPH
         /// </summary>
         /// <remarks>The parsing operation will always succeed.</remarks>
-        private Paragraph ParseParagraph(Paragraph mergeTo)
+        private Paragraph ParseCompactParagraph(Paragraph mergeTo)
         {
+            Debug.Assert(mergeTo == null || mergeTo.Compact);
             // Create a new paragraph, or merge the new line to the existing paragraph.
             ParseStart();
             mergeTo?.Append("\n");
-            // Allows empty line
-            if (NeedsTerminate())
-                return ParseSuccessful(mergeTo ?? new Paragraph {Compact = true}, mergeTo == null);
-            // An empty paragraph is a paragraph with no Run
-            var run = ParseRun(RunParsingMode.Run);
-            mergeTo?.Append(run);
-            return ParseSuccessful(new Paragraph {Content = run, Compact = true}, mergeTo == null);
+            // Allows an empty paragraph. (content == null)
+            var content = ParseRun(RunParsingMode.Run);
+            var node = mergeTo;
+            if (node == null)
+            {
+                node = new Paragraph {Content = content, Compact = true};
+            }
+            else
+            {
+                node.Append(content);
+            }
+            return ParseSuccessful(node, mergeTo == null);
         }
 
         /// <summary>
@@ -266,13 +345,13 @@ namespace MwParserFromScratch
                 if ((inline = ParseExpandable()) != null) goto NEXT;
                 switch (mode)
                 {
-                    case RunParsingMode.Run:                // RUN
+                    case RunParsingMode.Run: // RUN
                         if ((inline = ParseInline()) != null) goto NEXT;
                         break;
-                    case RunParsingMode.ExpandableText:     // EXPANDABLE_TEXT
+                    case RunParsingMode.ExpandableText: // EXPANDABLE_TEXT
                         if ((inline = ParsePartialPlainText()) != null) goto NEXT;
                         break;
-                    case RunParsingMode.ExpandableUrl:      // EXPANDABLE_URL
+                    case RunParsingMode.ExpandableUrl: // EXPANDABLE_URL
                         if ((inline = ParseUrlText()) != null) goto NEXT;
                         break;
                     default:
@@ -305,7 +384,7 @@ namespace MwParserFromScratch
             InlineNode node;
             if ((node = ParseWikiLink()) != null) return ParseSuccessful(node);
             if ((node = ParseExternalLink()) != null) return ParseSuccessful(node);
-            if ((node = ParseSimpleFormat()) != null) return ParseSuccessful(node);
+            if ((node = ParseFormatSwitch()) != null) return ParseSuccessful(node);
             if ((node = ParsePartialPlainText()) != null) return ParseSuccessful(node);
             return ParseFailed<InlineNode>();
         }
@@ -320,13 +399,15 @@ namespace MwParserFromScratch
 
         private WikiLink ParseWikiLink()
         {
-            ParseStart(@"\]\]|\n", false);
+            ParseStart(@"\||\]\]", false);
             if (ConsumeToken(@"\[\[") == null) return ParseFailed<WikiLink>();
-            var node = new WikiLink();
-            node.Target = ParseRun(RunParsingMode.ExpandableText);
-            if (node.Target == null) return ParseFailed<WikiLink>();
+            var target = ParseRun(RunParsingMode.ExpandableText);
+            if (target == null) return ParseFailed<WikiLink>();
+            var node = new WikiLink {Target = target};
             if (ConsumeToken(@"\|") != null)
             {
+                // Text accepts pipe
+                CurrentContext.Terminator = Terminator.Get(@"\]\]");
                 node.Text = ParseRun(RunParsingMode.ExpandableText);
             }
             if (ConsumeToken(@"\]\]") == null) return ParseFailed<WikiLink>();
@@ -335,8 +416,9 @@ namespace MwParserFromScratch
 
         private ExternalLink ParseExternalLink()
         {
-            ParseStart(@"\]|\n", false);
+            ParseStart(@"[\s\]]", false);
             var brackets = ConsumeToken(@"\[") != null;
+            // Parse target
             Run target;
             if (brackets)
             {
@@ -351,36 +433,36 @@ namespace MwParserFromScratch
             }
             if (target == null) return ParseFailed<ExternalLink>();
             var node = new ExternalLink {Target = target};
-            if (node.Target == null) return ParseFailed(node);
-            if (ConsumeToken(@"[ \t]") != null)
+            if (brackets)
             {
-                node.Text = ParseRun(RunParsingMode.Run);
+                // Parse text
+                if (ConsumeToken(@" \t") != null)
+                {
+                    CurrentContext.Terminator = Terminator.Get(@"\]");
+                    node.Text = ParseRun(RunParsingMode.Run);
+                }
+                if (ConsumeToken(@"\]") == null) return ParseFailed(node);
             }
-            if (ConsumeToken(@"\]") == null) return ParseFailed(node);
             return ParseSuccessful(node);
         }
 
-        private SimpleFormat ParseSimpleFormat()
+        private FormatSwitch ParseFormatSwitch()
         {
-            var prefix = "'''";
-            PARSE:
-            ParseStart(prefix, false);
-            var token = ConsumeToken(prefix);
-            if (token == null) goto FAIL;
-            var content = ParseRun(RunParsingMode.Run);
-            if (content == null) goto FAIL;
-            var suffix = ConsumeToken(token);
-            // suffix != token often indicates the formatting tag is broken by new line
-            // suffix can be null, as the formatting tag might be ended up with EOF
-            return ParseSuccessful(new SimpleFormat {Content = content});
-            FAIL:
-            if (prefix == "'''")
+            // For 4 or 5+ quotes, discard quotes on the left.
+            var token = ConsumeToken("('{5}|'''|'')(?!')");
+            if (token == null) return null;
+            switch (token.Length)
             {
-                prefix = "''";
-                ParseFailed<SimpleFormat>();
-                goto PARSE;
+                case 2:
+                    return new FormatSwitch(false, true);
+                case 3:
+                    return new FormatSwitch(true, false);
+                case 5:
+                    return new FormatSwitch(true, true);
+                default:
+                    Debug.Assert(false);
+                    return null;
             }
-            return ParseFailed<SimpleFormat>();
         }
 
         private static readonly Regex CommentSuffixMatcher = new Regex("-->");
@@ -419,12 +501,18 @@ namespace MwParserFromScratch
             position = newPosition;
         }
 
+        // Used to stop plain text parsing in case there's a starting of other elements.
         // Don't forget there's already a terminator \n in the LINE derivation
-        private static readonly Regex SuspectablePlainTextEndMatcher = new Regex(@"\[|<|{{{?|(?<=\s|^)(((\bhttps?:|\bftp:|\birc:|\bgopher:|)\/\/)|\bnews:|\bmailto:)", RegexOptions.IgnoreCase);
+        private static readonly Regex SuspectablePlainTextEndMatcher =
+            new Regex(@"\[|<\s*\w|\{\{\{?
+                        |('{5}|'''|'')(?!')
+                        |(((\bhttps?:|\bftp:|\birc:|\bgopher:|)\/\/)|\bnews:|\bmailto:)",
+                RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
 
         /// <summary>
         /// PLAIN_TEXT
         /// </summary>
+        /// <remarks>A PLAIN_TEXT contains at least 1 character.</remarks>
         private PlainText ParsePartialPlainText()
         {
             // Terminates now?
@@ -433,7 +521,8 @@ namespace MwParserFromScratch
             var terminatorPos = FindTerminator();
             if (terminatorPos < 0) terminatorPos = fulltext.Length;
             // We'll at least consume 1 character.
-            var susceptableEnd = SuspectablePlainTextEndMatcher.Match(fulltext, position + 1, terminatorPos - position - 1);
+            var susceptableEnd = SuspectablePlainTextEndMatcher.Match(fulltext, position + 1,
+                terminatorPos - position - 1);
             var origPos = position;
             if (susceptableEnd.Success)
             {
@@ -452,11 +541,24 @@ namespace MwParserFromScratch
             }
         }
 
+        private static readonly Regex UrlMatcher =
+            new Regex(
+                @"(?i)(((\bhttps?:|\bftp:|\birc:|\bgopher:|)\/\/)|\bnews:|\bmailto:)([^\x00-\x20\s""\[\]\x7f\|\{\}<>]|<[^>]*>)+?(?=([!""().,:;‘-•]*\s|[\x00-\x20\s""\[\]\x7f|{}]|$))");
+
         private PlainText ParseUrlText()
         {
+            // First, find an appearant terminator of URL
+            var endPos = position;
+            for (; endPos < fulltext.Length; endPos++)
+                if (char.IsWhiteSpace(fulltext, endPos)) break;
             // From https://en.wikipedia.org/wiki/User:Cacycle/wikEd.js
-            var token = ConsumeToken(@"(?i)(((\bhttps?:|\bftp:|\birc:|\bgopher:|)\/\/)|\bnews:|\bmailto:)([^\x00-\x20\s""\[\]\x7f\|\{\}<>]|<[^>]*>)+?(?=([!""().,:;‘-•]*\s|[\x00-\x20\s""\[\]\x7f|{}]|$))");
-            if (token != null) return new PlainText(token);
+            var match = UrlMatcher.Match(fulltext, position, endPos - position);
+            // We only take the URL if it starts IMMEDIATELY.
+            if (match.Success && match.Index == position)
+            {
+                MovePositionTo(position + match.Length);
+                return new PlainText(match.Value);
+            }
             return null;
         }
 
@@ -474,7 +576,7 @@ namespace MwParserFromScratch
             if (re == null)
             {
                 // The occurance should be starting from current position.
-                re = new Regex("^(" + tokenMatcher + ")");
+                re = new Regex(@"\G(" + tokenMatcher + ")");
                 tokenMatcherCache.Add(tokenMatcher, re);
             }
             var m = re.Match(fulltext, position);
@@ -508,9 +610,7 @@ namespace MwParserFromScratch
 
         private class ParsingContext
         {
-            public Terminator Terminator { get; }
-
-            public Terminator RemovedTerminator { get; }
+            public Terminator Terminator { get; set; }
 
             /// <summary>
             /// Whether to stop looking for terminators to the bottom of the stack.
@@ -533,7 +633,7 @@ namespace MwParserFromScratch
             public int FindTerminator(string str, int startIndex)
             {
                 Debug.Assert(str != null);
-                if (Terminator == null) return str.Length - 1;
+                if (Terminator == null) return - 1;
                 return Terminator.Search(str, startIndex);
             }
 
@@ -545,10 +645,10 @@ namespace MwParserFromScratch
             /// </returns>
             public override string ToString() => $"({StartingLineNumber},{StartingLinePosition})/{Terminator}/";
 
-            public ParsingContext(string terminatorExpr, string removedTerminatorExpr, bool overridesTerminator, int startingPosition, int startingLineNumber, int startingLinePosition)
+            public ParsingContext(Terminator terminator, bool overridesTerminator, int startingPosition,
+                int startingLineNumber, int startingLinePosition)
             {
-                Terminator = terminatorExpr == null ? null : Terminator.Get(terminatorExpr);
-                RemovedTerminator = removedTerminatorExpr == null ? null : Terminator.Get(removedTerminatorExpr);
+                Terminator = terminator;
                 OverridesTerminator = overridesTerminator;
                 StartingPosition = startingPosition;
                 StartingLineNumber = startingLineNumber;
@@ -581,7 +681,7 @@ namespace MwParserFromScratch
             private Terminator(string expr)
             {
                 Debug.Assert(expr[0] != '^');
-                matcher = new Regex("^" + expr);
+                matcher = new Regex(@"\G(" + expr + ")");
                 searcher = new Regex(expr);
             }
 

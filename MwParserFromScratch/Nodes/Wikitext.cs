@@ -106,6 +106,15 @@ namespace MwParserFromScratch.Nodes
 
     public class Paragraph : LineNode
     {
+        public Paragraph()
+        {
+        }
+
+        public Paragraph(Run content)
+        {
+            Content = content;
+        }
+
         private Run _Content;
 
         public Run Content
@@ -166,7 +175,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"P[|{Content}|]";
+            return $"P{(Compact ? "C" : null)}[|{Content}|]";
         }
     }
 
@@ -192,7 +201,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return string.Join(" ", Inlines);
+            return string.Join("", Inlines);
         }
     }
 }

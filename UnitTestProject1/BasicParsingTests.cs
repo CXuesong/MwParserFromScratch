@@ -11,55 +11,70 @@ namespace UnitTestProject1
     public class BasicParsingTests
     {
         [TestMethod]
-        public void TestMethod0()
+        public void TestLines0()
         {
             var root = Utility.ParseAndAssert("", "");
             root = Utility.ParseAndAssert("\n", "P[||]");
-            Assert.AreEqual(1, root.Lines.Count());
-            Assert.IsTrue(((Paragraph) root.Lines.First()).Compact);
-            root = Utility.ParseAndAssert("\n\n", "P[||]");
-            Assert.AreEqual(1, root.Lines.Count());
-            Assert.IsFalse(((Paragraph) root.Lines.First()).Compact);
-            root = Utility.ParseAndAssert("\n\n\n", "P[||]P[||]");
-            Assert.AreEqual(2, root.Lines.Count());
-            Assert.IsFalse(((Paragraph) root.Lines.ElementAt(0)).Compact);
-            Assert.IsTrue(((Paragraph) root.Lines.ElementAt(1)).Compact);
+            root = Utility.ParseAndAssert("\n\n", "PC[||]\nPC[||]");
+            root = Utility.ParseAndAssert("\n\n\n", "P[||]\nP[||]");
         }
 
         [TestMethod]
-        public void TestMethod1()
+        public void TestLines1()
         {
-            var root = Utility.ParseAndAssert("Hello, world!", "P[|Hello, world!|]");
+            var root = Utility.ParseAndAssert("Hello, world!", "PC[|Hello, world!|]");
+            Assert.IsTrue(((Paragraph)root.Lines.First()).Compact);
         }
 
         [TestMethod]
-        public void TestMethod2()
+        public void TestLines2()
         {
-            var root = Utility.ParseAndAssert("Hello, \n\nworld!", "P[|Hello, |]\nP[|world!|]");
+            var root = Utility.ParseAndAssert("Hello, world!\n", "P[|Hello, world!|]");
+            Assert.IsFalse(((Paragraph)root.Lines.First()).Compact);
         }
 
         [TestMethod]
-        public void TestMethod3()
+        public void TestLines3()
         {
-            var root = Utility.ParseAndAssert("'''Hello''', ''world''!", "P[|Hello, world!|]");
+            var root = Utility.ParseAndAssert("Hello, world!\n\n", "PC[|Hello, world!|]\nPC[||]");
+            root = Utility.ParseAndAssert("Hello, world!\ntest\n", "P[|Hello, world!\ntest|]");
         }
 
         [TestMethod]
-        public void TestMethod4()
+        public void TestLines4()
         {
-            var root = Utility.ParseAndAssert("'''Hello''',\n''world''!", "P[|Hello, world!|]");
+            var root = Utility.ParseAndAssert("Hello, world!\n\n\n", "P[|Hello, world!|]\nP[||]");
+            root = Utility.ParseAndAssert("Hello, world!\n\ntest\n", "P[|Hello, world!|]\nP[|test|]");
         }
 
         [TestMethod]
-        public void TestMethod5()
+        public void TestLines5()
         {
-            var root = Utility.ParseAndAssert("'''Hello''',\n\n''world''!", "P[|Hello, world!|]");
+            var root = Utility.ParseAndAssert("Hello, \n\nworld!", "P[|Hello, |]\nPC[|world!|]");
         }
 
         [TestMethod]
-        public void TestMethod6()
+        public void TestFormat1()
         {
-            var root = Utility.ParseAndAssert("'''Hello''',\n\n''world''!\n", "P[|Hello, world!|]");
+            var root = Utility.ParseAndAssert("'''Hello''', ''world''!", "PC[|[B]Hello[B], [I]world[I]!|]");
+        }
+
+        [TestMethod]
+        public void TestFormat2()
+        {
+            var root = Utility.ParseAndAssert("'''Hello''',\n''world''!", "PC[|[B]Hello[B],\n[I]world[I]!|]");
+        }
+
+        [TestMethod]
+        public void TestFormat3()
+        {
+            var root = Utility.ParseAndAssert("'''Hello''',\n\n''world''!", "P[|[B]Hello[B],|]\nPC[|[I]world[I]!|]");
+        }
+
+        [TestMethod]
+        public void TestFormat4()
+        {
+            var root = Utility.ParseAndAssert("'''''Hello''''', '''''world''. World'''!\n", "P[|[BI]Hello[BI], [BI]world[I]. World[B]!|]");
         }
     }
 }
