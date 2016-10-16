@@ -42,7 +42,7 @@ namespace UnitTestProject1
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
             var pt = node as PlainText;
-            if (pt != null) return pt.Content.Replace("[", @"\[").Replace("]", @"\]");
+            if (pt != null) return pt.Content.Replace("[", @"$[").Replace("]", @"$]");
             var fs = node as FormatSwitch;
             if (fs != null)
             {
