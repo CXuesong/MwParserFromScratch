@@ -42,6 +42,7 @@
     <Compile Include="Nodes\NodeCollection.cs" />
     <Compile Include="Nodes\Node.cs" />
     <Compile Include="Nodes\Wikitext.cs" />
+    <Compile Include="InvalidParserStateException.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="WikitextParser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

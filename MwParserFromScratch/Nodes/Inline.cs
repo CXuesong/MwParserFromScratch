@@ -87,7 +87,13 @@ namespace MwParserFromScratch.Nodes
             return new ExternalLink { Target = Target, Text = Text };
         }
 
-        public override string ToString() => Text == null ? $"[{Target}]" : $"[{Target} {Text}]";
+        public override string ToString()
+        {
+            var s = Target.ToString();
+            if (Text != null) s += " " + Text;
+            if (Brackets) s = "[" + s + "]";
+            return s;
+        }
     }
 
     /// <summary>
@@ -124,12 +130,12 @@ namespace MwParserFromScratch.Nodes
         public override string ToString()
         {
             if (SwitchBold && SwitchItalics)
-                return "[BI]";
+                return "'''''";
             if (SwitchBold)
-                return "[B]";
+                return "'''";
             if (SwitchItalics)
-                return "[I]";
-            return "[]";
+                return "''";
+            return "";
         }
     }
 
@@ -157,7 +163,18 @@ namespace MwParserFromScratch.Nodes
             return n;
         }
 
-        public override string ToString() => $"{{{{ {Name} {string.Join("", Arguments)} }}}}";
+        public override string ToString()
+        {
+            if (Arguments.IsEmpty) return "{{" + Name + "}}";
+            var sb = new StringBuilder("{{");
+            sb.Append(Name);
+            foreach (var arg in Arguments)
+            {
+                sb.Append('|');
+                sb.Append(arg);
+            }
+            return sb.ToString();
+        }
     }
 
     public class TemplateArgument : Node
@@ -187,7 +204,11 @@ namespace MwParserFromScratch.Nodes
             return n;
         }
 
-        public override string ToString() => $" | {Name} = {Value}";
+        public override string ToString()
+        {
+            if (Name == null) return Value.ToString();
+            return Name + "=" + Value;
+        }
     }
 
     /// <summary>
@@ -222,9 +243,9 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            var s = "{{{ " + Name;
-            if (DefaultValue != null) s += " | " + DefaultValue;
-            return s + " }}}";
+            var s = "{{{" + Name;
+            if (DefaultValue != null) s += "|" + DefaultValue;
+            return s + "}}}";
         }
     }
 
@@ -261,7 +282,8 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            var s = $"<{Name}{string.Join("", Attributes)}";
+            // TODO Preserve the whitespace information between attributes.
+            var s = $"<{Name}{string.Join(" ", Attributes)}";
             if (RawContent == null) return s + " />";
             return $"{s}>{RawContent}</{Name}>";
         }
@@ -299,6 +321,6 @@ namespace MwParserFromScratch.Nodes
             return new Comment {Content = Content};
         }
 
-        public override string ToString() => $"![{Content}]";
+        public override string ToString() => "<!--" + Content + "-->";
     }
 }

@@ -23,6 +23,7 @@ namespace MwParserFromScratch
         /// </summary>
         /// <param name="wikitext">The wikitext to be parsed.</param>
         /// <returns>A <see cref="Wikitext"/> node containing the AST of the given Wikitext.</returns>
+        /// <exception cref="InvalidParserStateException">The parser state is invalid during the parsing process. There might be a b&#117;g with the parser.</exception>
         public Wikitext Parse(string wikitext)
         {
             if (wikitext == null) throw new ArgumentNullException(nameof(wikitext));
@@ -33,10 +34,13 @@ namespace MwParserFromScratch
             contextStack = new Stack<ParsingContext>();
             // Then parse
             var root = ParseWikitext();
-            Debug.Assert(position == fulltext.Length,
-                "Detected unparsed wikitext after parsing. There might be a bug with parser.");
-            Debug.Assert(contextStack.Count == 0,
-                "Detected remaining ParsingContext on context stack. There might be a bug with parser.");
+            // State check
+            if (position < fulltext.Length)
+                throw new InvalidParserStateException(
+                    "Detected unparsed wikitext after parsing. There might be a bug with parser.");
+            if (contextStack.Count > 0)
+                throw new InvalidParserStateException(
+                    "Detected remaining ParsingContext on context stack. There might be a bug with parser.");
             // Cleanup
             fulltext = null;
             contextStack = null;
@@ -125,20 +129,29 @@ namespace MwParserFromScratch
         /// <remarks>The empty wikitext contains nothing. Thus the parsing should always be successful.</remarks>
         private Wikitext ParseWikitext()
         {
-            ParseStart();
             var node = new Wikitext();
-            Paragraph unclosedParagraph = null;
-            while (!NeedsTerminate())
+            LineNode lastLine = null;
+            if (NeedsTerminate()) return node;
+            NEXT_LINE:
+            var line = ParseLine(lastLine);
+            if (line != EmptyLineNode)
             {
-                LineNode extraNode;
-                var line = ParseLine(ref unclosedParagraph, out extraNode);
-                Debug.Assert(extraNode != null, "extraNode shouldn't be null, but it can be <EmptyLineNode>.");
-                if (line == null) break;
-                if (line != EmptyLineNode) node.Lines.Add(line);
-                if (extraNode != EmptyLineNode) node.Lines.Add(extraNode);
-                if (ConsumeToken(@"\n") == null) break;
+                lastLine = line;
+                node.Lines.Add(line);
             }
-            return ParseSuccessful(node);
+            var extraPara = ParseLineEnd(lastLine);
+            if (extraPara == null)
+            {
+                // Failed to read a \n , which means we've reached a terminator.
+                // This is guaranteed in ParseLineEnd
+                Debug.Assert(NeedsTerminate());
+                return node;
+            }
+            // Otherwise, check whether we meet a terminator before reading another line.
+            if (extraPara != EmptyLineNode)
+                node.Lines.Add(extraPara);
+            if (NeedsTerminate()) return node;
+            goto NEXT_LINE;
         }
 
         /// <summary>
@@ -147,73 +160,35 @@ namespace MwParserFromScratch
         private static readonly LineNode EmptyLineNode = new Paragraph(new PlainText("--EmptyLineNode--"));
 
         /// <summary>
-        /// LINE
+        /// LINE, except PARAGRAPH. Because PARAGRAPH need to take look at the last line.
         /// </summary>
-        /// <remarks>The parsing will always succeed.</remarks>
-        private LineNode ParseLine(ref Paragraph unclosedParagraph, out LineNode extraNode)
+        private LineNode ParseLine(LineNode lastLine)
         {
-            // We use unclosedParagraph to handle breaks in paragraphs more easily.
-            // This function may return more than one node; that's why extraNode exists.
-            extraNode = EmptyLineNode;
             ParseStart(@"\n", false);
             LineNode node;
             // LIST_ITEM / HEADING automatically closes the last PARAGRAPH
-            if ((node = ParseListItem()) != null)
-            {
-                unclosedParagraph = null;
-                return ParseSuccessful(node);
-            }
-            if ((node = ParseHeading()) != null)
-            {
-                unclosedParagraph = null;
-                return ParseSuccessful(node);
-            }
-            Paragraph para;
-            if ((para = ParseCompactParagraph(unclosedParagraph)) != null)
-            {
-                var extraPara = ParseParagraphClose(para);
-                if (extraPara == null)
-                {
-                    // Failed to close the paragraph, and more content incoming.
-                    Debug.Assert(para.Compact);
-                    if (unclosedParagraph == null)
-                    {
-                        unclosedParagraph = para;
-                        return ParseSuccessful(para);
-                    }
-                    Debug.Assert(unclosedParagraph == para);
-                    return ParseSuccessful(EmptyLineNode, false);
-                }
-                else
-                {
-                    // The paragraph is closed.
-                    extraNode = extraPara;
-                    if (unclosedParagraph == null) return ParseSuccessful(para);
-                    Debug.Assert(unclosedParagraph == para);
-                    unclosedParagraph = null;
-                    return ParseSuccessful(EmptyLineNode, false);
-                }
-            }
-            // Note ParseParagraph will always succeed.
-            Debug.Assert(false);
+            if ((node = ParseListItem()) != null) return ParseSuccessful(node);
+            if ((node = ParseHeading()) != null) return ParseSuccessful(node);
+            if ((node = ParseCompactParagraph(lastLine)) != null) return ParseSuccessful(node);
             return ParseFailed<LineNode>();
         }
 
         /// <summary>
         /// Parses a PARAGRPAH_CLOSE .
         /// </summary>
-        /// <param name="lastParagraph">The lastest parsed paragrpah.</param>
-        /// <returns>The extra paragraph, or <see cref="EmptyLineNode"/>. If the parsing attmpt failed, <c>null</c>.</returns>
-        private LineNode ParseParagraphClose(Paragraph lastParagraph)
+        /// <param name="lastNode">The lastest parsed paragrpah.</param>
+        /// <returns>The extra paragraph, or <see cref="EmptyLineNode"/>. If parsing attempt failed, <c>null</c>.</returns>
+        private LineNode ParseLineEnd(LineNode lastNode)
         {
-            Debug.Assert(lastParagraph != null);
-            Debug.Assert(lastParagraph.Compact, "Attempt to close a closed paragraph.");
-            ParseStart();
+            Debug.Assert(lastNode != null);
+            var unclosedParagraph = lastNode as Paragraph;
+            if (unclosedParagraph != null && !unclosedParagraph.Compact)
+                unclosedParagraph = null;
             // 2 line breaks (\n\n) or \n Terminator closes the paragraph,
             // so do a look-ahead here. Note that a \n will be consumed in ParseWikitext .
             // Note that this look-ahead will also bypass the \n terminator defined in WIKITEXT
 
-            // For the last paragraph
+            // For the last non-empty line
             // TERM     Terminators
             // PC       Compact/unclosed paragraph
             // P        Closed paragraph
@@ -222,48 +197,65 @@ namespace MwParserFromScratch
             // abc\n\s*?\n  TERM PC[|abc|]PC[||]
             // Note that MediaWiki editor will automatically trim the trailing whitespaces,
             // leaving a \n after the content. This one \n will be removed when the page is transcluded.
-            if (ConsumeToken(@"\n") != null)
+
+            // Here we consume a \n without fallback.
+            if (ConsumeToken(@"\n") == null)
+                return null;
+            ParseStart();
+            // Whitespaces between 2 \n, assuming there's a second \n or TERM after trailingWs
+            var trailingWs = ConsumeToken(@"[\f\r\t\v\x85\p{Z}]+");
+            if (unclosedParagraph != null)
             {
-                // Whitespaces between 2 \n, assuming there's a second \n after trailingWs
-                var trailingWs = ConsumeToken(@"[\f\r\t\v\x85\p{Z}]+");
+                // We're going to consume another \n or TERM to close the paragraph.
                 // Already consumed a \n, attempt to consume another \n
-                // We need to consume rather than look-ahead so that NeedsTerminate() will work
-                ParseStart();
                 if (ConsumeToken(@"\n") != null)
                 {
                     // 2 Line breaks received.
-                    // abc\n trailingWs \n TERM --> PC[|abc|]PC[|trailingWs|]
                     // Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
                     {
-                        // Might as well consume 2 \n here. Leave the TERM to WIKITEXT parser.
-                        Accept();
-                        // Note that we already had lastParagraph.Compact == true
+                        // This is a special case.
+                        // abc\n trailingWs \n TERM --> PC[|abc|]PC[|trailingWs|]
                         var anotherparagraph = new Paragraph();
                         if (trailingWs != null) anotherparagraph.Append(trailingWs);
                         return ParseSuccessful(anotherparagraph);
                     }
                     // After the paragraph, more content incoming.
                     // abc\n trailingWs \n def
-                    // Consume the 1st \n to close the current paragraph. Leave the 2nd \n to WIKITEXT parser.
-                    Fallback();
-                    lastParagraph.Append("\n" + trailingWs);
+                    unclosedParagraph.Append("\n" + trailingWs);
                     return ParseSuccessful(EmptyLineNode, false);
                 }
-                // The attempt to consume the 2nd \n failed. Fallback first.
-                // This won't change the position. We're still after the whitespaces after the 1st \n .
-                Fallback();
+                // The attempt to consume the 2nd \n failed.
+                // We're still after the whitespaces after the 1st \n .
                 if (NeedsTerminate())
                 {
                     // abc \n TERM   P[|abc|]
                     // Still need to close the paragraph.
-                    lastParagraph.Append("\n" + trailingWs);
+                    unclosedParagraph.Append("\n" + trailingWs);
                     return ParseSuccessful(EmptyLineNode, false);
+                }
+            }
+            else
+            {
+                // Last node cannot be a closed paragrap.
+                // It can't because ONLY ParseLineEnd can close a paragraph.
+                Debug.Assert(!(lastNode is Paragraph), "Last node cannot be a closed paragraph.");
+                // Rather, last node is LINE node of other type (LIST_ITEM/HEADING).
+                // Remember we've consumed a \n , and the spaces after it.
+                if (NeedsTerminate(Terminator.Get(@"\n")))
+                {
+                    // abc \n TERM  -->  [|abc|] PC[||]
+                    // Note here TERM excludes \n
+                    var anotherparagraph = new Paragraph();
+                    if (trailingWs != null) anotherparagraph.Append(trailingWs);
+                    return ParseSuccessful(anotherparagraph);
                 }
             }
             // abc \n def
             // That's not the end of a prargraph. Fallback to before the 1st \n .
-            return ParseFailed<LineNode>();
+            // Note here we have already consumed a \n .
+            Fallback();
+            return EmptyLineNode;
         }
 
         /// <summary>
@@ -326,16 +318,20 @@ namespace MwParserFromScratch
         /// PARAGRAPH
         /// </summary>
         /// <remarks>The parsing operation will always succeed.</remarks>
-        private Paragraph ParseCompactParagraph(Paragraph mergeTo)
+        private LineNode ParseCompactParagraph(LineNode lastNode)
         {
-            Debug.Assert(mergeTo == null || mergeTo.Compact, "Attempt to merge to a closed paragraph.");
-            // Create a new paragraph, or merge the new line to the existing paragraph.
+            var mergeTo = lastNode as Paragraph;
+            if (mergeTo != null && !mergeTo.Compact) mergeTo = null;
+            // Create a new paragraph, or merge the new line to the last unclosed paragraph.
             ParseStart();
             mergeTo?.Append("\n");
             var node = mergeTo ?? new Paragraph();
-            // Allows an empty paragraph.
+            // Allows an empty paragraph/line.
             ParseRun(RunParsingMode.Run, node);
-            return ParseSuccessful(node, mergeTo == null);
+            if (node == mergeTo)
+                return ParseSuccessful(EmptyLineNode, false);
+            else
+                return ParseSuccessful(node);
         }
 
         /// <summary>

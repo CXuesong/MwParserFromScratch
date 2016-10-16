@@ -127,7 +127,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"{Prefix}[{string.Join(null, Inlines)}]";
+            return Prefix + string.Join(null, Inlines);
         }
     }
 
@@ -175,7 +175,8 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"H{Level}[{string.Join(null, Inlines)}]";
+            var bar = new string('=', Level);
+            return  bar + string.Join(null, Inlines) + bar;
         }
     }
 
@@ -224,7 +225,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            return $"P[{string.Join(null, Inlines)}]";
+            return string.Join(null, Inlines);
         }
     }
 }

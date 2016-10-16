@@ -15,8 +15,8 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("", "");
             root = Utility.ParseAndAssert("\n", "P[\n]");
-            root = Utility.ParseAndAssert("\n\n", "P[]\nP[]");
-            root = Utility.ParseAndAssert("\n\n\n", "P[\n]\nP[\n]");
+            root = Utility.ParseAndAssert("\n\n", "P[]P[]");
+            root = Utility.ParseAndAssert("\n\n\n", "P[\n]P[\n]");
         }
 
         [TestMethod]
@@ -36,27 +36,39 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestLines3()
         {
-            var root = Utility.ParseAndAssert("Hello, world!\n\n", "P[Hello, world!]\nP[]");
+            var root = Utility.ParseAndAssert("Hello, world!\n\n", "P[Hello, world!]P[]");
             root = Utility.ParseAndAssert("Hello, world!\ntest\n", "P[Hello, world!\ntest\n]");
         }
 
         [TestMethod]
         public void TestLines4()
         {
-            var root = Utility.ParseAndAssert("Hello, world!\n\n\n", "P[Hello, world!\n]\nP[\n]");
-            root = Utility.ParseAndAssert("Hello, world!\n\ntest\n", "P[Hello, world!\n]\nP[test\n]");
+            var root = Utility.ParseAndAssert("Hello, world!\n\n\n", "P[Hello, world!\n]P[\n]");
+            root = Utility.ParseAndAssert("Hello, world!\n\ntest\n", "P[Hello, world!\n]P[test\n]");
         }
 
         [TestMethod]
         public void TestLines5()
         {
-            var root = Utility.ParseAndAssert("Hello, \n\nworld!", "P[Hello, \n]\nP[world!]");
+            var root = Utility.ParseAndAssert("Hello, \n\nworld!", "P[Hello, \n]P[world!]");
         }
 
         [TestMethod]
         public void TestLines6()
         {
-            var root = Utility.ParseAndAssert("P1L1\r\nP1L2\r\n\r\nP2L1\r\n\r\n", "P[P1L1\r\nP1L2\r\n\r]\nP[P2L1\r]\nP[\r]");
+            var root = Utility.ParseAndAssert("P1L1\r\nP1L2\r\n\r\nP2L1\r\n\r\n", "P[P1L1\r\nP1L2\r\n\r]P[P2L1\r]P[\r]");
+        }
+
+        [TestMethod]
+        public void TestList1()
+        {
+            var root = Utility.ParseAndAssert("* Item1\n*# Item2\n*#Item3\n**Item4", "*[ Item1]*#[ Item2]*#[Item3]**[Item4]");
+        }
+
+        [TestMethod]
+        public void TestHeading1()
+        {
+            var root = Utility.ParseAndAssert("== Title ==\n", "H2[ Title ]P[]");
         }
 
         [TestMethod]
@@ -74,7 +86,7 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestFormat3()
         {
-            var root = Utility.ParseAndAssert("'''Hello''',\n\n''world''!", "P[[B]Hello[B],\n]\nP[[I]world[I]!]");
+            var root = Utility.ParseAndAssert("'''Hello''',\n\n''world''!", "P[[B]Hello[B],\n]P[[I]world[I]!]");
         }
 
         [TestMethod]
@@ -86,7 +98,7 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestComment()
         {
-            var root = Utility.ParseAndAssert("Text<!--Comment\n\nComment-->Text\n", "P[Text![Comment\n\nComment]Text\n]");
+            var root = Utility.ParseAndAssert("Text<!--Comment\n\nComment-->Text\n", "P[Text<!--Comment\n\nComment-->Text\n]");
         }
 
 
@@ -111,7 +123,7 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestExternalLink1()
         {
-            var root = Utility.ParseAndAssert("http://cxuesong.com\n", "P[[http://cxuesong.com]\n]");
+            var root = Utility.ParseAndAssert("http://cxuesong.com\n", "P[-[http://cxuesong.com]-\n]");
             var link = (ExternalLink)root.Lines.First().Inlines.First();
             Assert.AreEqual(link.Target.ToString(), "http://cxuesong.com");
             Assert.AreEqual(link.Text, null);

@@ -40,9 +40,9 @@ PLAIN_TEXT  -> ".+"         # Repeats until a terminator or suspectable plain-te
 # Hierarchical & lexical syntax
 
 WIKITEXT    -> LINE "\n" WIKITEXT / LINE / empty                # An empty WIKITEXT contains no children
-            +| "\n"                                             # The last line has no extra trailing \n
 
 LINE        -> LIST_ITEM / HEADING / PARAGRAPH
+            +| "\n"                                             # The last line has no extra trailing \n
 
 # Known Issue: Cannot handle code like
 #   ; Term : Defination
