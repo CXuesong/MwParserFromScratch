@@ -290,13 +290,13 @@ namespace MwParserFromScratch
             //  arg1}} ==
 
             // Test different levels of heading
-            var node = new Heading();
             for (var level = prefix.Length; level > 0; level--)
             {
                 var prefixExpr = "={" + level + "}";
                 var suffixExpr = "(?m)={" + level + "}$";
                 ParseStart(suffixExpr, false);
                 ConsumeToken(prefixExpr);
+                var node = new Heading();
                 if (!ParseRun(RunParsingMode.Run, node))
                 {
                     ParseFailed<Heading>();

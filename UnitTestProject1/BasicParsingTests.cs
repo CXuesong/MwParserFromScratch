@@ -68,7 +68,13 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestHeading1()
         {
-            var root = Utility.ParseAndAssert("== Title ==\n", "H2[ Title ]P[]");
+            var root = Utility.ParseAndAssert("test\n= Title =\n", "P[test]H1[ Title ]P[]");
+        }
+
+        [TestMethod]
+        public void TestHeading2()
+        {
+            var root = Utility.ParseAndAssert("test\n\n===== Title ===\n", "P[test\n]H3[== Title ]P[]");
         }
 
         [TestMethod]
