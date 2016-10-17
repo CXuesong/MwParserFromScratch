@@ -402,7 +402,8 @@ namespace MwParserFromScratch
 
         private WikiLink ParseWikiLink()
         {
-            ParseStart(@"\||\]\]", false);
+            // Note that wikilink cannot nest itself.
+            ParseStart(@"\||\[\[|\]\]", false);
             if (ConsumeToken(@"\[\[") == null) return ParseFailed<WikiLink>();
             var target = new Run();
             if (!ParseRun(RunParsingMode.ExpandableText, target)) return ParseFailed<WikiLink>();
@@ -411,7 +412,7 @@ namespace MwParserFromScratch
             {
                 var text = new Run();
                 // Text accepts pipe
-                CurrentContext.Terminator = Terminator.Get(@"\]\]");
+                CurrentContext.Terminator = Terminator.Get(@"\[\[|\]\]");
                 // For [[target|]], Text == Empty Run
                 // For [[target]], Text == null
                 if (ParseRun(RunParsingMode.ExpandableText, text))

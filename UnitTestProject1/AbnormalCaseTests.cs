@@ -115,5 +115,11 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("[[Target|Text1|Text2]]", "P[[[Target|Text1|Text2]]]");
         }
+
+        [TestMethod]
+        public void TestWikiLink3()
+        {
+            var root = Utility.ParseAndAssert("[[Target[[Text1|Text2]]", "P[$[$[Target[[Text1|Text2]]]");
+        }
     }
 }
