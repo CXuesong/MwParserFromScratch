@@ -110,11 +110,11 @@ TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT             # [[abc|def]]={{
 ARGUMENT_REF    -> "{{{" WIKITEXT "|" WIKITEXT "}}}" / "{{{" WIKITEXT "}}}"
                 +| "|"
 
-# Template expansion is disabled in TAG
+# Template expansion is disabled in parser TAGs
 TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
 TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
 TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""              # <tag attr="value">
-            /  IDENTIFIER "\s*=\s*'" "[^\s]*" "'"               # <tag attr='value'>
+            /  IDENTIFIER "\s*=\s*'" "[^']*" "'"                # <tag attr='value'>
             /  IDENTIFIER "\s*=\s*" "[^\s]*"                    # <tag attr=value> or <tag attr= >
             /  IDENTIFIER "\s*"                                 # <tag attr>
             

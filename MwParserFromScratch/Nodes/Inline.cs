@@ -282,9 +282,11 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// &lt;tag attr1=value1&gt;content&lt;/tag&gt;
     /// </summary>
-    public class Tag : Node
+    public abstract class TagNode : Node
     {
-        public Tag()
+        private string _TrailingWhitespace;
+
+        public TagNode()
         {
             Attributes = new NodeCollection<TagAttribute>(this);
         }
@@ -294,43 +296,195 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         public string Name { get; set; }
 
+        /// <summary>
+        /// Name of the closing tag. It may have a different letter-case from <see cref="Name"/>.
+        /// </summary>
+        /// <value>The name of closing tag. OR <c>null</c> if it shares exactly the same content as <see cref="Name"/>.</value>
+        public string ClosingTagName { get; set; }
+
+        /// <summary>
+        /// Whether the tag is self closed. E.g. &lt;references /&gt;.
+        /// </summary>
+        public abstract bool IsSelfClosing { get; set; }
+
+        /// <summary>
+        /// The trailing whitespace for the opening tag.
+        /// </summary>
+        /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
+        public string TrailingWhitespace
+        {
+            get { return _TrailingWhitespace; }
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("Only null or white spaces are accepted.", nameof(value));
+                _TrailingWhitespace = value;
+            }
+        }
+
+        /// <summary>
+        /// The trailing whitespace for the closing tag.
+        /// </summary>
+        /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
+        public string ClosingTagTrailingWhitespace
+        {
+            get { return _TrailingWhitespace; }
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("Only null or white spaces are accepted.", nameof(value));
+                _TrailingWhitespace = value;
+            }
+        }
+
         public NodeCollection<TagAttribute> Attributes { get; }
 
-        //TODO parse common tags, e.g. span
+        protected abstract string GetContentString();
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder("<");
+            sb.Append(Name);
+            sb.Append(string.Join(null, Attributes));
+            sb.Append(TrailingWhitespace);
+            if (IsSelfClosing)
+            {
+                sb.Append("/>");
+                return sb.ToString();
+            }
+            sb.Append('>');
+            sb.Append(GetContentString());
+            sb.Append('<');
+            sb.Append(ClosingTagName ?? Name);
+            sb.Append(ClosingTagTrailingWhitespace);
+            sb.Append('>');
+            return sb.ToString();
+        }
+    }
+
+    public class ParserTag : TagNode
+    {
         /// <summary>
         /// Raw content of the tag.
         /// </summary>
         /// <value>Content of the tag, as string. If the tag is self-closing, the value is <c>null</c>.</value>
-        public string RawContent { get; set; }
+        public string Content { get; set; }
 
         protected override Node CloneCore()
         {
-            var n = new Tag {Name = Name, RawContent = RawContent};
+            var n = new ParserTag
+            {
+                Name = Name,
+                ClosingTagName = ClosingTagName,
+                Content = Content,
+                TrailingWhitespace = TrailingWhitespace,
+                ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
+            };
             n.Attributes.Add(Attributes);
             return n;
         }
 
-        public override string ToString()
+        /// <summary>
+        /// Whether the tag is self closed. E.g. &lt;references /&gt;.
+        /// </summary>
+        public override bool IsSelfClosing
         {
-            // TODO Preserve the whitespace information between attributes.
-            var s = $"<{Name}{string.Join(" ", Attributes)}";
-            if (RawContent == null) return s + " />";
-            return $"{s}>{RawContent}</{Name}>";
+            get { return Content == null; }
+            set
+            {
+                if (value)
+                {
+                    if (!string.IsNullOrEmpty(Content))
+                        throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
+                    Content = null;
+                }
+                else if (Content == null)
+                {
+                    Content = "";
+                }
+            }
         }
+
+        protected override string GetContentString() => Content;
+    }
+
+    public class HtmlTag : TagNode
+    {
+        /// <summary>
+        /// Content of the tag.
+        /// </summary>
+        /// <value>Content of the tag, as <see cref="Wikitext"/>. If the tag is self-closing, the value is <c>null</c>.</value>
+        public Wikitext Content { get; set; }
+
+        protected override Node CloneCore()
+        {
+            var n = new HtmlTag
+            {
+                Name = Name,
+                ClosingTagName = ClosingTagName,
+                Content = Content,
+                TrailingWhitespace = TrailingWhitespace,
+                ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
+            };
+            n.Attributes.Add(Attributes);
+            return n;
+        }
+
+        /// <summary>
+        /// Whether the tag is self closed. E.g. &lt;references /&gt;.
+        /// </summary>
+        public override bool IsSelfClosing
+        {
+            get { return Content == null; }
+            set
+            {
+                if (value)
+                {
+                    if (Content != null && !Content.Lines.IsEmpty)
+                        throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
+                    Content = null;
+                }
+                else if (Content == null)
+                {
+                    Content = new Wikitext();
+                }
+            }
+        }
+
+        protected override string GetContentString() => Content?.ToString();
     }
 
     public class TagAttribute : Node
     {
-        public string Name { get; set; }
+        private string _LeadingWhitespace;
 
-        public string Value { get; set; }
+        public Run Name { get; set; }
+
+        public Wikitext Value { get; set; }
+
+        /// <summary>
+        /// The whitespace before the property expression.
+        /// </summary>
+        /// <exception cref="ArgumentException">The string contains non-white-space characters. OR The string is <c>null</c> or empty.</exception>
+        public string LeadingWhitespace
+        {
+            get { return _LeadingWhitespace; }
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("Only white spaces are accepted.", nameof(value));
+                if (string.IsNullOrEmpty(value))
+                    throw new ArgumentException("Null or empty string is not accepted.", nameof(value));
+                _LeadingWhitespace = value;
+            }
+        }
 
         protected override Node CloneCore()
         {
             return new TagAttribute {Name = Name, Value = Value};
         }
 
-        public override string ToString() => $" {Name}={Value}";
+        public override string ToString() => LeadingWhitespace + Name + "=" + Value;
     }
 
     public class Comment : InlineNode

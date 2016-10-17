@@ -60,7 +60,7 @@ namespace MwParserFromScratch.Nodes
     }
 
     /// <summary>
-    /// A single-line run.
+    /// A single-line RUN.
     /// </summary>
     public class Run : InlineContainer
     {
