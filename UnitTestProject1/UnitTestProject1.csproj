@@ -55,6 +55,7 @@
     <Compile Include="BasicParsingTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AbnormalCaseTests.cs" />
+    <Compile Include="TemplateParsingTests.cs" />
     <Compile Include="Utility.cs" />
   </ItemGroup>
   <ItemGroup>

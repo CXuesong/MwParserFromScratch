@@ -72,6 +72,13 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
+        public void TestList3()
+        {
+            // Mixed
+            var root = Utility.ParseAndAssert("* Item1\nLine2\n  Item3\nLine4\n", "*[ Item1]P[Line2] [ Item3]P[Line4\n]");
+        }
+
+        [TestMethod]
         public void TestHeading1()
         {
             var root = Utility.ParseAndAssert("test\n= Title =\n", "P[test]H1[ Title ]P[]");

@@ -43,13 +43,13 @@ namespace MwParserFromScratch.Nodes
         public Run Target
         {
             get { return _Target; }
-            set { _Target = value == null ? null : Attach(value); }
+            set { Attach(ref _Target, value); }
         }
 
         public Run Text
         {
             get { return _Text; }
-            set { _Text = value == null ? null : Attach(value); }
+            set { Attach(ref _Text, value); }
         }
 
         protected override Node CloneCore()
@@ -68,13 +68,13 @@ namespace MwParserFromScratch.Nodes
         public Run Target
         {
             get { return _Target; }
-            set { _Target = value == null ? null : Attach(value); }
+            set { Attach(ref _Target, value); }
         }
 
         public Run Text
         {
             get { return _Text; }
-            set { _Text = value == null ? null : Attach(value); }
+            set { Attach(ref _Text, value); }
         }
 
         /// <summary>
@@ -141,17 +141,22 @@ namespace MwParserFromScratch.Nodes
 
     public class Template : InlineNode
     {
-        private Wikitext _Name;
+        private Run _Name;
 
-        public Template()
+        public Template() : this(null)
         {
+        }
+
+        public Template(Run name)
+        {
+            Name = name;
             Arguments = new NodeCollection<TemplateArgument>(this);
         }
 
-        public Wikitext Name
+        public Run Name
         {
             get { return _Name; }
-            set { _Name = Attach(value ?? new Wikitext()); }
+            set { Attach(ref _Name, value); }
         }
 
         public NodeCollection<TemplateArgument> Arguments { get; }
@@ -173,6 +178,7 @@ namespace MwParserFromScratch.Nodes
                 sb.Append('|');
                 sb.Append(arg);
             }
+            sb.Append("}}");
             return sb.ToString();
         }
     }
@@ -182,6 +188,16 @@ namespace MwParserFromScratch.Nodes
         private Wikitext _Name;
         private Wikitext _Value;
 
+        public TemplateArgument() : this(null, null)
+        {
+        }
+
+        public TemplateArgument(Wikitext name, Wikitext value)
+        {
+            Name = name;
+            Value = value;
+        }
+
         /// <summary>
         /// Name of the argument.
         /// </summary>
@@ -189,13 +205,13 @@ namespace MwParserFromScratch.Nodes
         public Wikitext Name
         {
             get { return _Name; }
-            set { _Name = Attach(value ?? new Wikitext()); }
+            set { Attach(ref _Name, value); }
         }
 
         public Wikitext Value
         {
             get { return _Value; }
-            set { _Value = Attach(value ?? new Wikitext()); }
+            set { Attach(ref _Value, value); }
         }
 
         protected override Node CloneCore()
@@ -214,10 +230,24 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// {{{name|defalut}}}
     /// </summary>
-    public class ArgumentReference : Node
+    public class ArgumentReference : InlineNode
     {
         private Wikitext _Name;
         private Wikitext _DefaultValue;
+
+        public ArgumentReference() : this(null, null)
+        {
+        }
+
+        public ArgumentReference(Wikitext name) : this(name, null)
+        {
+        }
+
+        public ArgumentReference(Wikitext name, Wikitext defaultValue)
+        {
+            Name = name;
+            DefaultValue = defaultValue;
+        }
 
         /// <summary>
         /// Name of the argument.
@@ -226,13 +256,13 @@ namespace MwParserFromScratch.Nodes
         public Wikitext Name
         {
             get { return _Name; }
-            set { _Name = Attach(value ?? new Wikitext()); }
+            set { Attach(ref _Name, value); }
         }
 
         public Wikitext DefaultValue
         {
             get { return _DefaultValue; }
-            set { _DefaultValue = Attach(value ?? new Wikitext()); }
+            set { Attach(ref _DefaultValue, value); }
         }
 
         protected override Node CloneCore()

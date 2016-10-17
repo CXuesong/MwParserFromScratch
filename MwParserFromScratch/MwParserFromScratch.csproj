@@ -37,6 +37,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="WikitextParser.TemplateStuff.cs" />
     <Compile Include="IWikitextLineInfo.cs" />
     <Compile Include="Nodes\Inline.cs" />
     <Compile Include="Nodes\NodeCollection.cs" />

@@ -11,7 +11,7 @@ namespace MwParserFromScratch
     /// <summary>
     /// A parser that parses Wikitext into AST.
     /// </summary>
-    public class WikitextParser
+    public partial class WikitextParser
     {
         private string fulltext;
         private int position; // Starting index of the string to be consumed.
@@ -66,13 +66,14 @@ namespace MwParserFromScratch
         /// Looks ahead and checks where to terminate the PLAIN_TEXT matching.
         /// </summary>
         /// <returns>The index of the first character of the terminator.</returns>
-        private int FindTerminator()
+        private int FindTerminator(int skippedCharacters)
         {
-            if (position >= fulltext.Length) return -1;
-            int index = -1;
+            if (position + skippedCharacters >= fulltext.Length)
+                return fulltext.Length;
+            int index = fulltext.Length;
             foreach (var context in contextStack)
             {
-                var newIndex = context.FindTerminator(fulltext, position);
+                var newIndex = context.FindTerminator(fulltext, position + skippedCharacters);
                 if (newIndex >= 0 && (index < 0 || newIndex < index))
                     index = newIndex;
             }
@@ -96,7 +97,8 @@ namespace MwParserFromScratch
         private T ParseSuccessful<T>(T value, bool setLineNumber = true) where T : Node
         {
             Debug.Assert(value != null);
-            if (setLineNumber) value.SetLineInfo(CurrentContext.StartingLineNumber, CurrentContext.StartingLinePosition);
+            if (setLineNumber)
+                value.SetLineInfo(CurrentContext.StartingLineNumber, CurrentContext.StartingLinePosition);
             Accept();
             return value;
         }
@@ -129,9 +131,10 @@ namespace MwParserFromScratch
         /// <remarks>The empty wikitext contains nothing. Thus the parsing should always be successful.</remarks>
         private Wikitext ParseWikitext()
         {
+            ParseStart();
             var node = new Wikitext();
             LineNode lastLine = null;
-            if (NeedsTerminate()) return node;
+            if (NeedsTerminate()) return ParseSuccessful(node);
             NEXT_LINE:
             var line = ParseLine(lastLine);
             if (line != EmptyLineNode)
@@ -145,12 +148,12 @@ namespace MwParserFromScratch
                 // Failed to read a \n , which means we've reached a terminator.
                 // This is guaranteed in ParseLineEnd
                 Debug.Assert(NeedsTerminate());
-                return node;
+                return ParseSuccessful(node);
             }
             // Otherwise, check whether we meet a terminator before reading another line.
             if (extraPara != EmptyLineNode)
                 node.Lines.Add(extraPara);
-            if (NeedsTerminate()) return node;
+            if (NeedsTerminate()) return ParseSuccessful(node);
             goto NEXT_LINE;
         }
 
@@ -337,6 +340,7 @@ namespace MwParserFromScratch
         /// <summary>
         /// RUN
         /// </summary>
+        /// <returns><c>true</c> if one or more nodes has been parsed.</returns>
         private bool ParseRun(RunParsingMode mode, InlineContainer container)
         {
             ParseStart();
@@ -344,7 +348,7 @@ namespace MwParserFromScratch
             while (!NeedsTerminate())
             {
                 // Read more
-                InlineNode inline;
+                InlineNode inline = null;
                 if ((inline = ParseExpandable()) != null) goto NEXT;
                 switch (mode)
                 {
@@ -396,6 +400,7 @@ namespace MwParserFromScratch
         {
             ParseStart();
             InlineNode node;
+            if ((node = ParseBraces()) != null) return ParseSuccessful(node);
             if ((node = ParseComment()) != null) return ParseSuccessful(node);
             return ParseFailed<InlineNode>();
         }
@@ -403,7 +408,7 @@ namespace MwParserFromScratch
         private WikiLink ParseWikiLink()
         {
             // Note that wikilink cannot nest itself.
-            ParseStart(@"\||\[\[|\]\]", false);
+            ParseStart(@"\||\n|\[\[|\]\]", true);
             if (ConsumeToken(@"\[\[") == null) return ParseFailed<WikiLink>();
             var target = new Run();
             if (!ParseRun(RunParsingMode.ExpandableText, target)) return ParseFailed<WikiLink>();
@@ -412,7 +417,7 @@ namespace MwParserFromScratch
             {
                 var text = new Run();
                 // Text accepts pipe
-                CurrentContext.Terminator = Terminator.Get(@"\[\[|\]\]");
+                CurrentContext.Terminator = Terminator.Get(@"\n|\[\[|\]\]");
                 // For [[target|]], Text == Empty Run
                 // For [[target]], Text == null
                 if (ParseRun(RunParsingMode.ExpandableText, text))
@@ -424,7 +429,7 @@ namespace MwParserFromScratch
 
         private ExternalLink ParseExternalLink()
         {
-            ParseStart(@"[\s\]]", false);
+            ParseStart(@"[\s\]\|]", true);
             var brackets = ConsumeToken(@"\[") != null;
             // Parse target
             Run target;
@@ -447,7 +452,7 @@ namespace MwParserFromScratch
                 // Parse text
                 if (ConsumeToken(@"[ \t]") != null)
                 {
-                    CurrentContext.Terminator = Terminator.Get(@"\]");
+                    CurrentContext.Terminator = Terminator.Get(@"[\]\n]");
                     var text = new Run();
                     // For [http://target  ], Text == " "
                     // For [http://target ], Text == Empty Run
@@ -530,29 +535,30 @@ namespace MwParserFromScratch
         /// <remarks>A PLAIN_TEXT contains at least 1 character.</remarks>
         private PlainText ParsePartialPlainText()
         {
+            ParseStart();
             // Terminates now?
-            if (NeedsTerminate()) return null;
+            if (NeedsTerminate()) return ParseFailed<PlainText>();
             // Or find the nearest terminator.
-            var terminatorPos = FindTerminator();
-            if (terminatorPos < 0) terminatorPos = fulltext.Length;
             // We'll at least consume 1 character.
+            var terminatorPos = FindTerminator(1);
+            // Remember, we'll at least consume 1 character.
             var susceptableEnd = SuspectablePlainTextEndMatcher.Match(fulltext, position + 1,
                 terminatorPos - position - 1);
             var origPos = position;
             if (susceptableEnd.Success)
             {
                 MovePositionTo(susceptableEnd.Index);
-                return new PlainText(fulltext.Substring(origPos, susceptableEnd.Index - origPos));
+                return ParseSuccessful(new PlainText(fulltext.Substring(origPos, susceptableEnd.Index - origPos)));
             }
             else if (terminatorPos > 0)
             {
                 MovePositionTo(terminatorPos);
-                return new PlainText(fulltext.Substring(origPos, terminatorPos - origPos));
+                return ParseSuccessful(new PlainText(fulltext.Substring(origPos, terminatorPos - origPos)));
             }
             else
             {
                 MovePositionTo(fulltext.Length);
-                return new PlainText(fulltext.Substring(origPos));
+                return ParseSuccessful(new PlainText(fulltext.Substring(origPos)));
             }
         }
 
@@ -598,7 +604,7 @@ namespace MwParserFromScratch
             if (!m.Success) return null;
             Debug.Assert(position == m.Index);
             // We want to move forward.
-            Debug.Assert(m.Length > 0);
+            Debug.Assert(m.Length > 0, "A successful matching should consume at least 1 character.");
             return m.Value;
         }
 
@@ -618,8 +624,17 @@ namespace MwParserFromScratch
 
         private enum RunParsingMode
         {
+            /// <summary>
+            /// Single line text.
+            /// </summary>
             Run = 0,
+            /// <summary>
+            /// Single line text with EXPANDABLE.
+            /// </summary>
             ExpandableText = 1,
+            /// <summary>
+            /// Single line URL with EXPANDABLE.
+            /// </summary>
             ExpandableUrl = 2,
         }
 

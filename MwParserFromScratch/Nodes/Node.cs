@@ -86,6 +86,15 @@ namespace MwParserFromScratch.Nodes
             return newNode;
         }
 
+        internal void Attach<TNode>(ref TNode nodeStorge, TNode newValue)
+            where TNode : Node
+        {
+            if (newValue == nodeStorge) return;
+            newValue = Attach(newValue);
+            if (nodeStorge != null) Detach(nodeStorge);
+            nodeStorge = newValue;
+        }
+
         internal void Detach(Node node)
         {
             node.ParentNode = null;

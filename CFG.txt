@@ -100,13 +100,12 @@ EXTERNAL_LINK_TEXT      -> RUN
 FORMAT_SWITCH       -> "'{5}(?!')" / "'{3}(?!')" / "'{2}(?!')"  # Also handles '''ab''cd'''efg''
 
 # Known Issue: The derivation is ambiguous for {{{{T}}}} .
-# Current implementation will treat it as {{{ {T} }}}, where {T} is rendered as normal text,
+# Current implementation will treat it as {{{ {T }}} }, where {T is rendered as normal text,
 # while actually it should be treated as { {{{T}}} }.
 # Note that there's no ambiguity for nested brackets delimited with spaces, e.g. {{ {{T}} }}
-TEMPLATE        -> "{{" WIKITEXT TEMPLATE_ARGS "}}"
-                >| "}}"
+TEMPLATE        -> "{{" EXPANDABLE_TEXT TEMPLATE_ARGS "}}"
+                >| "}}" / "|"
 TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
-                +| "|"
 TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT             # [[abc|def]]={{def}} is valid!
 ARGUMENT_REF    -> "{{{" WIKITEXT "|" WIKITEXT "}}}" / "{{{" WIKITEXT "}}}"
                 +| "|"

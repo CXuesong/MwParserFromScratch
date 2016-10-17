@@ -121,5 +121,69 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("[[Target[[Text1|Text2]]", "P[$[$[Target[[Text1|Text2]]]");
         }
+
+        [TestMethod]
+        public void TestOverlap1()
+        {
+            var root = Utility.ParseAndAssert("[[Target/{{T|]]=abc}}|Title]]", "P[[[Target/{{T|P[$]$]]=P[abc]}}|Title]]]");
+        }
+
+        [TestMethod]
+        public void TestOverlap2()
+        {
+            var root = Utility.ParseAndAssert("{{T|a=[[Link}}text]]", "P[${${T|a=[[Link$}$}text]]]");
+        }
+
+        [TestMethod]
+        public void TestBraces1()
+        {
+            var root = Utility.ParseAndAssert("{{{{arg}}}}", "P[${{{{P[arg]}}}$}]");
+        }
+
+        [TestMethod]
+        public void TestBraces2()
+        {
+            var root = Utility.ParseAndAssert("{{{{{arg}}}|test}}", "P[{{{{{arg}}}|P[test]}}]");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(AssertFailedException))]
+        public void TestBraces3()
+        {
+            // This hasn't been solved yet.
+            var root = Utility.ParseAndAssert("{{{{{arg}}", "P[${${${{{arg}}]");
+        }
+
+        [TestMethod]
+        public void TestBraces4()
+        {
+            var root = Utility.ParseAndAssert("{{{{{arg", "P[${${${${${arg]");
+        }
+
+        [TestMethod]
+        public void TestBraces5()
+        {
+            var root = Utility.ParseAndAssert("{arg", "P[${arg]");
+        }
+
+
+        [TestMethod]
+        public void TestBraces6()
+        {
+            var root = Utility.ParseAndAssert("{{arg", "P[${${arg]");
+        }
+        
+        [TestMethod]
+        public void TestBraces7()
+        {
+            var root = Utility.ParseAndAssert("{{{arg", "P[${${${arg]");
+        }
+
+        [TestMethod]
+        public void TestBraces8()
+        {
+            var root = Utility.ParseAndAssert("{{{arg}}}}}", "P[{{{P[arg]}}}$}$}]");
+        }
+
     }
 }

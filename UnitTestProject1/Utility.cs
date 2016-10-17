@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MwParserFromScratch;
@@ -12,6 +13,69 @@ namespace UnitTestProject1
 {
     internal static class Utility
     {
+        private static Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
+
+        private static void RegisterDumpHandler<T>(Func<T, string> handler) where T : Node
+        {
+            dumpHandlers.Add(typeof(T), n => handler((T) n));
+        }
+
+        static Utility()
+        {
+            // Add a $ mark before brackets to escape them
+            RegisterDumpHandler<PlainText>(n => Regex.Replace(n.Content, @"(?=[\[\]\{\}])", "$"));
+            RegisterDumpHandler<FormatSwitch>(fs =>
+            {
+                if (fs.SwitchBold && fs.SwitchItalics)
+                    return "[BI]";
+                if (fs.SwitchBold)
+                    return "[B]";
+                if (fs.SwitchItalics)
+                    return "[I]";
+                return "[]";
+            });
+            RegisterDumpHandler<WikiLink>(n => n.Text == null
+                ? $"[[{Dump(n.Target)}]]"
+                : $"[[{Dump(n.Target)}|{Dump(n.Text)}]]");
+            RegisterDumpHandler<ExternalLink>(el =>
+            {
+                var s = el.ToString();
+                // Add brackets to distinguish links form normal text.
+                if (!el.Brackets) return "-[" + s + "]-";
+                return s;
+            });
+            RegisterDumpHandler<Run>(w => string.Join(null, w.Inlines.Select(Dump)));
+            RegisterDumpHandler<ListItem>(li => li.Prefix + "[" + string.Join(null, li.Inlines.Select(Dump)) + "]");
+            RegisterDumpHandler<Heading>(h => $"H{h.Level}[{string.Join(null, h.Inlines.Select(Dump))}]");
+            RegisterDumpHandler<Paragraph>(p => $"P[{string.Join(null, p.Inlines.Select(Dump))}]");
+            RegisterDumpHandler<Wikitext>(w => string.Join(null, w.Lines.Select(Dump)));
+            RegisterDumpHandler<ArgumentReference>(n =>
+            {
+                var s = "{{{" + Dump(n.Name);
+                if (n.DefaultValue != null) s += "|" + Dump(n.DefaultValue);
+                return s + "}}}";
+            });
+            RegisterDumpHandler<Template>(n =>
+            {
+                if (n.Arguments.IsEmpty) return "{{" + Dump(n.Name) + "}}";
+                var sb = new StringBuilder("{{");
+                sb.Append(n.Name);
+                foreach (var arg in n.Arguments)
+                {
+                    sb.Append('|');
+                    sb.Append(Dump(arg));
+                }
+                sb.Append("}}");
+                return sb.ToString();
+            });
+            RegisterDumpHandler<TemplateArgument>(n =>
+            {
+                if (n.Name == null) return Dump(n.Value);
+                return Dump(n.Name) + "=" + Dump(n.Value);
+            });
+            RegisterDumpHandler<Comment>(n => n.ToString());
+        }
+
         public static Wikitext ParseWikitext(string text)
         {
             var parser = new WikitextParser();
@@ -28,7 +92,7 @@ namespace UnitTestProject1
             Trace.WriteLine("");
             if (expectedExpression != rootExpr)
             {
-                Assert.Fail("Expect:\n{0}\n, got\n{1}\n.", EscapeString(expectedExpression), EscapeString(rootExpr));
+                Assert.Fail("Expect: <{0}>, got: <{1}>.", EscapeString(expectedExpression), EscapeString(rootExpr));
             }
             return root;
         }
@@ -40,40 +104,8 @@ namespace UnitTestProject1
 
         public static string Dump(Node node)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            var pt = node as PlainText;
-            if (pt != null) return pt.Content.Replace("[", @"$[").Replace("]", @"$]");
-            var fs = node as FormatSwitch;
-            if (fs != null)
-            {
-                if (fs.SwitchBold && fs.SwitchItalics)
-                    return "[BI]";
-                if (fs.SwitchBold)
-                    return "[B]";
-                if (fs.SwitchItalics)
-                    return "[I]";
-                return "[]";
-            }
-            var el = node as ExternalLink;
-            if (el != null)
-            {
-                var s = el.ToString();
-                // Add brackets to distinguish links form normal text.
-                if (!el.Brackets) return "-[" + s + "]-";
-            }
-            var li = node as ListItem;
-            if (li != null)
-                return li.Prefix + "[" + string.Join(null, li.Inlines.Select(Dump)) + "]";
-            var h = node as Heading;
-            if (h != null)
-                return $"H{h.Level}[{string.Join(null, h.Inlines.Select(Dump))}]";
-            var p = node as Paragraph;
-            if (p != null)
-                return $"P[{string.Join(null, p.Inlines.Select(Dump))}]";
-            var w = node as Wikitext;
-            if (w != null)
-                return string.Join(null, w.Lines.Select(Dump));
-            return node.ToString();
+            if (node == null) return null;
+            return dumpHandlers[node.GetType()](node);
         }
     }
 }
