@@ -366,6 +366,13 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
+    /// <summary>
+    /// E.g. &lt;ref&gt;
+    /// </summary>
+    /// <remarks>
+    /// The MediaWiki software adds elements that look and act like XML tags.
+    /// Parser tags are included in MediaWiki whereas parser extension tags are added by optional software extensions.
+    /// </remarks>
     public class ParserTag : TagNode
     {
         public ParserTag() : this(null)

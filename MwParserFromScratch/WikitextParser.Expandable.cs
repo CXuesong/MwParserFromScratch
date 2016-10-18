@@ -191,6 +191,7 @@ namespace MwParserFromScratch
                 closingTagMatch = matcher.Match(fulltext, position);
                 if (closingTagMatch.Success)
                 {
+                    pt.Content = fulltext.Substring(position, closingTagMatch.Index - position);
                     MovePositionTo(closingTagMatch.Index + closingTagMatch.Length);
                     goto CLOSE_TAG;
                 }

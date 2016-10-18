@@ -76,5 +76,21 @@ namespace UnitTestProject1
                 "Text<div style\t=\r\n\"background: red;\">Block <div title\n\n=\n\n\"text\">Hint\n\nHint</div></div>Test\n",
                 "P[Text<div style\t=\r\n\"background: red;\">P[Block <div title\n\n=\n\n\"text\">P[Hint\n]P[Hint]</div>]</div>Test\n]");
         }
+
+        [TestMethod]
+        public void TestTag3()
+        {
+            var root = Utility.ParseAndAssert(
+                ";Gallery\n<hr /><gallery mode=packed>Image1.png|Caption1\nImage2.png|Caption2</gallery>",
+                ";[Gallery]P[<hr /><gallery mode=packed>Image1.png|Caption1\nImage2.png|Caption2</gallery>]");
+        }
+
+        [TestMethod]
+        public void TestTag4()
+        {
+            var root = Utility.ParseAndAssert(
+                "Text<ref group='a'>reference</ref>\n==Citations==\n<references group=a  />",
+                "P[Text<ref group='a'>reference</ref>]H2[Citations]P[<references group=a  />]");
+        }
     }
 }
