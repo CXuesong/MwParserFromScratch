@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace UnitTestProject1
 {
     [TestClass]
-    public class TemplateParsingTests
+    public class ExpandableParsingTests
     {
         [TestMethod]
         public void TestArgumentRef1()
@@ -59,6 +59,22 @@ namespace UnitTestProject1
         public void TestBraces1()
         {
             var root = Utility.ParseAndAssert("{{Foo|{{Bar}}{{{Buzz}}}}}", "P[{{Foo|P[{{Bar}}{{{P[Buzz]}}}]}}]");
+        }
+
+        [TestMethod]
+        public void TestTag1()
+        {
+            var root = Utility.ParseAndAssert(
+                "Text<div style\t=\r\n\"background: red;\">Block</div>Test\n",
+                "P[Text<div style\t=\r\n\"background: red;\">P[Block]</div>Test\n]");
+        }
+
+        [TestMethod]
+        public void TestTag2()
+        {
+            var root = Utility.ParseAndAssert(
+                "Text<div style\t=\r\n\"background: red;\">Block <div title\n\n=\n\n\"text\">Hint\n\nHint</div></div>Test\n",
+                "P[Text<div style\t=\r\n\"background: red;\">P[Block <div title\n\n=\n\n\"text\">P[Hint\n]P[Hint]</div>]</div>Test\n]");
         }
     }
 }

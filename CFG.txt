@@ -67,8 +67,8 @@ PARAGRAPH           -> RUN "\n" PARAGRAPH                       #
                     /  empty                                    # (i.e. RUN \n RUN \n) 
 
 RUN         -> INLINE RUN / INLINE
-INLINE      -> EXPANDABLE / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
-EXPANDABLE  -> TEMPLATE / ARGUMENT_REF / TAG / COMMENT          # COMMENT expands to ""
+INLINE      -> EXPANDABLE / TAG / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
+EXPANDABLE  -> TEMPLATE / ARGUMENT_REF / COMMENT                # COMMENT expands to ""
 
 EXPANDABLE_TEXT -> EXPANDABLE EXPANDABLE_TEXT
                 /  PLAIN_TEXT EXPANDABLE_TEXT

@@ -13,7 +13,7 @@ namespace UnitTestProject1
 {
     internal static class Utility
     {
-        private static Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
+        private static readonly Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
 
         private static void RegisterDumpHandler<T>(Func<T, string> handler) where T : Node
         {
@@ -23,7 +23,7 @@ namespace UnitTestProject1
         static Utility()
         {
             // Add a $ mark before brackets to escape them
-            RegisterDumpHandler<PlainText>(n => Regex.Replace(n.Content, @"(?=[\[\]\{\}])", "$"));
+            RegisterDumpHandler<PlainText>(n => Regex.Replace(n.Content, @"(?=[\[\]\{\}<>])", "$"));
             RegisterDumpHandler<FormatSwitch>(fs =>
             {
                 if (fs.SwitchBold && fs.SwitchItalics)
@@ -74,6 +74,50 @@ namespace UnitTestProject1
                 return Dump(n.Name) + "=" + Dump(n.Value);
             });
             RegisterDumpHandler<Comment>(n => n.ToString());
+            Func<TagNode, string> tagNodeHandler = n =>
+            {
+                var sb = new StringBuilder("<");
+                sb.Append(n.Name);
+                sb.Append(string.Join(null, n.Attributes.Select(Dump)));
+                sb.Append(n.TrailingWhitespace);
+                if (n.IsSelfClosing)
+                {
+                    sb.Append("/>");
+                    return sb.ToString();
+                }
+                sb.Append('>');
+                var pt = n as ParserTag;
+                if (pt != null) sb.Append(pt.Content);
+                var ht = n as HtmlTag;
+                if (ht != null) sb.Append(Dump(ht.Content));
+                sb.Append("</");
+                sb.Append(n.ClosingTagName ?? n.Name);
+                sb.Append(n.ClosingTagTrailingWhitespace);
+                sb.Append('>');
+                return sb.ToString();
+            };
+            RegisterDumpHandler<ParserTag>(tagNodeHandler);
+            RegisterDumpHandler<HtmlTag>(tagNodeHandler);
+            RegisterDumpHandler<TagAttribute>(n =>
+            {
+                string quote;
+                switch (n.Quote)
+                {
+                    case ValueQuoteType.None:
+                        quote = null;
+                        break;
+                    case ValueQuoteType.SingleQuotes:
+                        quote = "'";
+                        break;
+                    case ValueQuoteType.DoubleQuotes:
+                        quote = "\"";
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+                return n.LeadingWhitespace + n.Name + n.WhitespaceBeforeEqualSign + "="
+                       + n.WhitespaceAfterEqualSign + quote + n.Value + quote;
+            });
         }
 
         public static Wikitext ParseWikitext(string text)
@@ -83,23 +127,34 @@ namespace UnitTestProject1
             return root;
         }
 
-        public static Wikitext ParseAndAssert(string text, string expectedExpression)
+        /// <summary>
+        /// Parses wikitext, and asserts
+        /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
+        /// 2. Whether the parsed AST is correct.
+        /// </summary>
+        public static Wikitext ParseAndAssert(string text, string expectedDump)
         {
             var parser = new WikitextParser();
             var root = parser.Parse(text);
+            var parsedText = root.ToString();
+            Trace.WriteLine("Original Text\n====================");
+            Trace.WriteLine(text);
+            Trace.WriteLine("Parsed Text\n====================");
+            Trace.WriteLine(parsedText);
             var rootExpr = Dump(root);
-            Trace.WriteLine(rootExpr);
-            Trace.WriteLine("");
-            if (expectedExpression != rootExpr)
+            Trace.WriteLine("AST Dump\n====================");
+            Trace.WriteLine(EscapeString(rootExpr));
+            if (expectedDump != rootExpr)
             {
-                Assert.Fail("Expect: <{0}>, got: <{1}>.", EscapeString(expectedExpression), EscapeString(rootExpr));
+                Assert.Fail("Expect: <{0}>, got: <{1}>.", EscapeString(expectedDump), EscapeString(rootExpr));
             }
+            Assert.AreEqual(text, parsedText);
             return root;
         }
 
         public static string EscapeString(string str)
         {
-            return str.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
+            return str.Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
         }
 
         public static string Dump(Node node)

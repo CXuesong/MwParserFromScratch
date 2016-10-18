@@ -22,5 +22,11 @@ namespace MwParserFromScratch
             if (dict.TryGetValue(key, out v)) return v;
             return default(TValue);
         }
+
+        public static void AssertNullOrWhiteSpace(string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("Argument is neither null or white space.", nameof(value));
+        }
     }
 }

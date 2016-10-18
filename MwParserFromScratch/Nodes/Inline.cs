@@ -282,12 +282,18 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// &lt;tag attr1=value1&gt;content&lt;/tag&gt;
     /// </summary>
-    public abstract class TagNode : Node
+    public abstract class TagNode : InlineNode
     {
         private string _TrailingWhitespace;
 
-        public TagNode()
+        public TagNode() : this(null)
         {
+            
+        }
+
+        public TagNode(string name)
+        {
+            Name = name;
             Attributes = new NodeCollection<TagAttribute>(this);
         }
 
@@ -303,7 +309,7 @@ namespace MwParserFromScratch.Nodes
         public string ClosingTagName { get; set; }
 
         /// <summary>
-        /// Whether the tag is self closed. E.g. &lt;references /&gt;.
+        /// Whether the tag is self closing. E.g. &lt;references /&gt;.
         /// </summary>
         public abstract bool IsSelfClosing { get; set; }
 
@@ -316,8 +322,7 @@ namespace MwParserFromScratch.Nodes
             get { return _TrailingWhitespace; }
             set
             {
-                if (!string.IsNullOrWhiteSpace(value))
-                    throw new ArgumentException("Only null or white spaces are accepted.", nameof(value));
+                Utility.AssertNullOrWhiteSpace(value);
                 _TrailingWhitespace = value;
             }
         }
@@ -331,8 +336,7 @@ namespace MwParserFromScratch.Nodes
             get { return _TrailingWhitespace; }
             set
             {
-                if (!string.IsNullOrWhiteSpace(value))
-                    throw new ArgumentException("Only null or white spaces are accepted.", nameof(value));
+                Utility.AssertNullOrWhiteSpace(value);
                 _TrailingWhitespace = value;
             }
         }
@@ -354,7 +358,7 @@ namespace MwParserFromScratch.Nodes
             }
             sb.Append('>');
             sb.Append(GetContentString());
-            sb.Append('<');
+            sb.Append("</");
             sb.Append(ClosingTagName ?? Name);
             sb.Append(ClosingTagTrailingWhitespace);
             sb.Append('>');
@@ -364,6 +368,16 @@ namespace MwParserFromScratch.Nodes
 
     public class ParserTag : TagNode
     {
+        public ParserTag() : this(null)
+        {
+
+        }
+
+        public ParserTag(string name) : base(name)
+        {
+            
+        }
+
         /// <summary>
         /// Raw content of the tag.
         /// </summary>
@@ -410,6 +424,16 @@ namespace MwParserFromScratch.Nodes
 
     public class HtmlTag : TagNode
     {
+        public HtmlTag() : this(null)
+        {
+
+        }
+
+        public HtmlTag(string name) : base(name)
+        {
+
+        }
+
         /// <summary>
         /// Content of the tag.
         /// </summary>
@@ -454,13 +478,40 @@ namespace MwParserFromScratch.Nodes
         protected override string GetContentString() => Content?.ToString();
     }
 
+    /// <summary>
+    /// Describes how the value of an attribute should be quoted.
+    /// </summary>
+    public enum ValueQuoteType
+    {
+        /// <summary>
+        /// No quotes.
+        /// </summary>
+        None = 0,
+        /// <summary>
+        /// Value is surrended by single quotes.
+        /// </summary>
+        SingleQuotes,
+        /// <summary>
+        /// Value is surrended by double quotes.
+        /// </summary>
+        DoubleQuotes,
+    }
+
     public class TagAttribute : Node
     {
-        private string _LeadingWhitespace;
+        private string _LeadingWhitespace = " ";
+        private string _WhitespaceBeforeEqualSign;
+        private string _WhitespaceAfterEqualSign;
 
         public Run Name { get; set; }
 
         public Wikitext Value { get; set; }
+
+        /// <summary>
+        /// How the value is quoted. If <see cref="Value"/> is <c>null</c>,
+        /// this property is ignored.
+        /// </summary>
+        public ValueQuoteType Quote { get; set; }
 
         /// <summary>
         /// The whitespace before the property expression.
@@ -472,10 +523,38 @@ namespace MwParserFromScratch.Nodes
             set
             {
                 if (!string.IsNullOrWhiteSpace(value))
-                    throw new ArgumentException("Only white spaces are accepted.", nameof(value));
+                    throw new ArgumentException("Only white space is accepted.", nameof(value));
                 if (string.IsNullOrEmpty(value))
                     throw new ArgumentException("Null or empty string is not accepted.", nameof(value));
                 _LeadingWhitespace = value;
+            }
+        }
+
+        /// <summary>
+        /// The whitespace before equal sign.
+        /// </summary>
+        /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
+        public string WhitespaceBeforeEqualSign
+        {
+            get { return _WhitespaceBeforeEqualSign; }
+            set
+            {
+                Utility.AssertNullOrWhiteSpace(value);
+                _WhitespaceBeforeEqualSign = value;
+            }
+        }
+
+        /// <summary>
+        /// The whitespace after equal sign.
+        /// </summary>
+        /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
+        public string WhitespaceAfterEqualSign
+        {
+            get { return _WhitespaceAfterEqualSign; }
+            set
+            {
+                Utility.AssertNullOrWhiteSpace(value);
+                _WhitespaceAfterEqualSign = value;
             }
         }
 
@@ -484,7 +563,26 @@ namespace MwParserFromScratch.Nodes
             return new TagAttribute {Name = Name, Value = Value};
         }
 
-        public override string ToString() => LeadingWhitespace + Name + "=" + Value;
+        public override string ToString()
+        {
+            string quote;
+            switch (Quote)
+            {
+                case ValueQuoteType.None:
+                    quote = null;
+                    break;
+                case ValueQuoteType.SingleQuotes:
+                    quote = "'";
+                    break;
+                case ValueQuoteType.DoubleQuotes:
+                    quote = "\"";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return LeadingWhitespace + Name + WhitespaceBeforeEqualSign + "="
+                   + WhitespaceAfterEqualSign + quote + Value + quote;
+        }
     }
 
     public class Comment : InlineNode
