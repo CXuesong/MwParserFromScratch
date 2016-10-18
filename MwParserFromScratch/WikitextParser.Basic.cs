@@ -67,7 +67,7 @@ namespace MwParserFromScratch
         /// <summary>
         /// Parses a PARAGRPAH_CLOSE .
         /// </summary>
-        /// <param name="lastNode">The lastest parsed paragrpah.</param>
+        /// <param name="lastNode">The lastest parsed node.</param>
         /// <returns>The extra paragraph, or <see cref="EmptyLineNode"/>. If parsing attempt failed, <c>null</c>.</returns>
         private LineNode ParseLineEnd(LineNode lastNode)
         {
@@ -83,9 +83,9 @@ namespace MwParserFromScratch
             // TERM     Terminators
             // PC       Compact/unclosed paragraph
             // P        Closed paragraph
-            // abc TERM     PC[|abc|]
-            // abc\n TERM   P[|abc|]
-            // abc\n\s*?\n  TERM PC[|abc|]PC[||]
+            // abc TERM             PC[|abc|]
+            // abc\n TERM           P[|abc|]
+            // abc\n\s*?\n TERM     P[|abc|]PC[||]
             // Note that MediaWiki editor will automatically trim the trailing whitespaces,
             // leaving a \n after the content. This one \n will be removed when the page is transcluded.
 
@@ -102,18 +102,21 @@ namespace MwParserFromScratch
                 if (ConsumeToken(@"\n") != null)
                 {
                     // 2 Line breaks received.
+                    // Close the current paragraph.
+                    unclosedParagraph.Append("\n" + trailingWs);
                     // Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
                     {
                         // This is a special case.
-                        // abc\n trailingWs \n TERM --> PC[|abc|]PC[|trailingWs|]
+                        // abc\n trailingWs \n TERM --> P[|abc\ntrailingWs|]PC[||]
+                        // When the function returns, WIKITEXT parsing will stop
+                        // because a TERM will be received.
+                        // We need to correct this.
                         var anotherparagraph = new Paragraph();
-                        if (trailingWs != null) anotherparagraph.Append(trailingWs);
                         return ParseSuccessful(anotherparagraph);
                     }
                     // After the paragraph, more content incoming.
                     // abc\n trailingWs \n def
-                    unclosedParagraph.Append("\n" + trailingWs);
                     return ParseSuccessful(EmptyLineNode, false);
                 }
                 // The attempt to consume the 2nd \n failed.

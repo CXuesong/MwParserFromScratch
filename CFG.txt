@@ -128,9 +128,9 @@ TERM == Terminators
 TERM                Empty WIKITEXT
 abc TERM            A compact paragraph.
 abc\n TERM          A normal paragraph.
-abc\n\n TERM        Two compact paragraphs, as the last line has no extra trailing \n .
-abc\n\n\n TERM      A normal paragraph and two compact paragraphs, as the last line has no extra trailing \n .
-abc\ndef\n TERM     A normal paragraph "abc\ndef".
+abc\n\n TERM        A normal paragraph "abc\n" and a compact paragraph "", as the last line has no extra trailing \n .
+abc\n\n\n TERM      Two normal paragraphs: "abc\n", "\n", as the last line has no extra trailing \n .
+abc\ndef\n TERM     A normal paragraph "abc\ndef\n".
 * abc TERM          A WIKITEXT containing a LIST_ITEM.
 * abc\n TERM        A WIKITEXT containing a LIST_ITEM and a compact paragraph.
 * abc\n\n TERM      A WIKITEXT containing a LIST_ITEM and a normal paragraph.

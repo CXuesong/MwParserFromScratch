@@ -15,7 +15,7 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("", "");
             root = Utility.ParseAndAssert("\n", "P[\n]");
-            root = Utility.ParseAndAssert("\n\n", "P[]P[]");
+            root = Utility.ParseAndAssert("\n\n", "P[\n]P[]");
             root = Utility.ParseAndAssert("\n\n\n", "P[\n]P[\n]");
         }
 
@@ -36,7 +36,7 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestLines3()
         {
-            var root = Utility.ParseAndAssert("Hello, world!\n\n", "P[Hello, world!]P[]");
+            var root = Utility.ParseAndAssert("Hello, world!\n\n", "P[Hello, world!\n]P[]");
             root = Utility.ParseAndAssert("Hello, world!\ntest\n", "P[Hello, world!\ntest\n]");
         }
 
@@ -56,7 +56,7 @@ namespace UnitTestProject1
         [TestMethod]
         public void TestLines6()
         {
-            var root = Utility.ParseAndAssert("P1L1\r\nP1L2\r\n\r\nP2L1\r\n\r\n", "P[P1L1\r\nP1L2\r\n\r]P[P2L1\r]P[\r]");
+            var root = Utility.ParseAndAssert("P1L1\r\nP1L2\r\n\r\nP2L1\r\n\r\n", "P[P1L1\r\nP1L2\r\n\r]P[P2L1\r\n\r]P[]");
         }
 
         [TestMethod]
