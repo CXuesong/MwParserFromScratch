@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,14 @@ namespace MwParserFromScratch.Nodes
         }
 
         public string Content { get; set; }
+
+        /// <summary>
+        /// Infrastructure. Enumerates the children of this node.
+        /// </summary>
+        /// <returns>Always an empty sequence of nodes.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override IEnumerable<Node> EnumChildren()
+            => Enumerable.Empty<Node>();
 
         protected override Node CloneCore()
         {
@@ -50,6 +59,15 @@ namespace MwParserFromScratch.Nodes
         {
             get { return _Text; }
             set { Attach(ref _Text, value); }
+        }
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Target != null) yield return _Target;
+            if (_Text != null) yield return _Text;
         }
 
         protected override Node CloneCore()
@@ -81,6 +99,15 @@ namespace MwParserFromScratch.Nodes
         /// Whether the link is contained in square brackets.
         /// </summary>
         public bool Brackets { get; set; }
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Target != null) yield return _Target;
+            if (_Text != null) yield return _Text;
+        }
 
         protected override Node CloneCore()
         {
@@ -120,6 +147,14 @@ namespace MwParserFromScratch.Nodes
         /// Whether to switch font-italics of the incoming content.
         /// </summary>
         public bool SwitchItalics { get; set; }
+
+        /// <summary>
+        /// Infrastructure. Enumerates the children of this node.
+        /// </summary>
+        /// <returns>Always an empty sequence of nodes.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override IEnumerable<Node> EnumChildren()
+            => Enumerable.Empty<Node>();
 
         protected override Node CloneCore()
         {
@@ -161,6 +196,15 @@ namespace MwParserFromScratch.Nodes
 
         public NodeCollection<TemplateArgument> Arguments { get; }
 
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Name != null) yield return _Name;
+            foreach (var arg in Arguments) yield return arg;
+        }
+
         protected override Node CloneCore()
         {
             var n = new Template {Name = Name};
@@ -170,7 +214,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            if (Arguments.IsEmpty) return "{{" + Name + "}}";
+            if (Arguments.Count == 0) return "{{" + Name + "}}";
             var sb = new StringBuilder("{{");
             sb.Append(Name);
             foreach (var arg in Arguments)
@@ -213,6 +257,14 @@ namespace MwParserFromScratch.Nodes
             get { return _Value; }
             set { Attach(ref _Value, value); }
         }
+
+        /// <summary>
+        /// Infrastructure. Enumerates the children of this node.
+        /// </summary>
+        /// <returns>Always an empty sequence of nodes.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override IEnumerable<Node> EnumChildren()
+            => Enumerable.Empty<Node>();
 
         protected override Node CloneCore()
         {
@@ -263,6 +315,15 @@ namespace MwParserFromScratch.Nodes
         {
             get { return _DefaultValue; }
             set { Attach(ref _DefaultValue, value); }
+        }
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Name != null) yield return _Name;
+            if (_DefaultValue != null) yield return _DefaultValue;
         }
 
         protected override Node CloneCore()
@@ -344,6 +405,12 @@ namespace MwParserFromScratch.Nodes
         public NodeCollection<TagAttribute> Attributes { get; }
 
         protected abstract string GetContentString();
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+            => Attributes;
 
         public override string ToString()
         {
@@ -447,6 +514,15 @@ namespace MwParserFromScratch.Nodes
         /// <value>Content of the tag, as <see cref="Wikitext"/>. If the tag is self-closing, the value is <c>null</c>.</value>
         public Wikitext Content { get; set; }
 
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            foreach (var node in base.EnumChildren()) yield return node;
+            if (Content != null) yield return Content;
+        }
+
         protected override Node CloneCore()
         {
             var n = new HtmlTag
@@ -471,7 +547,7 @@ namespace MwParserFromScratch.Nodes
             {
                 if (value)
                 {
-                    if (Content != null && !Content.Lines.IsEmpty)
+                    if (Content != null && Content.Lines.Count > 0)
                         throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
                     Content = null;
                 }
@@ -504,15 +580,28 @@ namespace MwParserFromScratch.Nodes
         DoubleQuotes,
     }
 
+    /// <summary>
+    /// The attribute expression in a <see cref="TagNode"/>. E.g. <c>mode=traditional</c>.
+    /// </summary>
     public class TagAttribute : Node
     {
         private string _LeadingWhitespace = " ";
         private string _WhitespaceBeforeEqualSign;
         private string _WhitespaceAfterEqualSign;
+        private Run _Name;
+        private Wikitext _Value;
 
-        public Run Name { get; set; }
+        public Run Name
+        {
+            get { return _Name; }
+            set { Attach(ref _Name, value); }
+        }
 
-        public Wikitext Value { get; set; }
+        public Wikitext Value
+        {
+            get { return _Value; }
+            set { Attach(ref _Value, value); }
+        }
 
         /// <summary>
         /// How the value is quoted. If <see cref="Value"/> is <c>null</c>,
@@ -565,6 +654,15 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Name != null) yield return _Name;
+            if (_Value != null) yield return _Value;
+        }
+
         protected override Node CloneCore()
         {
             return new TagAttribute {Name = Name, Value = Value};
@@ -604,6 +702,14 @@ namespace MwParserFromScratch.Nodes
         }
 
         public string Content { get; set; }
+
+        /// <summary>
+        /// Infrastructure. Enumerates the children of this node.
+        /// </summary>
+        /// <returns>Always an empty sequence of nodes.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override IEnumerable<Node> EnumChildren()
+            => Enumerable.Empty<Node>();
 
         protected override Node CloneCore()
         {

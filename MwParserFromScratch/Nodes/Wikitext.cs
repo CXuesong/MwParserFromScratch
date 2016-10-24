@@ -16,6 +16,12 @@ namespace MwParserFromScratch.Nodes
 
         public NodeCollection<LineNode> Lines { get; }
 
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+            => Lines;
+
         protected override Node CloneCore()
         {
             var n = new Wikitext();
@@ -57,6 +63,12 @@ namespace MwParserFromScratch.Nodes
             pt.Content += text;
             return pt;
         }
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public override IEnumerable<Node> EnumChildren()
+            => Inlines;
     }
 
     /// <summary>

@@ -57,7 +57,7 @@ namespace UnitTestProject1
             });
             RegisterDumpHandler<Template>(n =>
             {
-                if (n.Arguments.IsEmpty) return "{{" + Dump(n.Name) + "}}";
+                if (n.Arguments.Count == 0) return "{{" + Dump(n.Name) + "}}";
                 var sb = new StringBuilder("{{");
                 sb.Append(n.Name);
                 foreach (var arg in n.Arguments)

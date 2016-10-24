@@ -8,21 +8,24 @@ using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
 {
-    internal interface IInsertItem
+    internal interface INodeCollection
     {
         void InsertBefore(Node node, Node newNode);
 
         void InsertAfter(Node node, Node newNode);
+
+        bool Remove(Node node);
     }
 
     /// <summary>
     /// Represents a collection of nodes.
     /// The children are maintained as a bi-directional linked list.
     /// </summary>
-    public class NodeCollection<TNode> : IEnumerable<TNode>, IInsertItem
+    public class NodeCollection<TNode> : ICollection<TNode>, INodeCollection
         where TNode : Node
     {
         private readonly Node _Owner;
+        private int _Count;
 
         internal NodeCollection(Node owner)
         {
@@ -49,9 +52,10 @@ namespace MwParserFromScratch.Nodes
         public void Add(TNode node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
+            // Attach the child. Copy node if necessary.
             node = _Owner.Attach(node);
+            node.ParentCollection = this;
             // Add the child.
-            node.ParentItemInserter = this;
             node.PreviousNode = LastNode;
             if (LastNode == null)
             {
@@ -64,7 +68,41 @@ namespace MwParserFromScratch.Nodes
                 LastNode.NextNode = node;
                 LastNode = node;
             }
+            _Count++;
         }
+
+        public void Clear()
+        {
+            Node node = FirstNode;
+            while (node != null)
+            {
+                var nextNode = node.NextNode;
+                node.Remove();
+                node = nextNode;
+            }
+            FirstNode = LastNode = null;
+            _Count = 0;
+        }
+
+        public bool Contains(TNode item)
+        {
+            if (item == null) return false;
+            return ((IEnumerable<TNode>) this).Contains(item);
+        }
+
+        public void CopyTo(TNode[] array, int arrayIndex)
+        {
+            if (array == null) throw new ArgumentNullException(nameof(array));
+            if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+            if (array.Length - arrayIndex < Count) throw new ArgumentException(nameof(arrayIndex));
+            foreach (var node in this)
+            {
+                array[arrayIndex] = node;
+                arrayIndex++;
+            }
+        }
+
+        public int Count => _Count;
 
         /// <summary>
         /// Appends new nodes into the children collection.
@@ -85,7 +123,7 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(node.ParentNode == _Owner);
             Debug.Assert(newNode != null);
             newNode = _Owner.Attach(newNode);
-            newNode.ParentItemInserter = this;
+            newNode.ParentCollection = this;
             var prev = node.PreviousNode;
             if (prev != null)
             {
@@ -108,7 +146,7 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(node.ParentNode == _Owner);
             Debug.Assert(newNode != null);
             newNode = _Owner.Attach(newNode);
-            newNode.ParentItemInserter = this;
+            newNode.ParentCollection = this;
             node.NextNode = newNode;
             newNode.PreviousNode = node;
             var next = node.NextNode;
@@ -122,18 +160,6 @@ namespace MwParserFromScratch.Nodes
                 Debug.Assert(LastNode == node);
                 newNode.NextNode = null;
                 LastNode = newNode;
-            }
-        }
-
-        /// <summary>
-        /// Determines whether the collection is empty.
-        /// </summary>
-        public bool IsEmpty
-        {
-            get
-            {
-                Debug.Assert((FirstNode != null) == (LastNode != null));
-                return LastNode == null;
             }
         }
 
@@ -157,6 +183,39 @@ namespace MwParserFromScratch.Nodes
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        /// <summary>
+        /// Please use <see cref="Node.Remove"/> instead.
+        /// </summary>
+        bool ICollection<TNode>.Remove(TNode item)
+        {
+            return ((INodeCollection) this).Remove(item);
+        }
+
+        bool ICollection<TNode>.IsReadOnly => false;
+
+        void INodeCollection.InsertBefore(Node node, Node newNode)
+        {
+            InsertBefore((TNode) node, (TNode) newNode);
+        }
+
+        void INodeCollection.InsertAfter(Node node, Node newNode)
+        {
+            InsertBefore((TNode) node, (TNode) newNode);
+        }
+
+        bool INodeCollection.Remove(Node item)
+        {
+            if (item.ParentCollection != this) return false;
+            Debug.Assert(item.ParentNode == _Owner);
+            item.ParentCollection = null;
+            _Owner.Detach(item);
+            if (item == FirstNode) FirstNode = (TNode) item.NextNode;
+            if (item == LastNode) LastNode = (TNode) item.PreviousNode;
+            item.PreviousNode = item.NextNode = null;
+            _Count--;
+            return true;
         }
 
         private sealed class MyEnumerator : IEnumerator<TNode>
@@ -197,16 +256,6 @@ namespace MwParserFromScratch.Nodes
                 Debug.Assert(owner != null);
                 _Owner = owner;
             }
-        }
-
-        void IInsertItem.InsertBefore(Node node, Node newNode)
-        {
-            InsertBefore((TNode) node, (TNode) newNode);
-        }
-
-        void IInsertItem.InsertAfter(Node node, Node newNode)
-        {
-            InsertBefore((TNode) node, (TNode) newNode);
         }
     }
 }

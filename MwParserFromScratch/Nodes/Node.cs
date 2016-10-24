@@ -46,9 +46,14 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        public abstract IEnumerable<Node> EnumChildren();
+
+        /// <summary>
         /// The parent node.
         /// </summary>
-        internal IInsertItem ParentItemInserter { get; set; }
+        internal INodeCollection ParentCollection { get; set; }
 
         /// <summary>
         /// Inserts a sibling node before the current node.
@@ -59,8 +64,8 @@ namespace MwParserFromScratch.Nodes
         public void InsertBefore(Node node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
-            if (ParentItemInserter == null) throw new InvalidOperationException("Cannot insert the sibling node.");
-            ParentItemInserter.InsertBefore(this, node);
+            if (ParentCollection == null) throw new InvalidOperationException("Cannot insert the sibling node.");
+            ParentCollection.InsertBefore(this, node);
         }
 
         /// <summary>
@@ -72,8 +77,24 @@ namespace MwParserFromScratch.Nodes
         public void InsertAfter(Node node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
-            if (ParentItemInserter == null) throw new InvalidOperationException("Cannot insert the sibling node.");
-            ParentItemInserter.InsertAfter(this, node);
+            if (ParentCollection == null) throw new InvalidOperationException("Cannot insert the sibling node.");
+            ParentCollection.InsertAfter(this, node);
+        }
+
+        /// <summary>
+        /// Remove this node from its parent collection.
+        /// </summary>
+        /// <remarks>
+        /// To remove this node from its parent property (e.g. <see cref="Template.Name"/>),
+        /// please set the property value to <c>null</c>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">This node is not attached to its parent via a collection.</exception>
+        public void Remove()
+        {
+            if (ParentCollection == null)
+                throw new InvalidOperationException("Cannot remove the node that is not attached to its parent via a collection.");
+            var result = ParentCollection.Remove(this);
+            Debug.Assert(result);
         }
 
         internal TNode Attach<TNode>(TNode newNode)
