@@ -10,15 +10,15 @@ namespace MwParserFromScratch
 {
     partial class WikitextParser
     {
-        private static readonly Regex CommentSuffixMatcher = new Regex("-->");
-        private static Dictionary<string, Regex> closingTagMatcherCache = new Dictionary<string, Regex>();
+        private static readonly Regex commentSuffixMatcher = new Regex("-->");
+        private static readonly Dictionary<string, Regex> closingTagMatcherCache = new Dictionary<string, Regex>();
 
         private Comment ParseComment()
         {
             ParseStart();
             if (ConsumeToken("<!--") == null) return ParseFailed<Comment>();
             var contentPos = position;
-            var suffix = CommentSuffixMatcher.Match(fulltext, position);
+            var suffix = commentSuffixMatcher.Match(fulltext, position);
             if (suffix.Success)
             {
                 MovePositionTo(suffix.Index + suffix.Length);
@@ -177,11 +177,15 @@ namespace MwParserFromScratch
         {
             var normalizedTagName = tag.Name.ToLowerInvariant();
             var closingTagExpr = "</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
-            var matcher = closingTagMatcherCache.TryGetValue(normalizedTagName);
-            if (matcher == null)
+            Regex matcher;
+            lock (closingTagMatcherCache)
             {
-                matcher = new Regex(closingTagExpr, RegexOptions.IgnoreCase);
-                closingTagMatcherCache.Add(normalizedTagName, matcher);
+                matcher = closingTagMatcherCache.TryGetValue(normalizedTagName);
+                if (matcher == null)
+                {
+                    matcher = new Regex(closingTagExpr, RegexOptions.IgnoreCase);
+                    closingTagMatcherCache.Add(normalizedTagName, matcher);
+                }
             }
             Match closingTagMatch;
             var pt = tag as ParserTag;

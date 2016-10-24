@@ -206,7 +206,7 @@ namespace MwParserFromScratch.Nodes
         {
         }
 
-        private static readonly Regex ParagraphCloseMatcher = new Regex(@"\n\s*$");
+        private static readonly Regex paragraphCloseMatcher = new Regex(@"\n\s*$");
 
         /// <summary>
         /// Whether to remove one trailing new-line, if possible.
@@ -225,7 +225,7 @@ namespace MwParserFromScratch.Nodes
             {
                 var pt = Inlines.LastNode as PlainText;
                 if (pt == null) return true;
-                return !ParagraphCloseMatcher.IsMatch(pt.Content);
+                return !paragraphCloseMatcher.IsMatch(pt.Content);
             }
         }
 
