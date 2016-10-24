@@ -25,7 +25,7 @@ namespace MwParserFromScratch
             if (NeedsTerminate()) return ParseSuccessful(node);
             NEXT_LINE:
             var line = ParseLine(lastLine);
-            if (line != EmptyLineNode)
+            if (line != EMPTY_LINE_NODE)
             {
                 lastLine = line;
                 node.Lines.Add(line);
@@ -39,7 +39,7 @@ namespace MwParserFromScratch
                 return ParseSuccessful(node);
             }
             // Otherwise, check whether we meet a terminator before reading another line.
-            if (extraPara != EmptyLineNode)
+            if (extraPara != EMPTY_LINE_NODE)
                 node.Lines.Add(extraPara);
             if (NeedsTerminate()) return ParseSuccessful(node);
             goto NEXT_LINE;
@@ -48,7 +48,7 @@ namespace MwParserFromScratch
         /// <summary>
         /// Indicates the parsing is successful, but no node should be inserted to the list.
         /// </summary>
-        private static readonly LineNode EmptyLineNode = new Paragraph(new PlainText("--EmptyLineNode--"));
+        private static readonly LineNode EMPTY_LINE_NODE = new Paragraph(new PlainText("--EmptyLineNode--"));
 
         /// <summary>
         /// LINE, except PARAGRAPH. Because PARAGRAPH need to take look at the last line.
@@ -68,7 +68,7 @@ namespace MwParserFromScratch
         /// Parses a PARAGRPAH_CLOSE .
         /// </summary>
         /// <param name="lastNode">The lastest parsed node.</param>
-        /// <returns>The extra paragraph, or <see cref="EmptyLineNode"/>. If parsing attempt failed, <c>null</c>.</returns>
+        /// <returns>The extra paragraph, or <see cref="EMPTY_LINE_NODE"/>. If parsing attempt failed, <c>null</c>.</returns>
         private LineNode ParseLineEnd(LineNode lastNode)
         {
             Debug.Assert(lastNode != null);
@@ -117,7 +117,7 @@ namespace MwParserFromScratch
                     }
                     // After the paragraph, more content incoming.
                     // abc\n trailingWs \n def
-                    return ParseSuccessful(EmptyLineNode, false);
+                    return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
                 // The attempt to consume the 2nd \n failed.
                 // We're still after the whitespaces after the 1st \n .
@@ -126,7 +126,7 @@ namespace MwParserFromScratch
                     // abc \n TERM   P[|abc|]
                     // Still need to close the paragraph.
                     unclosedParagraph.Append("\n" + trailingWs);
-                    return ParseSuccessful(EmptyLineNode, false);
+                    return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
             }
             else
@@ -149,7 +149,7 @@ namespace MwParserFromScratch
             // That's not the end of a prargraph. Fallback to before the 1st \n .
             // Note here we have already consumed a \n .
             Fallback();
-            return EmptyLineNode;
+            return EMPTY_LINE_NODE;
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace MwParserFromScratch
             // Allows an empty paragraph/line.
             ParseRun(RunParsingMode.Run, node);
             if (node == mergeTo)
-                return ParseSuccessful(EmptyLineNode, false);
+                return ParseSuccessful(EMPTY_LINE_NODE, false);
             else
                 return ParseSuccessful(node);
         }

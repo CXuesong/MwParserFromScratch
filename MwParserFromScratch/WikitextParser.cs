@@ -11,13 +11,14 @@ namespace MwParserFromScratch
 {
     partial class WikitextParser
     {
-        private static readonly WikitextParserOptions DefaultOptions = new WikitextParserOptions();
+        private static readonly WikitextParserOptions defaultOptions = new WikitextParserOptions();
 
         private readonly WikitextParserOptions _Options;
         private string fulltext;
         private int position; // Starting index of the string to be consumed.
         private int lineNumber, linePosition;
         private Stack<ParsingContext> contextStack;
+        private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
 
         public WikitextParser() : this(null)
         {
@@ -25,7 +26,7 @@ namespace MwParserFromScratch
 
         public WikitextParser(WikitextParserOptions options)
         {
-            _Options = options ?? DefaultOptions;
+            _Options = options ?? defaultOptions;
         }
 
         /// <summary>
@@ -141,8 +142,6 @@ namespace MwParserFromScratch
             return false;
         }
 
-        private static Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
-
         /// <summary>
         /// Match the next token. This operation will not consume the tokens.
         /// </summary>
@@ -151,12 +150,16 @@ namespace MwParserFromScratch
         private string LookAheadToken(string tokenMatcher)
         {
             Debug.Assert(tokenMatcher[0] != '^');
-            var re = tokenMatcherCache.TryGetValue(tokenMatcher);
-            if (re == null)
+            Regex re;
+            lock (tokenMatcherCache)
             {
-                // The occurance should be starting from current position.
-                re = new Regex(@"\G(" + tokenMatcher + ")");
-                tokenMatcherCache.Add(tokenMatcher, re);
+                re = tokenMatcherCache.TryGetValue(tokenMatcher);
+                if (re == null)
+                {
+                    // The occurance should be starting from current position.
+                    re = new Regex(@"\G(" + tokenMatcher + ")");
+                    tokenMatcherCache.Add(tokenMatcher, re);
+                }
             }
             var m = re.Match(fulltext, position);
             if (!m.Success) return null;
@@ -261,13 +264,16 @@ namespace MwParserFromScratch
 
             public static Terminator Get(string regularExpr)
             {
-                var t = cacheDict.TryGetValue(regularExpr);
-                if (t == null)
+                lock (cacheDict)
                 {
-                    t = new Terminator(regularExpr);
-                    cacheDict.Add(regularExpr, t);
+                    var t = cacheDict.TryGetValue(regularExpr);
+                    if (t == null)
+                    {
+                        t = new Terminator(regularExpr);
+                        cacheDict.Add(regularExpr, t);
+                    }
+                    return t;
                 }
-                return t;
             }
         }
     }
