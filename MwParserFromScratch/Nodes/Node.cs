@@ -5,16 +5,156 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace MwParserFromScratch.Nodes
 {
     /// <summary>
     /// Represents the abstract concept of a node in the syntax tree.
     /// </summary>
-    public abstract class Node : IWikitextLineInfo
+    public abstract class Node : IWikitextLineInfo, IWikitextSpanInfo
     {
-        private int _LineNumber = 0;
-        private int _LinePosition = 0;
+        private object _Annotation;
+
+        #region Annotations
+
+        /// <summary>
+        /// Adds an object to the annotation list of this <see cref="Node"/>.
+        /// </summary>
+        /// <param name="annotation">The annotation to add.</param>
+        public void AddAnnotation(object annotation)
+        {
+            if (annotation == null) throw new ArgumentNullException(nameof(annotation));
+            if (_Annotation == null)
+            {
+                if (!(annotation is List<object>))
+                {
+                    _Annotation = annotation;
+                    return;
+                }
+            }
+            var list = _Annotation as List<object>;
+            if (list == null)
+            {
+                list = new List<object>(2);
+                if (_Annotation != null) list.Add(_Annotation);
+                _Annotation = list;
+            }
+            list.Add(annotation);
+        }
+
+        /// <summary>
+        /// Returns the first annotation object of the specified type from the list of annotations
+        /// of this <see cref="Node"/>.
+        /// </summary>
+        /// <param name="type">The type of the annotation to retrieve.</param>
+        /// <returns>
+        /// The first matching annotation object, or null
+        /// if no annotation is the specified type.
+        /// </returns>
+        public object Annotation(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (_Annotation == null) return null;
+            var ti = type.GetTypeInfo();
+            var list = _Annotation as List<object>;
+            if (list != null)
+                return list.FirstOrDefault(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
+            if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
+                return _Annotation;
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the first annotation object of the specified type from the list of annotations
+        /// of this <see cref="Node"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of the annotation to retrieve.</typeparam>
+        /// <returns>
+        /// The first matching annotation object, or null if no annotation
+        /// is the specified type.
+        /// </returns>
+        public T Annotation<T>() where T : class
+        {
+            if (_Annotation == null) return null;
+            var list = _Annotation as List<object>;
+            if (list == null) return _Annotation as T;
+            return list.OfType<T>().FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Returns an enumerable collection of annotations of the specified type
+        /// for this <see cref="Node"/>.
+        /// </summary>
+        /// <param name="type">The type of the annotations to retrieve.</param>
+        /// <returns>An enumerable collection of annotations for this XObject.</returns>
+        public IEnumerable<object> Annotations(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            var ti = type.GetTypeInfo();
+            var list = _Annotation as List<object>;
+            if (list != null)
+                return list.Where(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
+            if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
+                return Utility.Singleton(_Annotation);
+            return Enumerable.Empty<object>();
+        }
+
+        /// <summary>
+        /// Returns an enumerable collection of annotations of the specified type
+        /// for this <see cref="XObject"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of the annotations to retrieve.</typeparam>
+        /// <returns>An enumerable collection of annotations for this XObject.</returns>
+        public IEnumerable<T> Annotations<T>() where T : class
+        {
+            var list = _Annotation as List<object>;
+            if (list == null)
+            {
+                var a = _Annotation as T;
+                return a == null ? Enumerable.Empty<T>() : Utility.Singleton(a);
+            }
+            return list.OfType<T>();
+        }
+
+        /// <summary>
+        /// Removes the annotations of the specified type from this <see cref="Node"/>.
+        /// </summary>
+        /// <param name="type">The type of annotations to remove.</param>
+        public void RemoveAnnotations(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            var ti = type.GetTypeInfo();
+            var list = _Annotation as List<object>;
+            if (list != null)
+            {
+                list.RemoveAll(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
+            }
+            else
+            {
+                if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
+                    _Annotation = null;
+            }
+        }
+
+        /// <summary>
+        /// Removes the annotations of the specified type from this <see cref="Node"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of annotations to remove.</typeparam>
+        public void RemoveAnnotations<T>()
+        {
+            var list = _Annotation as List<object>;
+            if (list != null)
+            {
+                list.RemoveAll(i => i is T);
+            }
+            else
+            {
+                if (_Annotation is T) _Annotation = null;
+            }
+        }
+
+        #endregion
 
         #region Tree
         /// <summary>
@@ -145,34 +285,39 @@ namespace MwParserFromScratch.Nodes
         }
         #endregion
 
-        #region LineInfo
-        /// <summary>
-        /// Gets the current line number. 
-        /// </summary>
-        /// <remarks>The current line number or 0 if no line information is available (for example, HasLineInfo returns false).</remarks>
-        public int LineNumber => _LineNumber;
+        #region IWikitextLineInfo
 
-        /// <summary>
-        /// Gets the current line position. 
-        /// </summary>
-        /// <remarks>The current line position or 0 if no line information is available (for example, HasLineInfo returns false).</remarks>
-        public int LinePosition => _LinePosition;
+        /// <inheritdoc />
+        int IWikitextLineInfo.LineNumber => Annotation<LineInfoAnnotation>()?.LineNumber ?? 0;
 
-        /// <summary>
-        /// Gets a value indicating whether the class can return line information.
-        /// </summary>
-        public bool HasLineInfo()
-        {
-            return _LineNumber > 0;
-        }
+        /// <inheritdoc />
+        int IWikitextLineInfo.LinePosition => Annotation<LineInfoAnnotation>()?.LinePosition ?? 0;
 
-        internal void SetLineInfo(int lineNumber, int linePosition)
+        /// <inheritdoc />
+        bool IWikitextLineInfo.HasLineInfo() => Annotation<LineInfoAnnotation>() != null;
+
+        internal void SetLineInfo(int lineNumber, int linePosition, int start, int length)
         {
             Debug.Assert(lineNumber > 0);
             Debug.Assert(linePosition > 0);
-            _LineNumber = lineNumber;
-            _LinePosition = linePosition;
+            Debug.Assert(start >= 0);
+            Debug.Assert(length >= 0);
+            AddAnnotation(new LineInfoAnnotation(lineNumber, linePosition, start, length));
         }
+
+        #endregion
+
+        #region IWikitextSpanInfo
+
+        /// <inheritdoc />
+        int IWikitextSpanInfo.Start => Annotation<LineInfoAnnotation>()?.Start ?? 0;
+
+        /// <inheritdoc />
+        int IWikitextSpanInfo.Length => Annotation<LineInfoAnnotation>()?.Length ?? 0;
+
+        /// <inheritdoc />
+        bool IWikitextSpanInfo.HasSpanInfo => Annotation<LineInfoAnnotation>() != null;
+
         #endregion
 
         protected abstract Node CloneCore();
@@ -186,6 +331,22 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(newInst != null);
             Debug.Assert(newInst.GetType() == this.GetType());
             return newInst;
+        }
+
+        private class LineInfoAnnotation
+        {
+            internal readonly int LineNumber;
+            internal readonly int LinePosition;
+            internal readonly int Start;
+            internal readonly int Length;
+
+            public LineInfoAnnotation(int lineNumber, int linePosition, int start, int length)
+            {
+                LineNumber = lineNumber;
+                LinePosition = linePosition;
+                Start = start;
+                Length = length;
+            }
         }
     }
 }

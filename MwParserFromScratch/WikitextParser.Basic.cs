@@ -16,7 +16,7 @@ namespace MwParserFromScratch
         /// <summary>
         /// WIKITEXT
         /// </summary>
-        /// <remarks>The empty wikitext contains nothing. Thus the parsing should always be successful.</remarks>
+        /// <remarks>An empty WIKITEXT contains nothing. Thus the parsing should always be successful.</remarks>
         private Wikitext ParseWikitext()
         {
             ParseStart();

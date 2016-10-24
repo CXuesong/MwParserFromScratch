@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MwParserFromScratch;
 
 namespace UnitTestProject1
 {
@@ -17,7 +18,10 @@ namespace UnitTestProject1
             Trace.WriteLine("Descendants Dump:");
             foreach (var node in root.EnumDescendants())
             {
-                Trace.WriteLine(node.GetType().Name + " [|" + node + "|]");
+                var li = (IWikitextLineInfo) node;
+                var si = (IWikitextSpanInfo) node;
+                Trace.WriteLine(
+                    $"{node.GetType().Name}\t({li.LineNumber},{li.LinePosition};{si.Start}+{si.Length})\t[|{node}|]");
             }
         }
     }

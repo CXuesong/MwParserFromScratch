@@ -114,8 +114,15 @@ namespace MwParserFromScratch
         private T ParseSuccessful<T>(T value, bool setLineNumber = true) where T : Node
         {
             Debug.Assert(value != null);
+            // At least we've consumed something. Or empty WIKITEXT.
+            Debug.Assert(position >= CurrentContext.StartingPosition);
             if (setLineNumber)
-                value.SetLineInfo(CurrentContext.StartingLineNumber, CurrentContext.StartingLinePosition);
+            {
+                value.SetLineInfo(CurrentContext.StartingLineNumber,
+                    CurrentContext.StartingLinePosition,
+                    CurrentContext.StartingPosition,
+                    position - CurrentContext.StartingPosition);
+            }
             Accept();
             return value;
         }

@@ -37,6 +37,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="IWikitextSpanInfo.cs" />
     <Compile Include="WikitextParser.cs" />
     <Compile Include="WikitextParser.Expandable.cs" />
     <Compile Include="IWikitextLineInfo.cs" />

@@ -28,5 +28,10 @@ namespace MwParserFromScratch
             if (!string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Argument is neither null or white space.", nameof(value));
         }
+
+        public static IEnumerable<T> Singleton<T>(T value)
+        {
+            yield return value;
+        }
     }
 }
