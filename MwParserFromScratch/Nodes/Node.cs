@@ -51,6 +51,28 @@ namespace MwParserFromScratch.Nodes
         public abstract IEnumerable<Node> EnumChildren();
 
         /// <summary>
+        /// Enumerates the descendants of this node.
+        /// </summary>
+        /// <returns>A sequence of nodes, in document order.</returns>
+        public IEnumerable<Node> EnumDescendants()
+        {
+            // In document order == DFS
+            var stack = new Stack<IEnumerator<Node>>();
+            stack.Push(EnumChildren().GetEnumerator());
+            while (stack.Count > 0)
+            {
+                var top = stack.Peek();
+                if (!top.MoveNext())
+                {
+                    stack.Pop();
+                    continue;
+                }
+                yield return top.Current;
+                stack.Push(top.Current.EnumChildren().GetEnumerator());
+            }
+        }
+
+        /// <summary>
         /// The parent node.
         /// </summary>
         internal INodeCollection ParentCollection { get; set; }

@@ -56,6 +56,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AbnormalCaseTests.cs" />
     <Compile Include="ExpandableParsingTests.cs" />
+    <Compile Include="NodeTests.cs" />
     <Compile Include="Utility.cs" />
   </ItemGroup>
   <ItemGroup>
