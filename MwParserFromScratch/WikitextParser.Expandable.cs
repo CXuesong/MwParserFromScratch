@@ -93,7 +93,7 @@ namespace MwParserFromScratch
             if (ConsumeToken(@"\{\{") == null)
                 return ParseFailed<Template>();
             var name = new Run();
-            if (!ParseRun(RunParsingMode.ExpandableText, name))
+            if (!ParseRun(RunParsingMode.ExpandableText, name, true))
                 return ParseFailed<Template>();
             var node = new Template(name);
             while (ConsumeToken(@"\|") != null)
@@ -227,7 +227,7 @@ namespace MwParserFromScratch
         {
             ParseStart(@"/?>|[\s=]", true);
             var node = new Run();
-            if (ParseRun(RunParsingMode.Run, node))
+            if (ParseRun(RunParsingMode.Run, node, false))
                 return ParseSuccessful(node);
             return ParseFailed<Run>();
         }
