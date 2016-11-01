@@ -259,12 +259,14 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
-        /// Infrastructure. Enumerates the children of this node.
+        /// Enumerates the children of this node.
         /// </summary>
-        /// <returns>Always an empty sequence of nodes.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public override IEnumerable<Node> EnumChildren()
-            => Enumerable.Empty<Node>();
+        {
+            if (_Name != null) yield return _Name;
+            if (_Value != null) yield return _Value;
+        }
 
         protected override Node CloneCore()
         {
