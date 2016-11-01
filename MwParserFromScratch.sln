@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MwParserFromScratch", "MwPa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestProject1", "UnitTestProject1\UnitTestProject1.csproj", "{1238ABE2-88A6-401B-8492-2B4CF240F6BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTestApplication1", "ConsoleTestApplication1\ConsoleTestApplication1.csproj", "{ACCAF0CE-1710-4C2F-BF17-A4B12EF21B25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{1238ABE2-88A6-401B-8492-2B4CF240F6BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1238ABE2-88A6-401B-8492-2B4CF240F6BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1238ABE2-88A6-401B-8492-2B4CF240F6BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACCAF0CE-1710-4C2F-BF17-A4B12EF21B25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCAF0CE-1710-4C2F-BF17-A4B12EF21B25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACCAF0CE-1710-4C2F-BF17-A4B12EF21B25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACCAF0CE-1710-4C2F-BF17-A4B12EF21B25}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
