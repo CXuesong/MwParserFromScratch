@@ -305,6 +305,14 @@ namespace MwParserFromScratch.Nodes
             AddAnnotation(new LineInfoAnnotation(lineNumber, linePosition, start, length));
         }
 
+        internal void ExtendLineInfo(int extendingLength)
+        {
+            Debug.Assert(extendingLength > 0);
+            var lineInfo = Annotation<LineInfoAnnotation>();
+            Debug.Assert(lineInfo != null);
+            lineInfo.Length += extendingLength;
+        }
+
         #endregion
 
         #region IWikitextSpanInfo
@@ -338,7 +346,7 @@ namespace MwParserFromScratch.Nodes
             internal readonly int LineNumber;
             internal readonly int LinePosition;
             internal readonly int Start;
-            internal readonly int Length;
+            internal int Length;
 
             public LineInfoAnnotation(int lineNumber, int linePosition, int start, int length)
             {

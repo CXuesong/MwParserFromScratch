@@ -102,8 +102,9 @@ namespace MwParserFromScratch
                 if (ConsumeToken(@"\n") != null)
                 {
                     // 2 Line breaks received.
-                    // Close the current paragraph.
+                    // Close the last paragraph.
                     unclosedParagraph.Append("\n" + trailingWs);
+                    unclosedParagraph.ExtendLineInfo(position - CurrentContext.StartingPosition);
                     // Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
                     {
@@ -126,16 +127,18 @@ namespace MwParserFromScratch
                     // abc \n TERM   P[|abc|]
                     // Still need to close the paragraph.
                     unclosedParagraph.Append("\n" + trailingWs);
+                    unclosedParagraph.ExtendLineInfo(1 + position - CurrentContext.StartingPosition);
                     return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
             }
             else
             {
                 // Last node cannot be a closed paragrap.
-                // It can't because ONLY ParseLineEnd can close a paragraph.
+                // It can't because ParseLineEnd is invoked immediately after a last node is parsed,
+                // and only ParseLineEnd can close a paragraph.
                 Debug.Assert(!(lastNode is Paragraph), "Last node cannot be a closed paragraph.");
                 // Rather, last node is LINE node of other type (LIST_ITEM/HEADING).
-                // Remember we've consumed a \n , and the spaces after it.
+                // Remember we've consumed a \n , and the spaces after it in this function.
                 if (NeedsTerminate(Terminator.Get(@"\n")))
                 {
                     // abc \n TERM  -->  [|abc|] PC[||]
@@ -223,9 +226,16 @@ namespace MwParserFromScratch
             // Allows an empty paragraph/line.
             ParseRun(RunParsingMode.Run, node, false);
             if (node == mergeTo)
+            {
+                // Amend the line position
+                // Don't forget the prepended \n
+                lastNode.ExtendLineInfo(position - CurrentContext.StartingPosition + 1);
                 return ParseSuccessful(EMPTY_LINE_NODE, false);
+            }
             else
+            {
                 return ParseSuccessful(node);
+            }
         }
 
         /// <summary>
