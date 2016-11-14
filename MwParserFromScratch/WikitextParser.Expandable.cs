@@ -128,7 +128,7 @@ namespace MwParserFromScratch
         {
             ParseStart();
             if (ConsumeToken("<") == null) return ParseFailed<TagNode>();
-            var tagName = ConsumeToken(@"[^>\s]+");
+            var tagName = ConsumeToken(@"[\w-_:]+");
             if (tagName == null) return ParseFailed<TagNode>();
             var node = IsParserTagName(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
             string rbracket;
@@ -136,7 +136,7 @@ namespace MwParserFromScratch
             // TAG_ATTR
             while ((rbracket = ConsumeToken("/?>")) == null)
             {
-                // We need some whitespace to deliminate the attrbutes.
+                // We need some whitespace to delimit the attrbutes.
                 Debug.Assert(ws != null);
                 // If attrName == null, then we have something like <tag =abc >, which is still valid.
                 var attrName = ParseAttributeName();
