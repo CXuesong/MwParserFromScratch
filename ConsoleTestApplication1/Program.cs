@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using MwParserFromScratch;
 using MwParserFromScratch.Nodes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ConsoleTestApplication1
 {
@@ -38,8 +42,10 @@ namespace ConsoleTestApplication1
 
         static void Main(string[] args)
         {
-            SimpleDemo();
+            //SimpleDemo();
             ParseAndPrint();
+            //FetchAndParse();
+            //LoadAndParse();
         }
 
         static void SimpleDemo()
@@ -76,10 +82,73 @@ This is a nice '''paragraph'''.
         private static void ParseAndPrint()
         {
             var parser = new WikitextParser();
-            Console.WriteLine("Please input the wikitext to parse, use EOF (Ctrl+Z) to accept:");
+            Console.WriteLine("Please input the wikitext to parse; use EOF (Ctrl+Z) to accept:");
             var ast = parser.Parse(ReadInput());
             Console.WriteLine("Parsed AST");
             PrintAst(ast, 0);
+        }
+
+        private static void FetchAndParse()
+        {
+            Console.WriteLine("Please input the title of the Wikipedia page to parse:");
+            var title = Console.ReadLine();
+            Console.WriteLine();
+            var ast = FetchAndParse(title);
+            Console.WriteLine("Headings:");
+            // Show all headings
+            foreach (var h in ast.EnumDescendants().OfType<Heading>())
+            {
+                Console.WriteLine(h.ToString());
+            }
+        }
+
+        private static void LoadAndParse()
+        {
+            Console.WriteLine("Please input the path of the file to parse:");
+            var fileName = Console.ReadLine();
+            Console.WriteLine();
+            var ast = LoadAndParse(fileName.Trim(' ', '\t', '"'));
+            PrintAst(ast, 0);
+            Console.WriteLine("Headings:");
+            // Show all headings
+            foreach (var h in ast.EnumDescendants().OfType<Heading>())
+            {
+                Console.WriteLine(h.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Fetches a page from en Wikipedia, and parse it.
+        /// </summary>
+        private static Wikitext FetchAndParse(string title)
+        {
+            if (title == null) throw new ArgumentNullException(nameof(title));
+            const string EndPointUrl = "https://en.wikipedia.org/w/api.php";
+            var client = new HttpClient();
+            var requestContent = new Dictionary<string, string>
+            {
+                {"format", "json"},
+                {"action", "query"},
+                {"prop", "revisions"},
+                {"rvlimit", "1"},
+                {"rvprop", "content"},
+                {"titles", title}
+            };
+            var response = client.PostAsync(EndPointUrl, new FormUrlEncodedContent(requestContent)).Result;
+            var root = JObject.Parse(response.Content.ReadAsStringAsync().Result);
+            var content = (string) root["query"]["pages"].Children<JProperty>().First().Value["revisions"][0]["*"];
+            var parser = new WikitextParser();
+            return parser.Parse(content);
+        }
+
+        /// <summary>
+        /// Loads a page from file and parse it.
+        /// </summary>
+        private static Wikitext LoadAndParse(string fileName)
+        {
+            var content = File.ReadAllText(fileName);
+            var parser = new WikitextParser();
+            return parser.Parse(content);
         }
     }
 }
