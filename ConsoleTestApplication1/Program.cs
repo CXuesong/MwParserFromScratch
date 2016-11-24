@@ -43,9 +43,9 @@ namespace ConsoleTestApplication1
         static void Main(string[] args)
         {
             //SimpleDemo();
-            ParseAndPrint();
+            //ParseAndPrint();
             //FetchAndParse();
-            //LoadAndParse();
+            LoadAndParse();
         }
 
         static void SimpleDemo()

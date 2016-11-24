@@ -19,14 +19,24 @@ namespace MwParserFromScratch
         private int lineNumber, linePosition;
         private Stack<ParsingContext> contextStack;
         private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
+        private IWikitextParserLogger logger;
 
         public WikitextParser() : this(null)
         {
         }
 
+        /// <param name="options">The options, or <c>null</c> to use default options.</param>
         public WikitextParser(WikitextParserOptions options)
         {
             _Options = options ?? defaultOptions;
+        }
+
+        /// <param name="options">The options, or <c>null</c> to use default options.</param>
+        /// <param name="logger">A logger used to trace the process of parsing.</param>
+        public WikitextParser(WikitextParserOptions options, IWikitextParserLogger logger)
+        {
+            _Options = options ?? defaultOptions;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -44,6 +54,7 @@ namespace MwParserFromScratch
             position = 0;
             contextStack = new Stack<ParsingContext>();
             // Then parse
+            logger?.NotifyStartParsing(wikitext);
             var root = ParseWikitext();
             // State check
             if (position < fulltext.Length)
@@ -55,6 +66,7 @@ namespace MwParserFromScratch
             // Cleanup
             fulltext = null;
             contextStack = null;
+            logger?.NotifyStopParsing();
             return root;
         }
 
@@ -141,6 +153,7 @@ namespace MwParserFromScratch
 
         private bool Fallback()
         {
+            logger.NotifyFallback(position, contextStack.Count);
             var context = contextStack.Pop();
             // Fallback
             position = context.StartingPosition;
