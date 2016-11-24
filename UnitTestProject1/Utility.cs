@@ -46,7 +46,12 @@ namespace UnitTestProject1
             });
             RegisterDumpHandler<Run>(w => string.Join(null, w.Inlines.Select(Dump)));
             RegisterDumpHandler<ListItem>(li => li.Prefix + "[" + string.Join(null, li.Inlines.Select(Dump)) + "]");
-            RegisterDumpHandler<Heading>(h => $"H{h.Level}[{string.Join(null, h.Inlines.Select(Dump))}]");
+            RegisterDumpHandler<Heading>(h =>
+            {
+                var expr = $"H{h.Level}[{string.Join(null, h.Inlines.Select(Dump))}]";
+                if (h.Suffix != null) expr += "[" + h.Suffix + "]";
+                return expr;
+            });
             RegisterDumpHandler<Paragraph>(p => $"P[{string.Join(null, p.Inlines.Select(Dump))}]");
             RegisterDumpHandler<Wikitext>(w => string.Join(null, w.Lines.Select(Dump)));
             RegisterDumpHandler<ArgumentReference>(n =>

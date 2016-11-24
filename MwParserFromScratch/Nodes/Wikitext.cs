@@ -146,6 +146,7 @@ namespace MwParserFromScratch.Nodes
     public class Heading : LineNode
     {
         private int _Level;
+        private Run _Suffix;
 
         public Heading()
         {
@@ -179,6 +180,26 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <summary>
+        /// The text after the heading expression.
+        /// E.g. <c>&lt;!--comment--&gt;</c> in <c>=== abc === &lt;!--comment--&gt;</c>.
+        /// </summary>
+        public Run Suffix
+        {
+            get { return _Suffix; }
+            set { Attach(ref _Suffix, value); }
+        }
+
+        /// <inheritdoc />
+        public override IEnumerable<Node> EnumChildren()
+        {
+            foreach (var il in Inlines)
+            {
+                yield return il;
+            }
+            if (_Suffix != null) yield return _Suffix;
+        }
+
         protected override Node CloneCore()
         {
             var n = new Heading(Inlines) {Level = Level};
@@ -188,7 +209,7 @@ namespace MwParserFromScratch.Nodes
         public override string ToString()
         {
             var bar = new string('=', Level);
-            return  bar + string.Join(null, Inlines) + bar;
+            return bar + string.Join(null, Inlines) + bar + Suffix;
         }
     }
 

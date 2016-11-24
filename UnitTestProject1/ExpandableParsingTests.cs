@@ -92,5 +92,13 @@ namespace UnitTestProject1
                 "Text<ref group='a'>reference</ref>\n==Citations==\n<references group=a  />",
                 "P[Text<ref group='a'>reference</ref>]H2[Citations]P[<references group=a  />]");
         }
+
+        [TestMethod]
+        public void TestHeading1()
+        {
+            var root = Utility.ParseAndAssert(
+                "==Title==Title{{Template|==}}abc=={{Def}}<!--comm-->",
+                "H2[Title==Title{{Template|=P[=]}}abc][{{Def}}<!--comm-->]");
+        }
     }
 }

@@ -189,23 +189,73 @@ namespace MwParserFromScratch
             // Test different levels of heading
             for (var level = prefix.Length; level > 0; level--)
             {
-                var prefixExpr = "={" + level + "}";
-                var suffixExpr = "(?m)={" + level + "}$";
-                ParseStart(suffixExpr, false);
-                ConsumeToken(prefixExpr);
+                var barExpr = "={" + level + "}";
+                // We use an early-stopping matching pattern
+                // E.g. for ==abc=={{def}}=={{ghi}}
+                // the first call to ParseRun will stop at =={{
+                // we need to continue parsing, resulting in a list of segments
+                // abc, {{def}}, {{ghi}}
+                ParseStart(barExpr + "(?!=)", false);   // <-- A
+                var temp = ConsumeToken(barExpr);
+                Debug.Assert(temp != null);
                 var node = new Heading();
-                if (!ParseRun(RunParsingMode.Run, node, false))
+                var parsedSegments = new List<InlineContainer>();
+                while (true)
                 {
-                    ParseFailed<Heading>();
-                    continue;
+                    ParseStart();                       // <-- B
+                    var segment = new Run();
+                    if (!ParseRun(RunParsingMode.Run, segment, true))
+                    {
+                        // No more content to parse
+                        // Stop and analyze
+                        Fallback();
+                        break;
+                    }
+                    if (ConsumeToken(barExpr) == null)
+                    {
+                        // The segment has been parsed, but it's terminated not by "==="
+                        // We treat the last segment as suffix
+                        // Stop and analyze
+                        node.Suffix = segment;
+                        Accept();
+                        break;
+                    }
+                    // Put the run segment into the list.
+                    parsedSegments.Add(segment);
                 }
-                if (ConsumeToken(suffixExpr) == null)
+                if (parsedSegments.Count == 0)
                 {
-                    ParseFailed<Heading>();
-                    continue;
+                    // There should be something as heading content
+                    goto FAIL_CLEANUP;
+                }
+                if (node.Suffix != null
+                    && node.Suffix.Inlines.OfType<PlainText>().Any(pt => !string.IsNullOrWhiteSpace(pt.Content)))
+                {
+                    // There shouldn't be non-whitespace plaintext after the heading
+                    goto FAIL_CLEANUP;
                 }
                 node.Level = level;
-                return ParseSuccessful(node);
+                // Concatenate segments, adding "===" where needed.
+                for (int i = 0; i < parsedSegments.Count; i++)
+                {
+                    node.Inlines.AddFrom(parsedSegments[i].Inlines);
+                    if (i < parsedSegments.Count - 1)
+                    {
+                        var li = (IWikitextLineInfo)parsedSegments[i + 1];
+                        var si = (IWikitextSpanInfo)parsedSegments[i + 1];
+                        var bar = new PlainText(new string('=', level));
+                        bar.SetLineInfo(li.LineNumber, li.LinePosition - level, si.Start - level, level);
+                        node.Inlines.Add(bar);
+                    }
+                }
+                // Move forward
+                // -- B
+                for (int i = 0; i < parsedSegments.Count; i++) Accept();
+                return ParseSuccessful(node);   // <-- A
+                FAIL_CLEANUP:
+                // -- B
+                for (int i = 0; i < parsedSegments.Count; i++) Fallback();
+                Fallback();                     // <-- A
             }
             // Failed (E.g. ^=== Title )
             return null;

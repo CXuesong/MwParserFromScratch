@@ -35,12 +35,12 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// The first node.
         /// </summary>
-        public TNode FirstNode { get; internal set; }
+        public TNode FirstNode { get; private set; }
 
         /// <summary>
         /// The last node.
         /// </summary>
-        public TNode LastNode { get; internal set; }
+        public TNode LastNode { get; private set; }
 
         /// <summary>
         /// Appends a new node into the children collection.
@@ -69,6 +69,34 @@ namespace MwParserFromScratch.Nodes
                 LastNode = node;
             }
             _Count++;
+        }
+
+        /// <summary>
+        /// Adds nodes directly from source collection and clears source collection.
+        /// </summary>
+        internal void AddFrom(NodeCollection<TNode> source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source.Count == 0) return;
+            foreach (var node in source)
+            {
+                node.ParentNode = _Owner;
+            }
+            if (LastNode == null)
+            {
+                Debug.Assert(FirstNode == null);
+                FirstNode = source.FirstNode;
+                LastNode = source.LastNode;
+            }
+            else
+            {
+                LastNode.NextNode = source.FirstNode;
+                source.FirstNode = LastNode;
+                LastNode = source.LastNode;
+            }
+            _Count += source._Count;
+            source.FirstNode = source.LastNode = null;
+            source._Count = 0;
         }
 
         public void Clear()

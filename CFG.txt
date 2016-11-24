@@ -1,5 +1,6 @@
 My "CFG" representation of Wikitext
 -------------------------------------
+Well, not exactly CFG.
 NOTE: I'm rather a newbie at this. If there's something
 inappropriate or wrong with the following representation,
 please notify me to fix or formalize it.
@@ -49,12 +50,12 @@ LINE        -> LIST_ITEM / HEADING / PARAGRAPH
 LIST_ITEM   -> "[*#:;]+|-{4,}| " RUN?                           # Flatten the list hierarchy
                                                                 # Note that "---- abcd" is valid
                                                                                                 
-HEADING     -> "={6}" RUN "={6}"
+HEADING     -> "={6}" RUN "={6}" EXPANDABLE_TEXT
                 >| "={6}$"
-            /  "={5}" RUN "={5}"
+            /  "={5}" RUN "={5}" EXPANDABLE_TEXT
                 >| "={5}$"
             /  ...
-            /  "={1}" RUN "={1}"
+            /  "={1}" RUN "={1}" EXPANDABLE_TEXT
                 >| "={1}$"
 
 HORIZONTAL_RULER    -> "-{4,}" RUN?    
