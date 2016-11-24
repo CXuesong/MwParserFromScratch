@@ -54,7 +54,7 @@ namespace MwParserFromScratch
             position = 0;
             contextStack = new Stack<ParsingContext>();
             // Then parse
-            logger?.NotifyStartParsing(wikitext);
+            logger?.NotifyParsingStarted(wikitext);
             var root = ParseWikitext();
             // State check
             if (position < fulltext.Length)
@@ -66,7 +66,7 @@ namespace MwParserFromScratch
             // Cleanup
             fulltext = null;
             contextStack = null;
-            logger?.NotifyStopParsing();
+            logger?.NotifyParsingFinished();
             return root;
         }
 
@@ -102,7 +102,7 @@ namespace MwParserFromScratch
             int index = fulltext.Length;
             foreach (var context in contextStack)
             {
-                var newIndex = context.FindTerminator(fulltext, position + skippedCharacters);
+                var newIndex = context.FindTerminator(fulltext, position + skippedCharacters, logger);
                 if (newIndex >= 0 && (index < 0 || newIndex < index))
                     index = newIndex;
             }
@@ -225,11 +225,11 @@ namespace MwParserFromScratch
                 return Terminator.IsTerminated(str, startIndex);
             }
 
-            public int FindTerminator(string str, int startIndex)
+            public int FindTerminator(string str, int startIndex, IWikitextParserLogger logger)
             {
                 Debug.Assert(str != null);
                 if (Terminator == null) return -1;
-                return Terminator.Search(str, startIndex);
+                return Terminator.Search(str, startIndex, logger);
             }
 
             /// <summary>
@@ -267,9 +267,11 @@ namespace MwParserFromScratch
             /// Search for the index of the beginning of the terminator.
             /// </summary>
             /// <returns>Index of the beginning of the terminator. OR -1 if no such terminator is found.</returns>
-            public int Search(string str, int startIndex)
+            public int Search(string str, int startIndex, IWikitextParserLogger logger)
             {
+                logger?.NotifyRegexMatchingStarted(startIndex, searcher);
                 var match = searcher.Match(str, startIndex);
+                logger?.NotifyRegexMatchingFinished(startIndex, searcher);
                 return match.Success ? match.Index : -1;
             }
 
