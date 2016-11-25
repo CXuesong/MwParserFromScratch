@@ -113,9 +113,39 @@ Wikitext             [==Hello==\r\n* ''Item1]
 
 You can use MediaWiki API to acquire the wikitext. For .NET programmers, I've made a client, [WikiClientLibrary](https://github.com/CXuesong/WikiClientLibrary), that lies beside this repository. There're also MediaWiki API clients in [API:Client code](https://www.mediawiki.org/wiki/API:Client_code).
 
+There's also a simple demo for fetching and parsing without the dependency of WikiClientLibrary in `ConsoleTestApplication1`, like this
+
+```c#
+/// <summary>
+/// Fetches a page from en Wikipedia, and parses it.
+/// </summary>
+private static Wikitext FetchAndParse(string title)
+{
+    if (title == null) throw new ArgumentNullException(nameof(title));
+    const string EndPointUrl = "https://en.wikipedia.org/w/api.php";
+    var client = new HttpClient();
+    var requestContent = new Dictionary<string, string>
+    {
+        {"format", "json"},
+        {"action", "query"},
+        {"prop", "revisions"},
+        {"rvlimit", "1"},
+        {"rvprop", "content"},
+        {"titles", title}
+    };
+    var response = client.PostAsync(EndPointUrl, new FormUrlEncodedContent(requestContent)).Result;
+    var root = JObject.Parse(response.Content.ReadAsStringAsync().Result);
+    var content = (string) root["query"]["pages"].Children<JProperty>().First().Value["revisions"][0]["*"];
+    var parser = new WikitextParser();
+    return parser.Parse(content);
+}
+```
+
+You may need `Newtonsoft.Json` NuGet package to parse JSON.
+
 ## Limitations
 
 *   For now it does not support table syntax, but I'll work on this.
 *   Text inside parser tags (rather than normal HTML tags) will not be parsed an will be preserved in `ParserTag.Content`. For certain parser tags (e.g. `<ref>`), You can parse the `Content` again to get the AST.
-*   It may handle some pathological cases differently from MediaWiki parser. E.g. `{{{{{arg}}` (See #1).
+*   It may handle some pathological cases differently from MediaWiki parser. E.g. `{{{{{arg}}` (See Issue #1).
 
