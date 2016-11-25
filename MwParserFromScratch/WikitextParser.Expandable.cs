@@ -164,7 +164,11 @@ namespace MwParserFromScratch
             node.TrailingWhitespace = ws;
             if (rbracket == "/>")
             {
-                node.IsSelfClosing = true;
+                node.TagStyle = TagStyle.SelfClosing;
+                return ParseSuccessful(node);
+            } else if (IsSelfClosingOnlyTagName(tagName))
+            {
+                node.TagStyle = TagStyle.CompactSelfClosing;
                 return ParseSuccessful(node);
             }
             // TAG content
@@ -191,7 +195,7 @@ namespace MwParserFromScratch
             var pt = tag as ParserTag;
             if (pt != null)
             {
-                // For parser tags, we just read to end.
+                // For parser tags, we just read to the end.
                 closingTagMatch = matcher.Match(fulltext, position);
                 if (closingTagMatch.Success)
                 {
@@ -203,6 +207,9 @@ namespace MwParserFromScratch
                 return false;
             }
             // We'll parse into the tag.
+            // But before the parsing begins,
+            //  do a simple check of whether there will be a possible closing tag ahead.
+            if (!matcher.IsMatch(fulltext, position)) return false;
             var ht = (HtmlTag) tag;
             ParseStart(closingTagExpr, false);
             ht.Content = ParseWikitext();

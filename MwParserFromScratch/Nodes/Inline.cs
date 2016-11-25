@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -343,11 +344,44 @@ namespace MwParserFromScratch.Nodes
     }
 
     /// <summary>
+    /// Determines how a tag is rendered in wikitext.
+    /// </summary>
+    public enum TagStyle
+    {
+        /// <summary>
+        /// &lt;tag&gt;&lt;/tag&gt;
+        /// </summary>
+        Normal,
+
+        /// <summary>
+        /// &lt;tag /&gt;
+        /// </summary> 
+        /// <remarks><see cref="SelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
+        /// some tags, such as br, hr, and wbr, is always self-closed so &lt;br /&gt; should be recognized as a
+        /// closed tag.</remarks>
+        SelfClosing,
+
+        /// <summary>
+        /// &lt;tag&gt;
+        /// </summary>
+        CompactSelfClosing,
+
+        /// <summary>
+        /// &lt;tag&gt;...[EOF]
+        /// </summary>
+        /// <remarks><see cref="SelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
+        /// the latter is for the tags that should be closed but actully not. This flag is used to reduce the chance
+        /// of fallbacks during parsing.</remarks>
+        NotClosed,
+    }
+
+    /// <summary>
     /// &lt;tag attr1=value1&gt;content&lt;/tag&gt;
     /// </summary>
     public abstract class TagNode : InlineNode
     {
         private string _TrailingWhitespace;
+        private TagStyle _TagStyle;
 
         public TagNode() : this(null)
         {
@@ -372,12 +406,22 @@ namespace MwParserFromScratch.Nodes
         public string ClosingTagName { get; set; }
 
         /// <summary>
-        /// Whether the tag is self closing. E.g. &lt;references /&gt;.
+        /// How a tag is rendered in wikitext.
         /// </summary>
-        public abstract bool IsSelfClosing { get; set; }
+        public virtual TagStyle TagStyle
+        {
+            get { return _TagStyle; }
+            set
+            {
+                if (value != TagStyle.Normal && value != TagStyle.SelfClosing
+                    && value != TagStyle.CompactSelfClosing && value != TagStyle.NotClosed)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                _TagStyle = value;
+            }
+        }
 
         /// <summary>
-        /// The trailing whitespace for the opening tag.
+        /// The trailing whitespace for the opening tag, before &gt; or /&gt; .
         /// </summary>
         /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
         public string TrailingWhitespace
@@ -420,17 +464,30 @@ namespace MwParserFromScratch.Nodes
             sb.Append(Name);
             sb.Append(string.Join(null, Attributes));
             sb.Append(TrailingWhitespace);
-            if (IsSelfClosing)
+            switch (TagStyle)
             {
-                sb.Append("/>");
-                return sb.ToString();
+                case TagStyle.Normal:
+                case TagStyle.NotClosed:
+                    sb.Append('>');
+                    sb.Append(GetContentString());
+                    break;
+                case TagStyle.SelfClosing:
+                    sb.Append("/>");
+                    return sb.ToString();
+                case TagStyle.CompactSelfClosing:
+                    sb.Append(">");
+                    return sb.ToString();
+                default:
+                    Debug.Assert(false);
+                    break;
             }
-            sb.Append('>');
-            sb.Append(GetContentString());
-            sb.Append("</");
-            sb.Append(ClosingTagName ?? Name);
-            sb.Append(ClosingTagTrailingWhitespace);
-            sb.Append('>');
+            if (TagStyle != TagStyle.NotClosed)
+            {
+                sb.Append("</");
+                sb.Append(ClosingTagName ?? Name);
+                sb.Append(ClosingTagTrailingWhitespace);
+                sb.Append('>');
+            }
             return sb.ToString();
         }
     }
@@ -477,21 +534,16 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// Whether the tag is self closed. E.g. &lt;references /&gt;.
         /// </summary>
-        public override bool IsSelfClosing
+        public override TagStyle TagStyle
         {
-            get { return Content == null; }
             set
             {
-                if (value)
+                if (value == TagStyle.SelfClosing && value == TagStyle.CompactSelfClosing)
                 {
                     if (!string.IsNullOrEmpty(Content))
                         throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
-                    Content = null;
                 }
-                else if (Content == null)
-                {
-                    Content = "";
-                }
+                base.TagStyle = value;
             }
         }
 
@@ -542,21 +594,16 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// Whether the tag is self closed. E.g. &lt;references /&gt;.
         /// </summary>
-        public override bool IsSelfClosing
+        public override TagStyle TagStyle
         {
-            get { return Content == null; }
             set
             {
-                if (value)
+                if (value == TagStyle.SelfClosing && value == TagStyle.CompactSelfClosing)
                 {
                     if (Content != null && Content.Lines.Count > 0)
                         throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
-                    Content = null;
                 }
-                else if (Content == null)
-                {
-                    Content = new Wikitext();
-                }
+                base.TagStyle = value;
             }
         }
 

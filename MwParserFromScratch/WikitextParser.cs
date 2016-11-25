@@ -76,6 +76,13 @@ namespace MwParserFromScratch
                 .Any(t => string.Equals(tagName, t, StringComparison.OrdinalIgnoreCase));
         }
 
+        private bool IsSelfClosingOnlyTagName(string tagName)
+        {
+            return ((IEnumerable<string>) _Options.SelfClosingOnlyTags ??
+                    WikitextParserOptions.DefaultSelfClosingOnlyTags)
+                .Any(t => string.Equals(tagName, t, StringComparison.OrdinalIgnoreCase));
+        }
+
         /// <summary>
         /// Looks ahead and checks whether to terminate the current matching.
         /// </summary>
@@ -153,7 +160,7 @@ namespace MwParserFromScratch
 
         private bool Fallback()
         {
-            logger.NotifyFallback(position, contextStack.Count);
+            logger?.NotifyFallback(position, contextStack.Count);
             var context = contextStack.Pop();
             // Fallback
             position = context.StartingPosition;

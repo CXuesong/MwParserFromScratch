@@ -85,16 +85,26 @@ namespace UnitTestProject1
                 sb.Append(n.Name);
                 sb.Append(string.Join(null, n.Attributes.Select(Dump)));
                 sb.Append(n.TrailingWhitespace);
-                if (n.IsSelfClosing)
+                switch (n.TagStyle)
                 {
-                    sb.Append("/>");
-                    return sb.ToString();
+                    case TagStyle.Normal:
+                    case TagStyle.NotClosed:
+                        sb.Append('>');
+                        var pt = n as ParserTag;
+                        if (pt != null) sb.Append(pt.Content);
+                        var ht = n as HtmlTag;
+                        if (ht != null) sb.Append(Dump(ht.Content));
+                        break;
+                    case TagStyle.SelfClosing:
+                        sb.Append("/>");
+                        return sb.ToString();
+                    case TagStyle.CompactSelfClosing:
+                        sb.Append(">");
+                        return sb.ToString();
+                    default:
+                        Debug.Assert(false);
+                        break;
                 }
-                sb.Append('>');
-                var pt = n as ParserTag;
-                if (pt != null) sb.Append(pt.Content);
-                var ht = n as HtmlTag;
-                if (ht != null) sb.Append(Dump(ht.Content));
                 sb.Append("</");
                 sb.Append(n.ClosingTagName ?? n.Name);
                 sb.Append(n.ClosingTagTrailingWhitespace);

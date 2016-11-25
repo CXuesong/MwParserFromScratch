@@ -23,6 +23,12 @@ namespace MwParserFromScratch
                 "templatedata", "timeline",
             });
 
+        public static readonly IReadOnlyList<string> DefaultSelfClosingOnlyTags =
+            new ReadOnlyCollection<string>(new[]
+            {
+                "br", "wbr", "hr"
+            });
+
         public static readonly IReadOnlyList<string> DefaultParserFunctions =
             new ReadOnlyCollection<string>(new[] {"PAGENAME"});
 
@@ -40,5 +46,11 @@ namespace MwParserFromScratch
         /// <value>A list of strings, which are valid parser function names. OR <c>null</c> to use the default settings.</value>
         /// <remarks>In current implementation, all parser functions will be treated as templates.</remarks>
         public IList<string> ParserFunctions { get; set; }
+
+        /// <summary>
+        /// Names of tags that can only be used in a self-closing way.
+        /// </summary>
+        /// <remarks>The default value is "br", "wbr", "hr".</remarks>
+        public IList<string> SelfClosingOnlyTags { get; set; }
     }
 }

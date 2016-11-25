@@ -185,5 +185,20 @@ namespace UnitTestProject1
             var root = Utility.ParseAndAssert("{{{arg}}}}}", "P[{{{P[arg]}}}$}$}]");
         }
 
+        [TestMethod]
+        public void TestTag1()
+        {
+            var root = Utility.ParseAndAssert("abc<br>def", "P[abc<br>def]");
+            root = Utility.ParseAndAssert("abc<bR>def", "P[abc<bR>def]");
+            root = Utility.ParseAndAssert("abc<br />def", "P[abc<br />def]");
+        }
+
+        [TestMethod]
+        public void TestTag2()
+        {
+            var root = Utility.ParseAndAssert("abc<div>def", "P[abc$<div$>def]");
+            root = Utility.ParseAndAssert("abc<div />def", "P[abc<div />def]");
+        }
+
     }
 }
