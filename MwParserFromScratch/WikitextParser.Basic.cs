@@ -195,7 +195,8 @@ namespace MwParserFromScratch
                 // the first call to ParseRun will stop at =={{
                 // we need to continue parsing, resulting in a list of segments
                 // abc, {{def}}, {{ghi}}
-                ParseStart(barExpr + "(?!=)", false);   // <-- A
+                var headingTerminator = barExpr + "(?!=)";
+                ParseStart(headingTerminator, false);   // <-- A
                 var temp = ConsumeToken(barExpr);
                 Debug.Assert(temp != null);
                 var node = new Heading();
@@ -204,9 +205,11 @@ namespace MwParserFromScratch
                 {
                     ParseStart();                       // <-- B
                     var segment = new Run();
-                    if (!ParseRun(RunParsingMode.Run, segment, true))
+                    if (!ParseRun(RunParsingMode.Run, segment, true)
+                        && LookAheadToken(headingTerminator) == null)
                     {
-                        // No more content to parse
+                        // No more content to parse, and ParseRun stopped by
+                        // a terminator that is not a heading terminator
                         // Stop and analyze
                         Fallback();
                         break;
@@ -222,11 +225,6 @@ namespace MwParserFromScratch
                     }
                     // Put the run segment into the list.
                     parsedSegments.Add(segment);
-                }
-                if (parsedSegments.Count == 0)
-                {
-                    // There should be something as heading content
-                    goto FAIL_CLEANUP;
                 }
                 if (node.Suffix != null
                     && node.Suffix.Inlines.OfType<PlainText>().Any(pt => !string.IsNullOrWhiteSpace(pt.Content)))
@@ -247,6 +245,11 @@ namespace MwParserFromScratch
                         bar.SetLineInfo(li.LineNumber, li.LinePosition - level, si.Start - level, level);
                         node.Inlines.Add(bar);
                     }
+                }
+                if (node.Inlines.Count == 0)
+                {
+                    // There should be something as heading content
+                    goto FAIL_CLEANUP;
                 }
                 // Move forward
                 // -- B

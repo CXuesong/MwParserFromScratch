@@ -61,6 +61,12 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
+        public void TestHeading10()
+        {
+            var root = Utility.ParseAndAssert("==A=<!--abc-->", "H1[=A][<!--abc-->]");
+        }
+
+        [TestMethod]
         public void TestHr1()
         {
             var root = Utility.ParseAndAssert("---", "P[---]");
