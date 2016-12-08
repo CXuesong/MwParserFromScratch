@@ -50,7 +50,7 @@ namespace MwParserFromScratch.Nodes
         public override string ToPlainText(NodePlainTextOptions options)
         {
             // Unescape HTML entities.
-            return WebUtility.HtmlEncode(Content);
+            return WebUtility.HtmlDecode(Content);
         }
     }
 
