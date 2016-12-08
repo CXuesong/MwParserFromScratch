@@ -341,6 +341,19 @@ namespace MwParserFromScratch.Nodes
             return newInst;
         }
 
+        /// <summary>
+        /// Gets the plain text without the unprintable nodes (e.g. comments, templates).
+        /// </summary>
+        public string ToPlainText()
+        {
+            return ToPlainText(NodePlainTextOptions.None);
+        }
+
+        /// <summary>
+        /// Gets the plain text without the unprintable nodes (e.g. comments, templates).
+        /// </summary>
+        public abstract string ToPlainText(NodePlainTextOptions options);
+
         private class LineInfoAnnotation
         {
             internal readonly int LineNumber;
@@ -356,5 +369,18 @@ namespace MwParserFromScratch.Nodes
                 Length = length;
             }
         }
+    }
+
+    /// <summary>
+    /// Options used in <see cref="Node.ToPlainText"/>.
+    /// </summary>
+    [Flags]
+    public enum NodePlainTextOptions
+    {
+        None = 0,
+        /// <summary>
+        /// Remove the content of &lt;ref&gt; parser tags.
+        /// </summary>
+        RemoveRefTags = 1
     }
 }

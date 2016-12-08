@@ -30,6 +30,12 @@ namespace MwParserFromScratch.Nodes
         }
 
         public override string ToString() => string.Join("\n", Lines);
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return string.Join("\n", Lines.Select(l => l.ToPlainText(options)));
+        }
     }
 
     public abstract class InlineContainer : Node
@@ -69,6 +75,12 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         public override IEnumerable<Node> EnumChildren()
             => Inlines;
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return string.Join(null, Inlines.Select(i => i.ToPlainText(options))).Trim();
+        }
     }
 
     /// <summary>

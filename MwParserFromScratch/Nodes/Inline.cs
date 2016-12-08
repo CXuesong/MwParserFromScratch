@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
@@ -43,6 +45,13 @@ namespace MwParserFromScratch.Nodes
         {
             return Content;
         }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            // Unescape HTML entities.
+            return WebUtility.HtmlEncode(Content);
+        }
     }
 
     public class WikiLink : InlineNode
@@ -77,6 +86,30 @@ namespace MwParserFromScratch.Nodes
         }
 
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
+
+        private static readonly Regex PipeTrickTitleMatcher = new Regex(@".+?(?=\w*\()");
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            if (Text != null)
+            {
+                if (Text.Inlines.Count == 0)
+                {
+                    // Pipe trick. E.g.
+                    // [[abc (disambiguation)|]]
+                    var original = Target.ToPlainText(options);
+                    var match = PipeTrickTitleMatcher.Match(original);
+                    if (match.Success) return match.Value;
+                    return original;
+                }
+                else
+                {
+                    return Text.ToPlainText(options);
+                }
+            }
+            return Target.ToPlainText(options);
+        }
     }
 
     public class ExternalLink : InlineNode
@@ -121,6 +154,16 @@ namespace MwParserFromScratch.Nodes
             if (Text != null) s += " " + Text;
             if (Brackets) s = "[" + s + "]";
             return s;
+        }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            if (!Brackets) return Target.ToPlainText(options);
+            var text = Text?.ToPlainText(options);
+            // We should have shown something like [1]
+            if (string.IsNullOrWhiteSpace(text)) return "[#]";
+            return text;
         }
     }
 
@@ -172,6 +215,12 @@ namespace MwParserFromScratch.Nodes
             if (SwitchItalics)
                 return "''";
             return "";
+        }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return null;
         }
     }
 
@@ -226,6 +275,12 @@ namespace MwParserFromScratch.Nodes
             sb.Append("}}");
             return sb.ToString();
         }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return null;
+        }
     }
 
     public class TemplateArgument : Node
@@ -279,6 +334,12 @@ namespace MwParserFromScratch.Nodes
         {
             if (Name == null) return Value.ToString();
             return Name + "=" + Value;
+        }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            throw new NotSupportedException();
         }
     }
 
@@ -340,6 +401,12 @@ namespace MwParserFromScratch.Nodes
             var s = "{{{" + Name;
             if (DefaultValue != null) s += "|" + DefaultValue;
             return s + "}}}";
+        }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return null;
         }
     }
 
@@ -452,6 +519,8 @@ namespace MwParserFromScratch.Nodes
 
         protected abstract string GetContentString();
 
+        protected abstract string GetContentPlainText(NodePlainTextOptions options);
+
         /// <summary>
         /// Enumerates the children of this node.
         /// </summary>
@@ -489,6 +558,12 @@ namespace MwParserFromScratch.Nodes
                 sb.Append('>');
             }
             return sb.ToString();
+        }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return GetContentPlainText(options);
         }
     }
 
@@ -548,6 +623,15 @@ namespace MwParserFromScratch.Nodes
         }
 
         protected override string GetContentString() => Content;
+
+        /// <inheritdoc />
+        protected override string GetContentPlainText(NodePlainTextOptions options)
+        {
+            if ((options & NodePlainTextOptions.RemoveRefTags) == NodePlainTextOptions.RemoveRefTags
+                && string.Equals(Name, "ref", StringComparison.OrdinalIgnoreCase))
+                return null;
+            return Content;
+        }
     }
 
     public class HtmlTag : TagNode
@@ -608,6 +692,9 @@ namespace MwParserFromScratch.Nodes
         }
 
         protected override string GetContentString() => Content?.ToString();
+
+        /// <inheritdoc />
+        protected override string GetContentPlainText(NodePlainTextOptions options) => Content?.ToPlainText(options);
     }
 
     /// <summary>
@@ -737,6 +824,12 @@ namespace MwParserFromScratch.Nodes
             return LeadingWhitespace + Name + WhitespaceBeforeEqualSign + "="
                    + WhitespaceAfterEqualSign + quote + Value + quote;
         }
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     public class Comment : InlineNode
@@ -766,5 +859,8 @@ namespace MwParserFromScratch.Nodes
         }
 
         public override string ToString() => "<!--" + Content + "-->";
+
+        /// <inheritdoc />
+        public override string ToPlainText(NodePlainTextOptions options) => null;
     }
 }

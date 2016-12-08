@@ -86,6 +86,8 @@ This is a nice '''paragraph'''.
             var ast = parser.Parse(ReadInput());
             Console.WriteLine("Parsed AST");
             PrintAst(ast, 0);
+            Console.WriteLine("Plain text");
+            Console.WriteLine(ast.ToPlainText());
         }
 
         private static void FetchAndParse()
