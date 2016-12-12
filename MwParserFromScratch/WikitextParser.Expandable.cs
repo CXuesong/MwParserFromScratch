@@ -137,7 +137,13 @@ namespace MwParserFromScratch
             while ((rbracket = ConsumeToken("/?>")) == null)
             {
                 // We need some whitespace to delimit the attrbutes.
-                Debug.Assert(ws != null);
+                if (ws == null)
+                {
+                    // This is a pathological condition.
+                    // E.g. <ref abc[EOF]
+                    // or   {{T|<ref def}}
+                    return ParseFailed<TagNode>();
+                }
                 // If attrName == null, then we have something like <tag =abc >, which is still valid.
                 var attrName = ParseAttributeName();
                 var attr = new TagAttribute {Name = attrName, LeadingWhitespace = ws};
