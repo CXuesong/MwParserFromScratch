@@ -20,10 +20,10 @@ namespace MwParserFromScratch.Nodes
 
         }
 
-        private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs()
+        private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs(bool reverse)
         {
             int index = 1;      // for positional arguments
-            foreach (var arg in this)
+            foreach (var arg in reverse ? Reverse() : this)
             {
                 if (arg.Name == null)
                 {
@@ -53,7 +53,7 @@ namespace MwParserFromScratch.Nodes
                 if (name == null) throw new ArgumentNullException(nameof(name));
                 name = name.Trim();
                 // We want to choose the last matching arguments, if there're multiple choices.
-                return EnumNameArgumentPairs().Last(p => p.Key == name).Value;
+                return EnumNameArgumentPairs(true).FirstOrDefault(p => p.Key == name).Value;
             }
         }
 
@@ -81,7 +81,7 @@ namespace MwParserFromScratch.Nodes
         {
             if (name == null) throw new ArgumentNullException(nameof(name));
             name = name.Trim();
-            return EnumNameArgumentPairs().Last(p => p.Key == name).Value != null;
+            return EnumNameArgumentPairs(false).FirstOrDefault(p => p.Key == name).Value != null;
         }
 
         /// <summary>
@@ -94,5 +94,33 @@ namespace MwParserFromScratch.Nodes
         /// </param>
         /// <exception cref="ArgumentNullException"><see cref="name"/> is <c>null</c>.</exception>
         public bool Contains(int name) => Contains(name.ToString());
+
+        /// <summary>
+        /// Sets the value of the specified template argument. If the argument doesn't exist,
+        /// this function will create a new one and returns it.
+        /// </summary>
+        /// <param name="argumentName">The name of the argument to set.</param>
+        /// <param name="argumentValue">The new value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</param>
+        /// <returns>The <see cref="TemplateArgument"/> whose value has been set/created.</returns>
+        /// <remarks>If there are multiple arguments sharing the same name, the value of the effective one (often the last one) will be set and returned.</remarks>
+        /// <exception cref="ArgumentNullException">Either <paramref name="argumentName"/> or <paramref name="argumentValue"/> is <c>null</c>.</exception>
+        public TemplateArgument SetValue(Wikitext argumentName, Wikitext argumentValue)
+        {
+            if (argumentName == null) throw new ArgumentNullException(nameof(argumentName));
+            if (argumentValue == null) throw new ArgumentNullException(nameof(argumentValue));
+            var arg = this[argumentName.ToString()];
+            if (arg == null)
+            {
+                // TODO automatically convert named argument to positional one
+                // E.g. {{T|1=abc}} --> {{T|abc}}
+                arg = new TemplateArgument(argumentName, argumentValue);
+                Add(arg);
+            }
+            else
+            {
+                arg.Value = argumentValue;
+            }
+            return arg;
+        }
     }
 }

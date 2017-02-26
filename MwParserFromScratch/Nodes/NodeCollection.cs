@@ -116,7 +116,7 @@ namespace MwParserFromScratch.Nodes
         public bool Contains(TNode item)
         {
             if (item == null) return false;
-            return ((IEnumerable<TNode>) this).Contains(item);
+            return ((IEnumerable<TNode>)this).Contains(item);
         }
 
         public void CopyTo(TNode[] array, int arrayIndex)
@@ -193,6 +193,19 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
+        /// Returns a reversed sequence of the collection items.
+        /// </summary>
+        public IEnumerable<TNode> Reverse()
+        {
+            var node = LastNode;
+            while (node != null)
+            {
+                yield return node;
+                node = (TNode)node.PreviousNode;
+            }
+        }
+
+        /// <summary>
         /// 返回一个循环访问集合的枚举器。
         /// </summary>
         /// <returns>
@@ -219,19 +232,19 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         bool ICollection<TNode>.Remove(TNode item)
         {
-            return ((INodeCollection) this).Remove(item);
+            return ((INodeCollection)this).Remove(item);
         }
 
         bool ICollection<TNode>.IsReadOnly => false;
 
         void INodeCollection.InsertBefore(Node node, Node newNode)
         {
-            InsertBefore((TNode) node, (TNode) newNode);
+            InsertBefore((TNode)node, (TNode)newNode);
         }
 
         void INodeCollection.InsertAfter(Node node, Node newNode)
         {
-            InsertBefore((TNode) node, (TNode) newNode);
+            InsertBefore((TNode)node, (TNode)newNode);
         }
 
         bool INodeCollection.Remove(Node item)
@@ -240,8 +253,8 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(item.ParentNode == _Owner);
             item.ParentCollection = null;
             _Owner.Detach(item);
-            if (item == FirstNode) FirstNode = (TNode) item.NextNode;
-            if (item == LastNode) LastNode = (TNode) item.PreviousNode;
+            if (item == FirstNode) FirstNode = (TNode)item.NextNode;
+            if (item == LastNode) LastNode = (TNode)item.PreviousNode;
             item.PreviousNode = item.NextNode = null;
             _Count--;
             return true;
@@ -261,7 +274,7 @@ namespace MwParserFromScratch.Nodes
                 }
                 else
                 {
-                    Current = (TNode) Current.NextNode;
+                    Current = (TNode)Current.NextNode;
                 }
                 return Current != null;
             }

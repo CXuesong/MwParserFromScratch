@@ -32,6 +32,9 @@ namespace MwParserFromScratch.Nodes
             return n;
         }
 
+        /// <summary>
+        /// Gets the wikitext representation of this node.
+        /// </summary>
         public override string ToString() => string.Join("\n", Lines);
 
         /// <inheritdoc />

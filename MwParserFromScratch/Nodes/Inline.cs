@@ -12,7 +12,7 @@ namespace MwParserFromScratch.Nodes
 {
     public abstract class InlineNode : Node
     {
-        
+
     }
 
     public class PlainText : InlineNode
@@ -38,7 +38,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            return new PlainText {Content = Content};
+            return new PlainText { Content = Content };
         }
 
         public override string ToString()
@@ -82,7 +82,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            return new WikiLink {Target = Target, Text = Text};
+            return new WikiLink { Target = Target, Text = Text };
         }
 
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
@@ -202,7 +202,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new FormatSwitch {SwitchBold = SwitchBold, SwitchItalics = SwitchItalics};
+            var n = new FormatSwitch { SwitchBold = SwitchBold, SwitchItalics = SwitchItalics };
             return n;
         }
 
@@ -260,7 +260,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new Template {Name = Name};
+            var n = new Template { Name = Name };
             n.Arguments.Add(Arguments);
             return n;
         }
@@ -311,6 +311,10 @@ namespace MwParserFromScratch.Nodes
             set { Attach(ref _Name, value); }
         }
 
+        /// <summary>
+        /// Value of the argument.
+        /// </summary>
+        /// <value>Value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</value>
         public Wikitext Value
         {
             get { return _Value; }
@@ -329,7 +333,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new TemplateArgument {Name = Name, Value = Value};
+            var n = new TemplateArgument { Name = Name, Value = Value };
             return n;
         }
 
@@ -339,7 +343,9 @@ namespace MwParserFromScratch.Nodes
             return Name + "=" + Value;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Infrastructure. This function will always throw a <seealso cref="NotSupportedException"/>.
+        /// </summary>
         public override string ToPlainText(NodePlainTextOptions options)
         {
             throw new NotSupportedException();
@@ -455,7 +461,7 @@ namespace MwParserFromScratch.Nodes
 
         public TagNode() : this(null)
         {
-            
+
         }
 
         public TagNode(string name)
@@ -522,6 +528,10 @@ namespace MwParserFromScratch.Nodes
 
         protected abstract string GetContentString();
 
+        /// <summary>
+        /// Gets the content inside the tags as plain text without the unprintable nodes
+        /// (e.g. comments, templates).
+        /// </summary>
         protected abstract string GetContentPlainText(NodePlainTextOptions options);
 
         /// <summary>
@@ -530,6 +540,7 @@ namespace MwParserFromScratch.Nodes
         public override IEnumerable<Node> EnumChildren()
             => Attributes;
 
+        /// <inheritdoc />
         public override string ToString()
         {
             var sb = new StringBuilder("<");
@@ -586,7 +597,7 @@ namespace MwParserFromScratch.Nodes
 
         public ParserTag(string name) : base(name)
         {
-            
+
         }
 
         /// <summary>
@@ -625,6 +636,7 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <inheritdoc />
         protected override string GetContentString() => Content;
 
         /// <inheritdoc />
@@ -637,6 +649,10 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
+    /// <summary>
+    /// Normal HTML tag, or other unrecognized tags. E.g. &lt;span&gt;
+    /// </summary>
+    /// <seealso cref="ParserTag"/>
     public class HtmlTag : TagNode
     {
         public HtmlTag() : this(null)
@@ -694,6 +710,7 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <inheritdoc />
         protected override string GetContentString() => Content?.ToString();
 
         /// <inheritdoc />
@@ -804,7 +821,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            return new TagAttribute {Name = Name, Value = Value};
+            return new TagAttribute { Name = Name, Value = Value };
         }
 
         public override string ToString()
@@ -856,11 +873,13 @@ namespace MwParserFromScratch.Nodes
         public override IEnumerable<Node> EnumChildren()
             => Enumerable.Empty<Node>();
 
+        /// <inheritdoc />
         protected override Node CloneCore()
         {
-            return new Comment {Content = Content};
+            return new Comment { Content = Content };
         }
 
+        /// <inheritdoc />
         public override string ToString() => "<!--" + Content + "-->";
 
         /// <inheritdoc />

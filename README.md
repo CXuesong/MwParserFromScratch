@@ -4,6 +4,12 @@ A .NET Library for parsing wikitext into AST. The repository is still under deve
 
 ## Usage
 
+This package is now on NuGet. You may install the package using the following command in the Package Management Console
+
+```
+Install-Package CXuesong.MW.MwParserFromScratch -Pre
+```
+
 After adding reference to this library, import the namespaces
 
 ```c#
@@ -26,11 +32,13 @@ You can also take a look at `ConsoleTestApplication1`, where there're some demos
 ```c#
 static void SimpleDemo()
 {
-    // Fill the missing template parameters.
+    // Fills the missing template parameters.
     var parser = new WikitextParser();
     var templateNames = new [] {"Expand section", "Cleanup"};
     var text = @"==Hello==<!--comment-->
-{{Expand section|date=2010-10-05}}
+{{Expand section|
+date=2010-10-05
+}}
 {{Cleanup}}
 This is a nice '''paragraph'''.
 ==References==
@@ -40,18 +48,23 @@ This is a nice '''paragraph'''.
     // Convert the code snippets to nodes
     var dateName = parser.Parse("date");
     var dateValue = parser.Parse(DateTime.Now.ToString("yyyy-MM-dd"));
-    // Find and set
+    Console.WriteLine("Issues:");
+    // Search and set
     foreach (var t in ast.EnumDescendants().OfType<Template>()
-        .Where(t => templateNames.Contains(t?.Name.ToString().Trim())))
+        .Where(t => templateNames.Contains(MwParserUtility.NormalizeTemplateArgumentName(t.Name))))
     {
-        var date = t.Arguments.FirstOrDefault(a => a.Name?.ToString() == "date");
-        if (date == null)
+        // Get the argument by name.
+        var date = t.Arguments["date"];
+        if (date != null)
         {
-            date = new TemplateArgument {Name = dateName};
-            t.Arguments.Add(date);
+            // To print the wikitext instead of user-friendly text, use ToString()
+            Console.WriteLine("{0} ({1})", t.Name.ToPlainText(), date.Value.ToPlainText());
         }
-        date.Value = dateValue;
+        // Update/Add the argument
+        t.Arguments.SetValue(dateName, dateValue);
     }
+    Console.WriteLine();
+    Console.WriteLine("Wikitext:");
     Console.WriteLine(ast.ToString());
 }
 ```
@@ -59,9 +72,14 @@ This is a nice '''paragraph'''.
 The console output is as follows
 
 ```wiki
+Issues:
+Expand section (2010-10-05)
+
+Wikitext:
 ==Hello==<!--comment-->
-{{Expand section|date=2016-11-02}}
-{{Cleanup|date=2016-11-02}}
+{{Expand section|
+  date=2017-02-26}}
+{{Cleanup|date=2017-02-26}}
 This is a nice '''paragraph'''.
 ==References==
 {{Reflist}}

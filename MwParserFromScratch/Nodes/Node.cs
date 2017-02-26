@@ -372,11 +372,14 @@ namespace MwParserFromScratch.Nodes
     }
 
     /// <summary>
-    /// Options used in <see cref="Node.ToPlainText"/>.
+    /// Options used in <see cref="Node.ToPlainText(NodePlainTextOptions)"/>.
     /// </summary>
     [Flags]
     public enum NodePlainTextOptions
     {
+        /// <summary>
+        /// Default behavior.
+        /// </summary>
         None = 0,
         /// <summary>
         /// Remove the content of &lt;ref&gt; parser tags.
