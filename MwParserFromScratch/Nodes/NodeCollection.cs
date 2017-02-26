@@ -29,6 +29,7 @@ namespace MwParserFromScratch.Nodes
 
         internal NodeCollection(Node owner)
         {
+            Debug.Assert(owner != null);
             _Owner = owner;
         }
 

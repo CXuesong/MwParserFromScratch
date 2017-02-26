@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace MwParserFromScratch.Nodes
 {
+    /// <summary>
+    /// A multiline wikitext block.
+    /// </summary>
     public class Wikitext : Node
     {
         public Wikitext()

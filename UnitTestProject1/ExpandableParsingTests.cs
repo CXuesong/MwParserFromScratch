@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MwParserFromScratch;
+using MwParserFromScratch.Nodes;
 
 namespace UnitTestProject1
 {
@@ -43,16 +46,24 @@ namespace UnitTestProject1
         public void TestTemplate1()
         {
             var root = Utility.ParseAndAssert(
-                "{{Disambig}}\nTest may refer to\n* Test and experiment.\n* The River Test.\n",
-                "P[{{Disambig}}\nTest may refer to]*[ Test and experiment.]*[ The River Test.]P[]");
+                "{{disambig}}\nTest may refer to\n* Test and experiment.\n* The River Test.\n",
+                "P[{{disambig}}\nTest may refer to]*[ Test and experiment.]*[ The River Test.]P[]");
+            var dab = root.EnumDescendants().OfType<Template>()
+                .First(t => MwParserUtility.NormalizeTitle(t.Name) == "Disambig");
+            Assert.AreEqual(0, dab.Arguments.Count);
         }
 
         [TestMethod]
         public void TestTemplate2()
         {
             var root = Utility.ParseAndAssert(
-                "{{Translating|[[:en:Test]]|tpercent=20}}\n{{T|Translating|source|3=tpercent=percentage of completion}}",
-                "P[{{Translating|P[[[:en:Test]]]|P[tpercent]=P[20]}}\n{{T|P[Translating]|P[source]|P[3]=P[tpercent=percentage of completion]}}]");
+                "{{Translating|[[:en:Test]]|\ntpercent=20}}\n{{T|Translating|source|3=tpercent=percentage of completion}}",
+                "P[{{Translating|P[[[:en:Test]]]|P[\ntpercent]=P[20]}}\n{{T|P[Translating]|P[source]|P[3]=P[tpercent=percentage of completion]}}]");
+            var trans = root.EnumDescendants().OfType<Template>()
+                .First(t => MwParserUtility.NormalizeTitle(t.Name) == "Translating");
+            Assert.AreEqual(2, trans.Arguments.Count);
+            Assert.AreEqual("[[:en:Test]]", trans.Arguments[1].Value.ToString());
+            Assert.AreEqual("20", trans.Arguments["  tpercent   "].Value.ToString());
         }
 
         [TestMethod]

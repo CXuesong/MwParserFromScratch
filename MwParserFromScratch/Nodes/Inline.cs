@@ -235,16 +235,19 @@ namespace MwParserFromScratch.Nodes
         public Template(Run name)
         {
             Name = name;
-            Arguments = new NodeCollection<TemplateArgument>(this);
+            Arguments = new TemplateArgumentCollection(this);
         }
 
+        /// <summary>
+        /// Title of the template page to transclude.
+        /// </summary>
         public Run Name
         {
             get { return _Name; }
             set { Attach(ref _Name, value); }
         }
 
-        public NodeCollection<TemplateArgument> Arguments { get; }
+        public TemplateArgumentCollection Arguments { get; }
 
         /// <summary>
         /// Enumerates the children of this node.

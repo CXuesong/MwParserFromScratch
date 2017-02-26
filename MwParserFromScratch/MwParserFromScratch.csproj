@@ -39,6 +39,8 @@
   <ItemGroup>
     <Compile Include="IWikitextParserLogger.cs" />
     <Compile Include="IWikitextSpanInfo.cs" />
+    <Compile Include="MwParserUtility.cs" />
+    <Compile Include="Nodes\TemplateArgumentCollection.cs" />
     <Compile Include="WikitextParser.cs" />
     <Compile Include="WikitextParser.Expandable.cs" />
     <Compile Include="IWikitextLineInfo.cs" />
