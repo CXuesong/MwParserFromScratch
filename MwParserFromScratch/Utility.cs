@@ -63,7 +63,7 @@ namespace MwParserFromScratch
             var sb = new StringBuilder();
             foreach (var c in title)
             {
-                var isWhitespace = c == ' ' || c == '_';
+                var isWhitespace = c == '_' || char.IsWhiteSpace(c);
                 // Remove left-to-right and right-to-left markers.
                 if (c == '\u200e' || c == '\u200f') continue;
                 switch (state)
