@@ -8,16 +8,16 @@
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/CXuesong/MwParserFromScratch</PackageProjectUrl>
     <Authors>CXuesong</Authors>
-    <Version>0.1-int2b</Version>
+    <Version>0.1-int3</Version>
     <PackageTags>MediaWiki Wikitext Parser</PackageTags>
     <RepositoryUrl>https://github.com/CXuesong/MwParserFromScratch</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageReleaseNotes>See https://github.com/CXuesong/MwParserFromScratch/releases .</PackageReleaseNotes>
     <Description>A .NET Library for parsing wikitext into AST.</Description>
     <Copyright>Copyright (C) CXuesong, 2017</Copyright>
-    <AssemblyVersion>0.1.1.2</AssemblyVersion>
+    <AssemblyVersion>0.1.1.3</AssemblyVersion>
     <NeutralLanguage>en-us</NeutralLanguage>
-    <FileVersion>0.1.1.2</FileVersion>
+    <FileVersion>0.1.1.3</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

@@ -263,7 +263,15 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(item.ParentNode == _Owner);
             item.ParentCollection = null;
             _Owner.Detach(item);
-            if (item == FirstNode) FirstNode = (TNode)item.NextNode;
+            if (item == FirstNode)
+            {
+                FirstNode = (TNode)item.NextNode;
+            }
+            else
+            {
+                Debug.Assert(item.PreviousNode != null);
+                item.PreviousNode.NextNode = item.NextNode;
+            }
             if (item == LastNode) LastNode = (TNode)item.PreviousNode;
             item.PreviousNode = item.NextNode = null;
             _Count--;
