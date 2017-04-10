@@ -8,7 +8,7 @@
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/CXuesong/MwParserFromScratch</PackageProjectUrl>
     <Authors>CXuesong</Authors>
-    <Version>0.1-int2.1</Version>
+    <Version>0.1-int2b</Version>
     <PackageTags>MediaWiki Wikitext Parser</PackageTags>
     <RepositoryUrl>https://github.com/CXuesong/MwParserFromScratch</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
@@ -18,6 +18,10 @@
     <AssemblyVersion>0.1.1.2</AssemblyVersion>
     <NeutralLanguage>en-us</NeutralLanguage>
     <FileVersion>0.1.1.2</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\netstandard1.1\MwParserFromScratch.xml</DocumentationFile>
   </PropertyGroup>
 
 </Project>

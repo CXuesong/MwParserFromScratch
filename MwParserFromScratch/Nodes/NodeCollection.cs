@@ -73,6 +73,16 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
+        /// Appends a node to the head of the collection.
+        /// </summary>
+        /// <param name="node">The node to be added.</param>
+        public void AddFirst(TNode node)
+        {
+            if (FirstNode == null) Add(node);
+            else InsertBefore(FirstNode, node);
+        }
+
+        /// <summary>
         /// Adds nodes directly from source collection and clears source collection.
         /// </summary>
         internal void AddFrom(NodeCollection<TNode> source)
