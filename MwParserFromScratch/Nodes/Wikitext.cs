@@ -12,9 +12,21 @@ namespace MwParserFromScratch.Nodes
     /// </summary>
     public class Wikitext : Node
     {
-        public Wikitext()
+
+        public Wikitext(params LineNode[] lines) : this((IEnumerable<LineNode>)lines)
+        {
+            
+        }
+
+        public Wikitext(IEnumerable<LineNode> lines)
         {
             Lines = new NodeCollection<LineNode>(this);
+            if (lines != null) Lines.Add(lines);
+        }
+
+        public Wikitext() : this(null)
+        {
+
         }
 
         public NodeCollection<LineNode> Lines { get; }
