@@ -31,7 +31,16 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
-        public void TemplateArgumentsTest()
+        public void TemplateArgumentsTest1()
+        {
+            var root = Utility.ParseWikitext("{{test|a|b}}");
+            var t = root.EnumDescendants().OfType<Template>().First();
+            Assert.AreEqual("a", t.Arguments[1].ToString());
+            Assert.AreEqual("b", t.Arguments[2].ToString());
+        }
+
+        [TestMethod]
+        public void TemplateArgumentsTest2()
         {
             var root = Utility.ParseWikitext("{{\ttest_T  |A=1|B=2|  c\n=3}}");
             var t = root.EnumDescendants().OfType<Template>().First();

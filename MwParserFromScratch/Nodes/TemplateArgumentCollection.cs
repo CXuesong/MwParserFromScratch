@@ -22,17 +22,18 @@ namespace MwParserFromScratch.Nodes
 
         private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs(bool reverse)
         {
-            int index = 1;      // for positional arguments
+            int index = this.Count(arg => arg.Name == null); // for positional arguments
             foreach (var arg in reverse ? Reverse() : this)
             {
                 if (arg.Name == null)
                 {
                     yield return new KeyValuePair<string, TemplateArgument>(index.ToString(), arg);
-                    index++;
+                    index--;
                 }
                 else
                 {
-                    yield return new KeyValuePair<string, TemplateArgument>(MwParserUtility.NormalizeTemplateArgumentName(arg.Name), arg);
+                    yield return new KeyValuePair<string, TemplateArgument>(
+                        MwParserUtility.NormalizeTemplateArgumentName(arg.Name), arg);
                 }
             }
         }
