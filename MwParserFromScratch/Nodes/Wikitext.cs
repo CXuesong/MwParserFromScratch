@@ -74,10 +74,25 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
+        /// Append a <see cref="PlainText"/> node to the beginning of the paragraph.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> at the beginning of the paragraph.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
+        public PlainText Prepend(string text)
+        {
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            var pt = Inlines.FirstNode as PlainText;
+            if (pt == null) Inlines.AddFirst(pt = new PlainText());
+            pt.Content = text + pt.Content;
+            return pt;
+        }
+
+        /// <summary>
         /// Append a <see cref="PlainText"/> node to the end of the paragraph.
         /// </summary>
         /// <param name="text">The text to be inserted.</param>
-        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> in the end of the paragraph.</returns>
+        /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> at the end of the paragraph.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
         public PlainText Append(string text)
         {
