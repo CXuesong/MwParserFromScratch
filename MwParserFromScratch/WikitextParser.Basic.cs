@@ -407,7 +407,15 @@ namespace MwParserFromScratch
             {
                 // Conservative
                 var url = ParseUrlText();
-                target = url == null ? null : new Run(url);
+                if (url != null)
+                {
+                    target = new Run(url);
+                    target.SetLineInfo(url);
+                }
+                else
+                {
+                    target = null;
+                }
             }
             if (target == null) return ParseFailed<ExternalLink>();
             var node = new ExternalLink {Target = target, Brackets = brackets};
@@ -509,25 +517,20 @@ namespace MwParserFromScratch
             }
         }
 
-        private static readonly Regex UrlMatcher =
-            new Regex(
-                @"(?i)(((\bhttps?:|\bftp:|\birc:|\bgopher:|)\/\/)|\bnews:|\bmailto:)([^\x00-\x20\s""\[\]\x7f\|\{\}<>]|<[^>]*>)+?(?=([!""().,:;‘-•]*\s|[\x00-\x20\s""\[\]\x7f|{}]|$))");
+        // From https://en.wikipedia.org/wiki/User:Cacycle/wikEd.js
+        private const string UrlMatcher =
+                @"(?i)\b(((https?:|ftp:|irc:|gopher:|)\/\/)|news:|mailto:)([^\x00-\x20\s""\[\]\x7f\|\{\}<>]|<[^>]*>)+?(?=([!""().,:;‘-•]*\s|[\x00-\x20\s""\[\]\x7f|{}]|$))"
+            ;
 
         private PlainText ParseUrlText()
         {
-            // First, find an appearant terminator of URL
-            var endPos = position;
-            for (; endPos < fulltext.Length; endPos++)
-                if (char.IsWhiteSpace(fulltext, endPos)) break;
-            // From https://en.wikipedia.org/wiki/User:Cacycle/wikEd.js
-            var match = UrlMatcher.Match(fulltext, position, endPos - position);
-            // We only take the URL if it starts IMMEDIATELY.
-            if (match.Success && match.Index == position)
+            ParseStart();
+            var url = ConsumeToken(UrlMatcher);
+            if (url != null)
             {
-                MovePositionTo(position + match.Length);
-                return new PlainText(match.Value);
+                return ParseSuccessful(new PlainText(url));
             }
-            return null;
+            return ParseFailed<PlainText>();
         }
 
         private enum RunParsingMode

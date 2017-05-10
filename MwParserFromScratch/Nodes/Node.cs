@@ -305,6 +305,13 @@ namespace MwParserFromScratch.Nodes
             AddAnnotation(new LineInfoAnnotation(lineNumber, linePosition, start, length));
         }
 
+        internal void SetLineInfo(Node node)
+        {
+            Debug.Assert(node != null);
+            var annotation = node.Annotation<LineInfoAnnotation>();
+            AddAnnotation(annotation);
+        }
+
         internal void ExtendLineInfo(int extendingLength)
         {
             Debug.Assert(extendingLength > 0);
@@ -359,7 +366,7 @@ namespace MwParserFromScratch.Nodes
             internal readonly int LineNumber;
             internal readonly int LinePosition;
             internal readonly int Start;
-            internal int Length;
+            internal int Length;        // Changed in ExtendLineInfo()
 
             public LineInfoAnnotation(int lineNumber, int linePosition, int start, int length)
             {
