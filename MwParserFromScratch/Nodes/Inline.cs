@@ -123,6 +123,13 @@ namespace MwParserFromScratch.Nodes
             set { Attach(ref _Target, value); }
         }
 
+        /// <summary>
+        /// Display text of the link.
+        /// </summary>
+        /// <value>
+        /// Display text of the link, or <c>null</c>, if the link url is just surrounded by
+        /// a pair of square brackets. (e.g. <c>[http://abc.def]</c>).
+        /// </value>
         public Run Text
         {
             get { return _Text; }
