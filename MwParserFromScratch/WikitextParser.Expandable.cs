@@ -144,7 +144,8 @@ namespace MwParserFromScratch
                     // or   {{T|<ref def}}
                     return ParseFailed<TagNode>();
                 }
-                // If attrName == null, then we have something like <tag =abc >, which is still valid.
+                // If attrName == null, then we have something like <tag =abc >, which is still valid (attributeName = "").
+                ParseStart();
                 var attrName = ParseAttributeName();
                 var attr = new TagAttribute {Name = attrName, LeadingWhitespace = ws};
                 ws = ConsumeToken(@"\s+");
@@ -165,6 +166,7 @@ namespace MwParserFromScratch
                     }
                     ws = ConsumeToken(@"\s+");
                 } /* else, we have <tag attrName > */
+                ParseSuccessful(attr);
                 node.Attributes.Add(attr);
             }
             node.TrailingWhitespace = ws;

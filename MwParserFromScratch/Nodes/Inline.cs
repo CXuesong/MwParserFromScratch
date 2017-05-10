@@ -734,11 +734,11 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         None = 0,
         /// <summary>
-        /// Value is surrended by single quotes.
+        /// Value is surrounded by single quotes.
         /// </summary>
         SingleQuotes,
         /// <summary>
-        /// Value is surrended by double quotes.
+        /// Value is surrounded by double quotes.
         /// </summary>
         DoubleQuotes,
     }
