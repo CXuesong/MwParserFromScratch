@@ -1,6 +1,6 @@
 My "CFG" representation of Wikitext
 -------------------------------------
-Well, not exactly CFG.
+Well, not exactly context-free.
 NOTE: I'm rather a newbie at this. If there's something
 inappropriate or wrong with the following representation,
 please notify me to fix or formalize it.
@@ -106,14 +106,21 @@ FORMAT_SWITCH       -> "'{5}(?!')" / "'{3}(?!')" / "'{2}(?!')"  # Also handles '
 # Note that there's no ambiguity for nested brackets delimited with spaces, e.g. {{ {{T}} }}
 TEMPLATE        -> "{{" EXPANDABLE_TEXT TEMPLATE_ARGS "}}"
                 >| "}}" / "|"
-TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / "|" TEMPLATE_ARG
+TEMPLATE_ARGS   -> "|" TEMPLATE_ARG TEMPLATE_ARGS / empty
 TEMPLATE_ARG    -> WIKITEXT "=" WIKITEXT / WIKITEXT             # [[abc|def]]={{def}} is valid!
 ARGUMENT_REF    -> "{{{" WIKITEXT "|" WIKITEXT "}}}" / "{{{" WIKITEXT "}}}"
                 +| "|"
 
-# Template expansion is disabled in parser TAGs
+TEMPLATE_MAGIC          -> "{{" EXPANDABLE_TEXT_MAGIC TEMPLATE_MAGIC_ARGS "}}"
+EXPANDABLE_TEXT_MAGIC   -> "#" EXPANDABLE_TEXT                  # Likely to be a parser function
+                        /  WELL_KNOWN_VARIABLE_NAMES            # Some well-known variable names
+                        +| ":"                                  # Colon will start the 1st argument
+TEMPLATE_MAGIC_ARG1     -> ":" WIKITEXT TEMPLATE_ARGS           # The first argument just cannot be named
+                        /  empty
+
+# You cannot transclude templates in parser TAGs
 TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
-TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / "\s+" TAG_ATTR
+TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / empty
 TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""              # <tag attr="value">
             /  IDENTIFIER "\s*=\s*'" "[^']*" "'"                # <tag attr='value'>
             /  IDENTIFIER "\s*=\s*" "[^\s]*"                    # <tag attr=value> or <tag attr= >

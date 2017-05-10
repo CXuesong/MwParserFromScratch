@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MwParserFromScratch;
@@ -64,6 +65,15 @@ namespace UnitTestProject1
             Assert.AreEqual(2, trans.Arguments.Count);
             Assert.AreEqual("[[:en:Test]]", trans.Arguments[1].Value.ToString());
             Assert.AreEqual("20", trans.Arguments["  tpercent   "].Value.ToString());
+        }
+
+        [TestMethod]
+        public void TestMagicWords1()
+        {
+            var root = Utility.ParseAndAssert("{{ \t #if:Y|Yes|No}}", "P[{{ \t #if|P[Y]|P[Yes]|P[No]}}]");
+            Assert.IsTrue(root.EnumDescendants().OfType<Template>().First().IsMagicWord);
+            root = Utility.ParseAndAssert("{{ PAGESINCATEGORY :categoryname }}", "P[{{ PAGESINCATEGORY |P[categoryname ]}}");
+            Assert.IsTrue(root.EnumDescendants().OfType<Template>().First().IsMagicWord);
         }
 
         [TestMethod]

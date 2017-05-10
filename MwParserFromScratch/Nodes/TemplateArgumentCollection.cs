@@ -20,15 +20,25 @@ namespace MwParserFromScratch.Nodes
 
         }
 
+        /// <summary>
+        /// Enumerates the normalized name-<see cref="TemplateArgument"/> pairs in the collection.
+        /// </summary>
+        /// <remarks>If there are arguments with duplicate names, they will nonetheless be included in the sequence.</remarks>
+        public IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs()
+        {
+            return EnumNameArgumentPairs(false);
+        }
+
         private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs(bool reverse)
         {
-            int index = this.Count(arg => arg.Name == null); // for positional arguments
+            int unnamedCounter = reverse ? this.Count(arg => arg.Name == null) : 1; // for positional arguments
             foreach (var arg in reverse ? Reverse() : this)
             {
                 if (arg.Name == null)
                 {
-                    yield return new KeyValuePair<string, TemplateArgument>(index.ToString(), arg);
-                    index--;
+                    yield return new KeyValuePair<string, TemplateArgument>(unnamedCounter.ToString(), arg);
+                    if (reverse) unnamedCounter--;
+                    else unnamedCounter++;
                 }
                 else
                 {

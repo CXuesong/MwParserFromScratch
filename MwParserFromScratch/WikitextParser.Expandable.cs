@@ -92,16 +92,49 @@ namespace MwParserFromScratch
             ParseStart(@"\}\}|\|", true);
             if (ConsumeToken(@"\{\{") == null)
                 return ParseFailed<Template>();
-            var name = new Run();
-            if (!ParseRun(RunParsingMode.ExpandableText, name, true))
-                return ParseFailed<Template>();
-            var node = new Template(name);
+            // Look ahead to determine the Magic Words
+            var node = new Template(new Run());
+            if (LookAheadToken(@"\s*#") != null)
+            {
+                node.IsMagicWord = true;
+            }
+            else
+            {
+                var litName = LookAheadToken(@"\s*[^:\|\{\}]+(?=[:\}])");
+                if (litName != null)
+                {
+                    litName = litName.Trim();
+                    node.IsMagicWord = wikiVariableNames.Contains(litName);
+                }
+            }
+            if (node.IsMagicWord)
+            {
+                ParseStart(":", false);
+                if (!ParseRun(RunParsingMode.ExpandableText, node.Name, true))
+                {
+                    Debug.Assert(false, "We have ensured we can read something. Wierd.");
+                    Fallback();
+                    return ParseFailed(node);
+                }
+                Accept();
+                Debug.Assert(LookAheadToken(@"\|") == null);
+                if (ConsumeToken(":") != null)
+                {
+                    // Parse 1st argument.
+                    node.Arguments.Add(ParseTemplateArgument());
+                }
+            }
+            else
+            {
+                if (!ParseRun(RunParsingMode.ExpandableText, node.Name, true))
+                    return ParseFailed(node);
+            }
             while (ConsumeToken(@"\|") != null)
             {
                 var arg = ParseTemplateArgument();
                 node.Arguments.Add(arg);
             }
-            if (ConsumeToken(@"\}\}") == null) return ParseFailed<Template>();
+            if (ConsumeToken(@"\}\}") == null) return ParseFailed(node);
             return ParseSuccessful(node);
         }
 
@@ -130,7 +163,7 @@ namespace MwParserFromScratch
             if (ConsumeToken("<") == null) return ParseFailed<TagNode>();
             var tagName = ConsumeToken(@"[\w-_:]+");
             if (tagName == null) return ParseFailed<TagNode>();
-            var node = IsParserTagName(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
+            var node = parserTags.Contains(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
             string rbracket;
             var ws = ConsumeToken(@"\s+");
             // TAG_ATTR
@@ -174,7 +207,7 @@ namespace MwParserFromScratch
             {
                 node.TagStyle = TagStyle.SelfClosing;
                 return ParseSuccessful(node);
-            } else if (IsSelfClosingOnlyTagName(tagName))
+            } else if (selfClosingOnlyTags.Contains(tagName))
             {
                 node.TagStyle = TagStyle.CompactSelfClosing;
                 return ParseSuccessful(node);

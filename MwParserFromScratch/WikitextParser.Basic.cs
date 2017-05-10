@@ -11,6 +11,7 @@ namespace MwParserFromScratch
     /// <summary>
     /// A parser that parses Wikitext into AST.
     /// </summary>
+    /// <remarks>This class is not thread-safe.</remarks>
     public partial class WikitextParser
     {
         /// <summary>

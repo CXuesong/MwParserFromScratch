@@ -19,7 +19,8 @@ namespace MwParserFromScratch
         private int lineNumber, linePosition;
         private Stack<ParsingContext> contextStack;
         private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
-        private IWikitextParserLogger logger;
+        private readonly IWikitextParserLogger logger;
+        private readonly HashSet<string> wikiVariableNames, parserTags, selfClosingOnlyTags;
 
         public WikitextParser() : this(null)
         {
@@ -29,6 +30,18 @@ namespace MwParserFromScratch
         public WikitextParser(WikitextParserOptions options)
         {
             _Options = options ?? defaultOptions;
+            wikiVariableNames = (_Options?.VariableNames ?? WikitextParserOptions.DefaultVariableNames) ==
+                                WikitextParserOptions.DefaultVariableNames
+                ? WikitextParserOptions.DefaultVariableNamesSet
+                : new HashSet<string>(_Options.VariableNames);
+            parserTags = (_Options?.ParserTags ?? WikitextParserOptions.DefaultParserTags) ==
+                         WikitextParserOptions.DefaultParserTags
+                ? WikitextParserOptions.DefaultParserTagsSet
+                : new HashSet<string>(_Options.ParserTags, StringComparer.OrdinalIgnoreCase);
+            selfClosingOnlyTags = (_Options?.SelfClosingOnlyTags ?? WikitextParserOptions.DefaultSelfClosingOnlyTags) ==
+                                  WikitextParserOptions.DefaultSelfClosingOnlyTags
+                ? WikitextParserOptions.DefaultSelfClosingOnlyTagsSet
+                : new HashSet<string>(_Options.SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <param name="options">The options, or <c>null</c> to use default options.</param>
@@ -68,19 +81,6 @@ namespace MwParserFromScratch
             contextStack = null;
             logger?.NotifyParsingFinished();
             return root;
-        }
-
-        private bool IsParserTagName(string tagName)
-        {
-            return ((IEnumerable<string>) _Options.ParserTags ?? WikitextParserOptions.DefaultParserTags)
-                .Any(t => string.Equals(tagName, t, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private bool IsSelfClosingOnlyTagName(string tagName)
-        {
-            return ((IEnumerable<string>) _Options.SelfClosingOnlyTags ??
-                    WikitextParserOptions.DefaultSelfClosingOnlyTags)
-                .Any(t => string.Equals(tagName, t, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>

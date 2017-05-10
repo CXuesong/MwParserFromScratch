@@ -231,6 +231,9 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
+    /// <summary>
+    /// Represents all the template-like formations, including Variables and Parser Functions.
+    /// </summary>
     public class Template : InlineNode
     {
         private Run _Name;
@@ -254,6 +257,15 @@ namespace MwParserFromScratch.Nodes
             set { Attach(ref _Name, value); }
         }
 
+        /// <summary>
+        /// Whether this node is a Variable or Parser Function.
+        /// This will affect how the first argument is rendered in wikitext.
+        /// </summary>
+        public bool IsMagicWord { get; set; }
+
+        /// <summary>
+        /// Template arguments.
+        /// </summary>
         public TemplateArgumentCollection Arguments { get; }
 
         /// <summary>
@@ -276,10 +288,19 @@ namespace MwParserFromScratch.Nodes
         {
             if (Arguments.Count == 0) return "{{" + Name + "}}";
             var sb = new StringBuilder("{{");
+            var isFirst = true;
             sb.Append(Name);
             foreach (var arg in Arguments)
             {
-                sb.Append('|');
+                if (isFirst)
+                {
+                    sb.Append(IsMagicWord ? ':' : '|');
+                    isFirst = false;
+                }
+                else
+                {
+                    sb.Append('|');
+                }
                 sb.Append(arg);
             }
             sb.Append("}}");

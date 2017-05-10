@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>full</DebugType>
+    
     <AssemblyName>MwParserFromScratch</AssemblyName>
     <PackageId>CXuesong.MW.MwParserFromScratch</PackageId>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -18,10 +21,6 @@
     <AssemblyVersion>0.1.1.6</AssemblyVersion>
     <NeutralLanguage>en-us</NeutralLanguage>
     <FileVersion>0.1.1.6</FileVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>bin\Release\netstandard1.1\MwParserFromScratch.xml</DocumentationFile>
   </PropertyGroup>
 
 </Project>
