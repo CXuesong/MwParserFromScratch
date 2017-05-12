@@ -326,11 +326,9 @@ namespace MwParserFromScratch
                 parsedAny = true;
                 // Remember that ParsePartialText stops whenever there's a susceptable termination of PLAIN_TEXT
                 // So we need to marge the consequent PlainText objects.
-                var newtext = inline as PlainText;
-                if (newtext != null)
+                if (inline is PlainText newtext)
                 {
-                    var lastText = container.Inlines.LastNode as PlainText;
-                    if (lastText != null)
+                    if (container.Inlines.LastNode is PlainText lastText)
                     {
                         lastText.Content += newtext.Content;
                         continue;

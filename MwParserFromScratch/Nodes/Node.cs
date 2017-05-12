@@ -57,8 +57,7 @@ namespace MwParserFromScratch.Nodes
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (_Annotation == null) return null;
             var ti = type.GetTypeInfo();
-            var list = _Annotation as List<object>;
-            if (list != null)
+            if (_Annotation is List<object> list)
                 return list.FirstOrDefault(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
             if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
                 return _Annotation;
@@ -92,8 +91,7 @@ namespace MwParserFromScratch.Nodes
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             var ti = type.GetTypeInfo();
-            var list = _Annotation as List<object>;
-            if (list != null)
+            if (_Annotation is List<object> list)
                 return list.Where(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
             if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
                 return Utility.Singleton(_Annotation);
@@ -125,8 +123,7 @@ namespace MwParserFromScratch.Nodes
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             var ti = type.GetTypeInfo();
-            var list = _Annotation as List<object>;
-            if (list != null)
+            if (_Annotation is List<object> list)
             {
                 list.RemoveAll(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
             }
@@ -143,8 +140,7 @@ namespace MwParserFromScratch.Nodes
         /// <typeparam name="T">The type of annotations to remove.</typeparam>
         public void RemoveAnnotations<T>()
         {
-            var list = _Annotation as List<object>;
-            if (list != null)
+            if (_Annotation is List<object> list)
             {
                 list.RemoveAll(i => i is T);
             }

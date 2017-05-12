@@ -94,8 +94,7 @@ where
         /// <inheritdoc />
         public void NotifyFallback(int offset, int contextStackSize)
         {
-            int counter;
-            if (!fallbackDict.TryGetValue(offset, out counter)) counter = 0;
+            if (!fallbackDict.TryGetValue(offset, out int counter)) counter = 0;
             fallbackDict[offset] = counter + 1;
             fallbackCounter++;
         }
@@ -135,8 +134,7 @@ where
         /// <inheritdoc />
         public void NotifyRegexMatchingFinished(int offset, Regex expression)
         {
-            RegexStatistics stat;
-            if (!regexStatDict.TryGetValue(expression.ToString(), out stat))
+            if (!regexStatDict.TryGetValue(expression.ToString(), out RegexStatistics stat))
             {
                 stat = new RegexStatistics();
                 regexStatDict.Add(expression.ToString(), stat);
