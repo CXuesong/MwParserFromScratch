@@ -64,6 +64,12 @@ namespace MwParserFromScratch
                 "ANCHORENCODE",
                 "FILEPATH",
                 "PAGEID",
+                // Transclusion modifiers
+                "INT",
+                "MSG",
+                "RAW",
+                "MSGNW",
+                "SUBST"
             };
 
         internal static readonly HashSet<string> DefaultCaseSensitiveMagicTemplatesSet =
@@ -185,6 +191,11 @@ namespace MwParserFromScratch
                 "REVISIONTIMESTAMP",
                 "REVISIONUSER",
                 "CASCADINGSOURCES",
+                // Appendix & Aliases
+                "DISPLAYTITLE",
+                "DEFAULTSORTKEY",
+                "DEFAULTCATEGORYSORT",
+                "PAGESINNS"
             };
 #endregion
 
