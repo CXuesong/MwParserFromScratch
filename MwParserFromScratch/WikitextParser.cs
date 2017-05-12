@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using MwParserFromScratch.Nodes;
 
@@ -13,25 +14,34 @@ namespace MwParserFromScratch
     {
         private static readonly WikitextParserOptions defaultOptions = new WikitextParserOptions();
 
-        private readonly WikitextParserOptions _Options;
-        private string fulltext;
-        private int position; // Starting index of the string to be consumed.
-        private int lineNumber, linePosition;
-        private Stack<ParsingContext> contextStack;
-        private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
         private readonly IWikitextParserLogger logger;
         // case-sensitive, case-insensitive
         private readonly HashSet<string> csMagicTemplateNames, ciMagicTemplateNames, parserTags, selfClosingOnlyTags;
 
-        public WikitextParser() : this(null)
+        private string fulltext;
+        private int position; // Starting index of the string to be consumed.
+        private int lineNumber, linePosition;
+        private Stack<ParsingContext> contextStack;
+        private CancellationToken cancellationToken;
+        private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
+
+        public WikitextParser() : this(null, null)
         {
         }
 
         /// <param name="options">The options, or <c>null</c> to use default options.</param>
-        public WikitextParser(WikitextParserOptions options)
+        public WikitextParser(WikitextParserOptions options) : this(options, null)
         {
-            _Options = options ?? defaultOptions;
-            if ((_Options?.MagicTemplateNames ?? WikitextParserOptions.DefaultMagicTemplateNames) ==
+
+        }
+
+        /// <param name="options">The options, or <c>null</c> to use default options.</param>
+        /// <param name="logger">A logger used to trace the process of parsing.</param>
+        public WikitextParser(WikitextParserOptions options, IWikitextParserLogger logger)
+        {
+            options = options ?? defaultOptions;
+            this.logger = logger;
+            if ((options?.MagicTemplateNames ?? WikitextParserOptions.DefaultMagicTemplateNames) ==
                 WikitextParserOptions.DefaultMagicTemplateNames)
             {
                 csMagicTemplateNames = WikitextParserOptions.DefaultCaseSensitiveMagicTemplatesSet;
@@ -41,28 +51,20 @@ namespace MwParserFromScratch
             {
                 csMagicTemplateNames = new HashSet<string>();
                 ciMagicTemplateNames = new HashSet<string>();
-                foreach (var tn in _Options.MagicTemplateNames)
+                foreach (var tn in options.MagicTemplateNames)
                 {
                     if (tn.IsCaseSensitive) csMagicTemplateNames.Add(tn.Name);
                     else ciMagicTemplateNames.Add(tn.Name);
                 }
             }
-            parserTags = (_Options?.ParserTags ?? WikitextParserOptions.DefaultParserTags) ==
+            parserTags = (options?.ParserTags ?? WikitextParserOptions.DefaultParserTags) ==
                          WikitextParserOptions.DefaultParserTags
                 ? WikitextParserOptions.DefaultParserTagsSet
-                : new HashSet<string>(_Options.ParserTags, StringComparer.OrdinalIgnoreCase);
-            selfClosingOnlyTags = (_Options?.SelfClosingOnlyTags ?? WikitextParserOptions.DefaultSelfClosingOnlyTags) ==
+                : new HashSet<string>(options.ParserTags, StringComparer.OrdinalIgnoreCase);
+            selfClosingOnlyTags = (options?.SelfClosingOnlyTags ?? WikitextParserOptions.DefaultSelfClosingOnlyTags) ==
                                   WikitextParserOptions.DefaultSelfClosingOnlyTags
                 ? WikitextParserOptions.DefaultSelfClosingOnlyTagsSet
-                : new HashSet<string>(_Options.SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
-        }
-
-        /// <param name="options">The options, or <c>null</c> to use default options.</param>
-        /// <param name="logger">A logger used to trace the process of parsing.</param>
-        public WikitextParser(WikitextParserOptions options, IWikitextParserLogger logger)
-        {
-            _Options = options ?? defaultOptions;
-            this.logger = logger;
+                : new HashSet<string>(options.SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -71,14 +73,30 @@ namespace MwParserFromScratch
         /// <param name="wikitext">The wikitext to be parsed.</param>
         /// <returns>A <see cref="Wikitext"/> node containing the AST of the given Wikitext.</returns>
         /// <exception cref="InvalidParserStateException">The parser state is invalid during the parsing process. There might be a b&#117;g with the parser.</exception>
+        /// <exception cref="OperationCanceledException">The parsing process has been cancelled.</exception>
         public Wikitext Parse(string wikitext)
         {
+            return Parse(wikitext, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Parses the specified Wikitext.
+        /// </summary>
+        /// <param name="wikitext">The wikitext to be parsed.</param>
+        /// <param name="cancellationToken">The token used to cancel the parsing operation.</param>
+        /// <returns>A <see cref="Wikitext"/> node containing the AST of the given Wikitext.</returns>
+        /// <exception cref="InvalidParserStateException">The parser state is invalid during the parsing process. There might be a b&#117;g with the parser.</exception>
+        /// <exception cref="OperationCanceledException">The parsing process has been cancelled.</exception>
+        public Wikitext Parse(string wikitext, CancellationToken cancellationToken)
+        {
             if (wikitext == null) throw new ArgumentNullException(nameof(wikitext));
+            cancellationToken.ThrowIfCancellationRequested();
             // Initialize
-            this.fulltext = wikitext;
+            fulltext = wikitext;
             lineNumber = linePosition = 1;
             position = 0;
             contextStack = new Stack<ParsingContext>();
+            this.cancellationToken = cancellationToken;
             // Then parse
             logger?.NotifyParsingStarted(wikitext);
             var root = ParseWikitext();
@@ -93,6 +111,7 @@ namespace MwParserFromScratch
             fulltext = null;
             contextStack = null;
             logger?.NotifyParsingFinished();
+            cancellationToken = CancellationToken.None;
             return root;
         }
 

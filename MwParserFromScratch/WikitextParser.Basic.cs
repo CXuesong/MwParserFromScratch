@@ -20,6 +20,7 @@ namespace MwParserFromScratch
         /// <remarks>An empty WIKITEXT contains nothing. Thus the parsing should always be successful.</remarks>
         private Wikitext ParseWikitext()
         {
+            cancellationToken.ThrowIfCancellationRequested();
             ParseStart();
             var node = new Wikitext();
             LineNode lastLine = null;
