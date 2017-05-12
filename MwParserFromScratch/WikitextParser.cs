@@ -20,7 +20,8 @@ namespace MwParserFromScratch
         private Stack<ParsingContext> contextStack;
         private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
         private readonly IWikitextParserLogger logger;
-        private readonly HashSet<string> wikiVariableNames, parserTags, selfClosingOnlyTags;
+        // case-sensitive, case-insensitive
+        private readonly HashSet<string> csMagicTemplateNames, ciMagicTemplateNames, parserTags, selfClosingOnlyTags;
 
         public WikitextParser() : this(null)
         {
@@ -30,10 +31,22 @@ namespace MwParserFromScratch
         public WikitextParser(WikitextParserOptions options)
         {
             _Options = options ?? defaultOptions;
-            wikiVariableNames = (_Options?.VariableNames ?? WikitextParserOptions.DefaultVariableNames) ==
-                                WikitextParserOptions.DefaultVariableNames
-                ? WikitextParserOptions.DefaultVariableNamesSet
-                : new HashSet<string>(_Options.VariableNames);
+            if ((_Options?.MagicTemplateNames ?? WikitextParserOptions.DefaultMagicTemplateNames) ==
+                WikitextParserOptions.DefaultMagicTemplateNames)
+            {
+                csMagicTemplateNames = WikitextParserOptions.DefaultCaseSensitiveMagicTemplatesSet;
+                ciMagicTemplateNames = WikitextParserOptions.DefaultCaseInsensitiveMagicTemplatesSet;
+            }
+            else
+            {
+                csMagicTemplateNames = new HashSet<string>();
+                ciMagicTemplateNames = new HashSet<string>();
+                foreach (var tn in _Options.MagicTemplateNames)
+                {
+                    if (tn.IsCaseSensitive) csMagicTemplateNames.Add(tn.Name);
+                    else ciMagicTemplateNames.Add(tn.Name);
+                }
+            }
             parserTags = (_Options?.ParserTags ?? WikitextParserOptions.DefaultParserTags) ==
                          WikitextParserOptions.DefaultParserTags
                 ? WikitextParserOptions.DefaultParserTagsSet

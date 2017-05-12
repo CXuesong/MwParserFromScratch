@@ -12,6 +12,8 @@ namespace MwParserFromScratch
     /// </summary>
     public class WikitextParserOptions
     {
+        #region Presets
+
         public static readonly IReadOnlyList<string> DefaultParserTags =
             new ReadOnlyCollection<string>(new[]
             {
@@ -29,8 +31,43 @@ namespace MwParserFromScratch
                 "br", "wbr", "hr"
             });
 
-        public static readonly IReadOnlyList<string> DefaultVariableNames =
-            new ReadOnlyCollection<string>(new[]
+        internal static readonly HashSet<string> DefaultCaseInsensitiveMagicTemplatesSet =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ARTICLEPATH",
+                "PAGEID",
+                "SERVER",
+                "SERVERNAME",
+                "SCRIPTPATH",
+                "STYLEPATH",
+                // $noHashFunctions
+                "NS",
+                "NSE",
+                "URLENCODE",
+                "LCFIRST",
+                "UCFIRST",
+                "LC",
+                "UC",
+                "LOCALURL",
+                "LOCALURLE",
+                "FULLURL",
+                "FULLURLE",
+                "CANONICALURL",
+                "CANONICALURLE",
+                "FORMATNUM",
+                "GRAMMAR",
+                "GENDER",
+                "PLURAL",
+                "BIDI",
+                "PADLEFT",
+                "PADRIGHT",
+                "ANCHORENCODE",
+                "FILEPATH",
+                "PAGEID",
+            };
+
+        internal static readonly HashSet<string> DefaultCaseSensitiveMagicTemplatesSet =
+            new HashSet<string>
             {
                 // Real variables
                 "!",
@@ -59,13 +96,7 @@ namespace MwParserFromScratch
                 "NUMBEROFARTICLES",
                 "NUMBEROFFILES",
                 "NUMBEROFEDITS",
-                "ARTICLEPATH",
-                "PAGEID",
                 "SITENAME",
-                "SERVER",
-                "SERVERNAME",
-                "SCRIPTPATH",
-                "STYLEPATH",
                 "PAGENAME",
                 "PAGENAMEE",
                 "FULLPAGENAME",
@@ -111,27 +142,60 @@ namespace MwParserFromScratch
                 "NUMBEROFADMINS",
                 "CASCADINGSOURCES",
                 // $noHashFunctions
-                "NS", "NSE", "URLENCODE", "LCFIRST", "UCFIRST", "LC", "UC",
-                "LOCALURL", "LOCALURLE", "FULLURL", "FULLURLE", "CANONICALURL",
-                "CANONICALURLE", "FORMATNUM", "GRAMMAR", "GENDER", "PLURAL", "BIDI",
-                "NUMBEROFPAGES", "NUMBEROFUSERS", "NUMBEROFACTIVEUSERS",
-                "NUMBEROFARTICLES", "NUMBEROFFILES", "NUMBEROFADMINS",
-                "NUMBERINGROUP", "NUMBEROFEDITS", "LANGUAGE",
-                "PADLEFT", "PADRIGHT", "ANCHORENCODE", "DEFAULTSORT", "FILEPATH",
-                "PAGESINCATEGORY", "PAGESIZE", "PROTECTIONLEVEL", "PROTECTIONEXPIRY",
-                "NAMESPACEE", "NAMESPACENUMBER", "TALKSPACE", "TALKSPACEE",
-                "SUBJECTSPACE", "SUBJECTSPACEE", "PAGENAME", "PAGENAMEE",
-                "FULLPAGENAME", "FULLPAGENAMEE", "ROOTPAGENAME", "ROOTPAGENAMEE",
-                "BASEPAGENAME", "BASEPAGENAMEE", "SUBPAGENAME", "SUBPAGENAMEE",
-                "TALKPAGENAME", "TALKPAGENAMEE", "SUBJECTPAGENAME",
-                "SUBJECTPAGENAMEE", "PAGEID", "REVISIONID", "REVISIONDAY",
-                "REVISIONDAY2", "REVISIONMONTH", "REVISIONMONTH1", "REVISIONYEAR",
-                "REVISIONTIMESTAMP", "REVISIONUSER", "CASCADINGSOURCES",
-            });
+                "NUMBEROFPAGES",
+                "NUMBEROFUSERS",
+                "NUMBEROFACTIVEUSERS",
+                "NUMBEROFARTICLES",
+                "NUMBEROFFILES",
+                "NUMBEROFADMINS",
+                "NUMBERINGROUP",
+                "NUMBEROFEDITS",
+                "LANGUAGE",
+                "DEFAULTSORT",
+                "PAGESINCATEGORY",
+                "PAGESIZE",
+                "PROTECTIONLEVEL",
+                "PROTECTIONEXPIRY",
+                "NAMESPACEE",
+                "NAMESPACENUMBER",
+                "TALKSPACE",
+                "TALKSPACEE",
+                "SUBJECTSPACE",
+                "SUBJECTSPACEE",
+                "PAGENAME",
+                "PAGENAMEE",
+                "FULLPAGENAME",
+                "FULLPAGENAMEE",
+                "ROOTPAGENAME",
+                "ROOTPAGENAMEE",
+                "BASEPAGENAME",
+                "BASEPAGENAMEE",
+                "SUBPAGENAME",
+                "SUBPAGENAMEE",
+                "TALKPAGENAME",
+                "TALKPAGENAMEE",
+                "SUBJECTPAGENAME",
+                "SUBJECTPAGENAMEE",
+                "REVISIONID",
+                "REVISIONDAY",
+                "REVISIONDAY2",
+                "REVISIONMONTH",
+                "REVISIONMONTH1",
+                "REVISIONYEAR",
+                "REVISIONTIMESTAMP",
+                "REVISIONUSER",
+                "CASCADINGSOURCES",
+            };
+#endregion
 
         internal static readonly HashSet<string> DefaultParserTagsSet = new HashSet<string>(DefaultParserTags, StringComparer.OrdinalIgnoreCase);
         internal static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet = new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
-        internal static readonly HashSet<string> DefaultVariableNamesSet = new HashSet<string>(DefaultVariableNames);
+
+        public static readonly IReadOnlyList<MagicTemplateNameInfo> DefaultMagicTemplateNames
+            = new ReadOnlyCollection<MagicTemplateNameInfo>(DefaultCaseSensitiveMagicTemplatesSet
+                .Select(n => new MagicTemplateNameInfo(n, false))
+                .Concat(DefaultCaseSensitiveMagicTemplatesSet.Select(n => new MagicTemplateNameInfo(n, true)))
+                .ToArray());
 
         /// <summary>
         /// Names of the parser tags. E.g. gallery .
@@ -154,10 +218,34 @@ namespace MwParserFromScratch
         public IEnumerable<string> SelfClosingOnlyTags { get; set; }
 
         /// <summary>
-        /// Names of the variables in Wikitext. E.g. PAGENAME.
+        /// Names of the variables and parser functions in Wikitext. E.g. PAGENAME.
         /// </summary>
         /// <value>A list of strings, which are valid variable names. OR <c>null</c> to use the default settings.</value>
         /// <remarks>See https://www.mediawiki.org/wiki/Help:Magic_words#Variables .</remarks>
-        public IEnumerable<string> VariableNames { get; set; }
+        public IEnumerable<MagicTemplateNameInfo> MagicTemplateNames { get; set; }
+    }
+
+    /// <summary>
+    /// An entry contains the name of a variable or a parser function,
+    /// and whether the name is case-sensitive.
+    /// </summary>
+    public struct MagicTemplateNameInfo
+    {
+        public MagicTemplateNameInfo(string name, bool isCaseSensitive)
+        {
+            Name = name;
+            IsCaseSensitive = isCaseSensitive;
+        }
+
+        /// <summary>
+        /// Name of the variable or parser function.
+        /// For parser functions, the value may start with #.
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
+        /// Whether the name is case-sensitive.
+        /// </summary>
+        public bool IsCaseSensitive { get; }
     }
 }

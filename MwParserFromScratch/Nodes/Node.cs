@@ -302,14 +302,17 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(linePosition > 0);
             Debug.Assert(start >= 0);
             Debug.Assert(length >= 0);
+            Debug.Assert(Annotation<LineInfoAnnotation>() == null);
             AddAnnotation(new LineInfoAnnotation(lineNumber, linePosition, start, length));
         }
 
         internal void SetLineInfo(Node node)
         {
             Debug.Assert(node != null);
-            var annotation = node.Annotation<LineInfoAnnotation>();
-            AddAnnotation(annotation);
+            var source = node.Annotation<LineInfoAnnotation>();
+            Debug.Assert(Annotation<LineInfoAnnotation>() == null);
+            AddAnnotation(new LineInfoAnnotation(source.LineNumber, source.LinePosition, source.Start,
+                source.Length));
         }
 
         internal void ExtendLineInfo(int extendingLength)

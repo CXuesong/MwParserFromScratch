@@ -104,7 +104,7 @@ namespace MwParserFromScratch
                 if (litName != null)
                 {
                     litName = litName.Trim();
-                    node.IsMagicWord = wikiVariableNames.Contains(litName);
+                    node.IsMagicWord = csMagicTemplateNames.Contains(litName) || ciMagicTemplateNames.Contains(litName);
                 }
             }
             if (node.IsMagicWord)
@@ -289,7 +289,7 @@ namespace MwParserFromScratch
                 case ValueQuoteType.None:
                     CurrentContext.Terminator = Terminator.Get(@"[>\s]|/>");
                     node = ParseWikitext();
-                    return ParseSuccessful(node);
+                    return ParseSuccessful(node, false);
                 case ValueQuoteType.SingleQuotes:
                     if (ConsumeToken("\'") != null)
                     {
@@ -297,7 +297,7 @@ namespace MwParserFromScratch
                         CurrentContext.Terminator = Terminator.Get("[>\']|/>");
                         node = ParseWikitext();
                         if (ConsumeToken("\'(?=\\s|>)") != null)
-                            return ParseSuccessful(node);
+                            return ParseSuccessful(node, false);
                         // Otherwise, we're facing something like
                         // <tag attr='value'value>
                         // Treat it as unquoted text.
@@ -310,7 +310,7 @@ namespace MwParserFromScratch
                         CurrentContext.Terminator = Terminator.Get("[>\"]|/>");
                         node = ParseWikitext();
                         if (ConsumeToken("\"(?=\\s|>)") != null)
-                            return ParseSuccessful(node);
+                            return ParseSuccessful(node, false);
                     }
                     break;
                 default:

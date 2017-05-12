@@ -21,6 +21,8 @@ namespace MwParserFromScratch.Nodes
     /// Represents a collection of nodes.
     /// The children are maintained as a bi-directional linked list.
     /// </summary>
+    [DebuggerDisplay("Count = {" + nameof(_Count) + "}")]
+    [DebuggerTypeProxy(typeof(NodeCollection<>.DebugView))]
     public class NodeCollection<TNode> : ICollection<TNode>, INodeCollection
         where TNode : Node
     {
@@ -126,7 +128,7 @@ namespace MwParserFromScratch.Nodes
         public bool Contains(TNode item)
         {
             if (item == null) return false;
-            return ((IEnumerable<TNode>)this).Contains(item);
+            return ((IEnumerable<TNode>) this).Contains(item);
         }
 
         public void CopyTo(TNode[] array, int arrayIndex)
@@ -211,7 +213,7 @@ namespace MwParserFromScratch.Nodes
             while (node != null)
             {
                 yield return node;
-                node = (TNode)node.PreviousNode;
+                node = (TNode) node.PreviousNode;
             }
         }
 
@@ -242,19 +244,19 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         bool ICollection<TNode>.Remove(TNode item)
         {
-            return ((INodeCollection)this).Remove(item);
+            return ((INodeCollection) this).Remove(item);
         }
 
         bool ICollection<TNode>.IsReadOnly => false;
 
         void INodeCollection.InsertBefore(Node node, Node newNode)
         {
-            InsertBefore((TNode)node, (TNode)newNode);
+            InsertBefore((TNode) node, (TNode) newNode);
         }
 
         void INodeCollection.InsertAfter(Node node, Node newNode)
         {
-            InsertBefore((TNode)node, (TNode)newNode);
+            InsertBefore((TNode) node, (TNode) newNode);
         }
 
         bool INodeCollection.Remove(Node item)
@@ -265,7 +267,7 @@ namespace MwParserFromScratch.Nodes
             _Owner.Detach(item);
             if (item == FirstNode)
             {
-                FirstNode = (TNode)item.NextNode;
+                FirstNode = (TNode) item.NextNode;
             }
             else
             {
@@ -300,7 +302,7 @@ namespace MwParserFromScratch.Nodes
                 }
                 else
                 {
-                    Current = (TNode)Current.NextNode;
+                    Current = (TNode) Current.NextNode;
                 }
                 return Current != null;
             }
@@ -325,6 +327,18 @@ namespace MwParserFromScratch.Nodes
                 _Owner = owner;
             }
         }
+
+        internal class DebugView
+        {
+            private readonly NodeCollection<TNode> owner;
+
+            public DebugView(NodeCollection<TNode> owner)
+            {
+                this.owner = owner;
+            }
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public TNode[] Items => owner.ToArray();
+        }
     }
 }
-

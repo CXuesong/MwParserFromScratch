@@ -52,17 +52,18 @@ namespace MwParserFromScratch
         private static readonly LineNode EMPTY_LINE_NODE = new Paragraph(new PlainText("--EmptyLineNode--"));
 
         /// <summary>
-        /// LINE, except PARAGRAPH. Because PARAGRAPH need to take look at the last line.
+        /// Parses LINE.
         /// </summary>
         private LineNode ParseLine(LineNode lastLine)
         {
-            ParseStart(@"\n", false);
-            LineNode node;
-            // LIST_ITEM / HEADING automatically closes the last PARAGRAPH
-            if ((node = ParseListItem()) != null) return ParseSuccessful(node);
-            if ((node = ParseHeading()) != null) return ParseSuccessful(node);
-            if ((node = ParseCompactParagraph(lastLine)) != null) return ParseSuccessful(node);
-            return ParseFailed<LineNode>();
+            ParseStart(@"\n", false);       // We want to set a terminator, so we need to call ParseStart
+            // LIST_ITEM / HEADING automatically closes the previous PARAGRAPH
+            var node = ParseListItem() ?? ParseHeading() ?? ParseCompactParagraph(lastLine);
+            if (node != null)
+                Accept();
+            else
+                Fallback();
+            return node;
         }
 
         /// <summary>
@@ -351,23 +352,16 @@ namespace MwParserFromScratch
 
         private InlineNode ParseInline()
         {
-            ParseStart();
-            InlineNode node;
-            if ((node = ParseTag()) != null) return ParseSuccessful(node);
-            if ((node = ParseWikiLink()) != null) return ParseSuccessful(node);
-            if ((node = ParseExternalLink()) != null) return ParseSuccessful(node);
-            if ((node = ParseFormatSwitch()) != null) return ParseSuccessful(node);
-            if ((node = ParsePartialPlainText()) != null) return ParseSuccessful(node);
-            return ParseFailed<InlineNode>();
+            return ParseTag()
+                   ?? ParseWikiLink()
+                   ?? ParseExternalLink()
+                   ?? ParseFormatSwitch()
+                   ?? (InlineNode) ParsePartialPlainText();
         }
 
         private InlineNode ParseExpandable()
         {
-            ParseStart();
-            InlineNode node;
-            if ((node = ParseBraces()) != null) return ParseSuccessful(node);
-            if ((node = ParseComment()) != null) return ParseSuccessful(node);
-            return ParseFailed<InlineNode>();
+            return ParseComment() ?? ParseBraces();
         }
 
         private WikiLink ParseWikiLink()
@@ -441,19 +435,20 @@ namespace MwParserFromScratch
         private FormatSwitch ParseFormatSwitch()
         {
             // For 4 or 5+ quotes, discard quotes on the left.
+            ParseStart();
             var token = ConsumeToken("('{5}|'''|'')(?!')");
-            if (token == null) return null;
+            if (token == null) return ParseFailed<FormatSwitch>();
             switch (token.Length)
             {
                 case 2:
-                    return new FormatSwitch(false, true);
+                    return ParseSuccessful(new FormatSwitch(false, true));
                 case 3:
-                    return new FormatSwitch(true, false);
+                    return ParseSuccessful(new FormatSwitch(true, false));
                 case 5:
-                    return new FormatSwitch(true, true);
+                    return ParseSuccessful(new FormatSwitch(true, true));
                 default:
                     Debug.Assert(false);
-                    return null;
+                    return ParseFailed<FormatSwitch>();
             }
         }
 

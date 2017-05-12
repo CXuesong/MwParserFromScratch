@@ -72,7 +72,9 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("{{ \t #if:Y|Yes|No}}", "P[{{ \t #if|P[Y]|P[Yes]|P[No]}}]");
             Assert.IsTrue(root.EnumDescendants().OfType<Template>().First().IsMagicWord);
-            root = Utility.ParseAndAssert("{{ PAGESINCATEGORY :categoryname }}", "P[{{ PAGESINCATEGORY |P[categoryname ]}}");
+            root = Utility.ParseAndAssert("{{ PAGESINCATEGORY :categoryname }}", "P[{{ PAGESINCATEGORY |P[categoryname ]}}]");
+            Assert.IsTrue(root.EnumDescendants().OfType<Template>().First().IsMagicWord);
+            root = Utility.ParseAndAssert("{{filepAth:  Wiki.png}}", "P[{{filepAth| [ Wiki.png]}}]");
             Assert.IsTrue(root.EnumDescendants().OfType<Template>().First().IsMagicWord);
         }
 
