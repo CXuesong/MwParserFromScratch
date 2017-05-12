@@ -683,6 +683,8 @@ namespace MwParserFromScratch.Nodes
     /// <seealso cref="ParserTag"/>
     public class HtmlTag : TagNode
     {
+        private Wikitext _Content;
+
         public HtmlTag() : this(null)
         {
 
@@ -697,7 +699,11 @@ namespace MwParserFromScratch.Nodes
         /// Content of the tag.
         /// </summary>
         /// <value>Content of the tag, as <see cref="Wikitext"/>. If the tag is self-closing, the value is <c>null</c>.</value>
-        public Wikitext Content { get; set; }
+        public Wikitext Content
+        {
+            get { return _Content; }
+            set { Attach(ref _Content, value); }
+        }
 
         /// <summary>
         /// Enumerates the children of this node.
