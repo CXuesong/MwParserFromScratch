@@ -60,6 +60,11 @@ namespace MwParserFromScratch
             ParseStart(@"\n", false);       // We want to set a terminator, so we need to call ParseStart
             // LIST_ITEM / HEADING automatically closes the previous PARAGRAPH
             var node = ParseListItem() ?? ParseHeading() ?? ParseCompactParagraph(lastLine);
+            if (lastLine?.Inlines.LastNode is PlainText pt && pt.Content.Length == 0)
+            {
+                // This can happen because we appended a PlainText("") at (A) in ParseLineEnd
+                pt.Remove();
+            }
             if (node != null)
                 Accept();
             else
@@ -91,10 +96,9 @@ namespace MwParserFromScratch
             // abc\n\s*?\n TERM     P[|abc|]PC[||]
             // Note that MediaWiki editor will automatically trim the trailing whitespaces,
             // leaving a \n after the content. This one \n will be removed when the page is transcluded.
-
+            var lastLinePosition = linePosition;
             // Here we consume a \n without fallback.
-            if (ConsumeToken(@"\n") == null)
-                return null;
+            if (ConsumeToken(@"\n") == null) return null;
             ParseStart();
             // Whitespaces between 2 \n, assuming there's a second \n or TERM after trailingWs
             var trailingWs = ConsumeToken(@"[\f\r\t\v\x85\p{Z}]+");
@@ -104,50 +108,74 @@ namespace MwParserFromScratch
                 // Already consumed a \n, attempt to consume another \n
                 if (ConsumeToken(@"\n") != null)
                 {
-                    // 2 Line breaks received.
                     // Close the last paragraph.
-                    unclosedParagraph.Append("\n" + trailingWs);
-                    unclosedParagraph.ExtendLineInfo(position - CurrentContext.StartingPosition);
-                    // Note here TERM excludes \n
+                    unclosedParagraph.AppendWithLineInfo("\n" + trailingWs,
+                        // don't forget the position of leading '\n'
+                        CurrentContext.StartingPosition - 1, position - CurrentContext.StartingPosition,
+                        CurrentContext.StartingLineNumber - 1, lastLinePosition);
+                    // 2 Line breaks received.
+                    // Check for the special case. Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
                     {
                         // This is a special case.
-                        // abc\n trailingWs \n TERM --> P[|abc\ntrailingWs|]PC[||]
+                        // abc \n trailingWs \n TERM --> P[|abc\ntrailingWs|]PC[||]
+                        //                      ^ We are here.
                         // When the function returns, WIKITEXT parsing will stop
                         // because a TERM will be received.
                         // We need to correct this.
                         var anotherparagraph = new Paragraph();
-                        return ParseSuccessful(anotherparagraph);
+                        anotherparagraph.SetLineInfo(lineNumber, linePosition, position, 0);
+                        return ParseSuccessful(anotherparagraph, false);
                     }
-                    // After the paragraph, more content incoming.
-                    // abc\n trailingWs \n def
+                    // The last paragraph will be closed now.
                     return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
                 // The attempt to consume the 2nd \n failed.
-                // We're still after the whitespaces after the 1st \n .
                 if (NeedsTerminate())
                 {
-                    // abc \n TERM   P[|abc|]
-                    // Still need to close the paragraph.
-                    unclosedParagraph.Append("\n" + trailingWs);
-                    unclosedParagraph.ExtendLineInfo(1 + position - CurrentContext.StartingPosition);
+                    // abc \n trailingWs TERM   P[|abc|]
+                    //                   ^ We are here.
+                    // If we need to terminate, then close the last paragraph.
+                    unclosedParagraph.AppendWithLineInfo("\n" + trailingWs,
+                        // don't forget the position of leading '\n'
+                        CurrentContext.StartingPosition - 1, position - CurrentContext.StartingPosition + 1,
+                        CurrentContext.StartingLineNumber - 1, lastLinePosition);
                     return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
+                // The last paragraph is still not closed (i.e. compact paragraph).
+                // (A)
+                // Note here we have still consumed the first '\n', while the last paragraph has no trailing '\n'.
+                // For continued PlainText, we will add a '\n' in ParseCompactParagraph.
+                // Add an empty node so ParseCompactParagraph can add a '\n' with LineInfo.
+                unclosedParagraph.AppendWithLineInfo("", CurrentContext.StartingPosition - 1, 0,
+                    CurrentContext.StartingLineNumber - 1, lastLinePosition);
+                // Fallback so we can either continue parsing PlainText,
+                // or discover the next, for example, Heading, and leave the last paragraph compact.
+                Fallback();
+                return EMPTY_LINE_NODE;
             }
             else
             {
-                // Last node cannot be a closed paragrap.
+                // Last node cannot be a closed paragraph.
                 // It can't because ParseLineEnd is invoked immediately after a last node is parsed,
                 // and only ParseLineEnd can close a paragraph.
                 Debug.Assert(!(lastNode is Paragraph), "Last node cannot be a closed paragraph.");
                 // Rather, last node is LINE node of other type (LIST_ITEM/HEADING).
-                // Remember we've consumed a \n , and the spaces after it in this function.
+                // Remember we've already consumed a '\n' , and the spaces after it.
+                // The situation here is just like the "special case" mentioned above.
                 if (NeedsTerminate(Terminator.Get(@"\n")))
                 {
-                    // abc \n TERM  -->  [|abc|] PC[||]
+                    // abc \n WHITE_SPACE TERM  -->  [|abc|] PC[|WHITE_SPACE|]
+                    //        ^ CurCntxt  ^ We are here now.
                     // Note here TERM excludes \n
                     var anotherparagraph = new Paragraph();
-                    if (trailingWs != null) anotherparagraph.Append(trailingWs);
+                    if (trailingWs != null)
+                    {
+                        var pt = new PlainText(trailingWs);
+                        // Actually the same as what we do in ParseSuccessful.
+                        pt.SetLineInfo(CurrentContext.StartingLineNumber, CurrentContext.StartingLinePosition,
+                            CurrentContext.StartingPosition, position - CurrentContext.StartingPosition);
+                    }
                     return ParseSuccessful(anotherparagraph);
                 }
             }
@@ -277,21 +305,23 @@ namespace MwParserFromScratch
             if (mergeTo != null && !mergeTo.Compact) mergeTo = null;
             // Create a new paragraph, or merge the new line to the last unclosed paragraph.
             ParseStart();
-            mergeTo?.Append("\n");
+            if (mergeTo != null)
+            {
+                var paraTail = (PlainText) mergeTo.Inlines.LastNode;
+                paraTail.Content += "\n";
+                paraTail.ExtendLineInfo(1);
+                mergeTo.ExtendLineInfo(1);
+            }
             var node = mergeTo ?? new Paragraph();
             // Allows an empty paragraph/line.
             ParseRun(RunParsingMode.Run, node, false);
-            if (node == mergeTo)
+            if (mergeTo != null)
             {
                 // Amend the line position
-                // Don't forget the prepended \n
-                lastNode.ExtendLineInfo(position - CurrentContext.StartingPosition + 1);
+                lastNode.ExtendLineInfo(position - CurrentContext.StartingPosition);
                 return ParseSuccessful(EMPTY_LINE_NODE, false);
             }
-            else
-            {
-                return ParseSuccessful(node);
-            }
+            return ParseSuccessful(node);
         }
 
         /// <summary>
@@ -331,6 +361,7 @@ namespace MwParserFromScratch
                     if (container.Inlines.LastNode is PlainText lastText)
                     {
                         lastText.Content += newtext.Content;
+                        lastText.ExtendLineInfo(((IWikitextSpanInfo) newtext).Length);
                         continue;
                     }
                 }

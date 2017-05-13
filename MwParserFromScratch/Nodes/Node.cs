@@ -211,6 +211,7 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// The parent node.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal INodeCollection ParentCollection { get; set; }
 
         /// <summary>
@@ -292,6 +293,9 @@ namespace MwParserFromScratch.Nodes
         /// <inheritdoc />
         bool IWikitextLineInfo.HasLineInfo() => Annotation<LineInfoAnnotation>() != null;
 
+        internal bool HasLineInfo
+            => Annotation<LineInfoAnnotation>() != null;
+
         internal void SetLineInfo(int lineNumber, int linePosition, int start, int length)
         {
             Debug.Assert(lineNumber > 0);
@@ -360,7 +364,7 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         public abstract string ToPlainText(NodePlainTextOptions options);
 
-        private class LineInfoAnnotation
+        internal class LineInfoAnnotation
         {
             internal readonly int LineNumber;
             internal readonly int LinePosition;

@@ -22,8 +22,22 @@ namespace UnitTestProject1
             {
                 var li = (IWikitextLineInfo) node;
                 var si = (IWikitextSpanInfo) node;
+                Assert.IsTrue(li.HasLineInfo());
+                Assert.IsTrue(si.HasSpanInfo);
                 Trace.WriteLine(
                     $"{node.GetType().Name}\t({li.LineNumber},{li.LinePosition};{si.Start}+{si.Length})\t[|{node}|]");
+                if (node is InlineContainer container)
+                {
+                    int pos = -1;
+                    foreach (IWikitextSpanInfo child in container.Inlines)
+                    {
+                        if (pos >= 0)
+                        {
+                            Assert.AreEqual(pos, child.Start, "LineInfo of Inline sequence is not consequent.");
+                        }
+                        pos = child.Start + child.Length;
+                    }
+                }
             }
             var nn = root.Lines.FirstNode.NextNode;
             root.Lines.FirstNode.Remove();

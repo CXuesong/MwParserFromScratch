@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -100,6 +101,26 @@ namespace MwParserFromScratch.Nodes
             var pt = Inlines.LastNode as PlainText;
             if (pt == null) Inlines.Add(pt = new PlainText());
             pt.Content += text;
+            return pt;
+        }
+
+        internal PlainText AppendWithLineInfo(string text, int position, int length, int lineNumber, int linePosition)
+        {
+            Debug.Assert(text != null);
+            Debug.Assert(length == text.Length);
+            var pt = Inlines.LastNode as PlainText;
+            if (pt == null)
+            {
+                Inlines.Add(pt = new PlainText(text));
+                pt.SetLineInfo(lineNumber, linePosition, position, length);
+            }
+            else
+            {
+                if (text.Length == 0) return pt;    // ExtendLineInfo won't accept (0)
+                pt.Content += text;
+                pt.ExtendLineInfo(length);
+            }
+            if (length > 0) ExtendLineInfo(length);
             return pt;
         }
 
