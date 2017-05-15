@@ -8,11 +8,8 @@ using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch
 {
-    /// <summary>
-    /// A parser that parses Wikitext into AST.
-    /// </summary>
-    /// <remarks>This class is not thread-safe.</remarks>
-    public partial class WikitextParser
+
+    partial class WikitextParser
     {
         /// <summary>
         /// WIKITEXT
@@ -400,7 +397,13 @@ namespace MwParserFromScratch
             ParseStart(@"\||\n|\[\[|\]\]", true);
             if (ConsumeToken(@"\[\[") == null) return ParseFailed<WikiLink>();
             var target = new Run();
-            if (!ParseRun(RunParsingMode.ExpandableText, target, true)) return ParseFailed<WikiLink>();
+            if (!ParseRun(RunParsingMode.ExpandableText, target, true))
+            {
+                if (options.AllowEmptyWikiLinkTarget)
+                    target = null;
+                else
+                    return ParseFailed<WikiLink>();
+            }
             var node = new WikiLink {Target = target};
             if (ConsumeToken(@"\|") != null)
             {
@@ -426,7 +429,13 @@ namespace MwParserFromScratch
             {
                 target = new Run();
                 // Aggressive
-                ParseRun(RunParsingMode.ExpandableUrl, target, true);
+                if (!ParseRun(RunParsingMode.ExpandableUrl, target, true))
+                {
+                    if (options.AllowEmptyExternalLinkTarget)
+                        target = null;
+                    else
+                        return ParseFailed<ExternalLink>();
+                }
             }
             else
             {
@@ -439,10 +448,9 @@ namespace MwParserFromScratch
                 }
                 else
                 {
-                    target = null;
+                    return ParseFailed<ExternalLink>();
                 }
             }
-            if (target == null) return ParseFailed<ExternalLink>();
             var node = new ExternalLink {Target = target, Brackets = brackets};
             if (brackets)
             {

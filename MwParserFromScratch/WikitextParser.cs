@@ -10,13 +10,17 @@ using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch
 {
-    partial class WikitextParser
+    /// <summary>
+    /// A parser that parses Wikitext into AST.
+    /// </summary>
+    /// <remarks>This class is not thread-safe.</remarks>
+    public partial class WikitextParser
     {
         private static readonly WikitextParserOptions defaultOptions = new WikitextParserOptions();
 
         private readonly IWikitextParserLogger logger;
-        // case-sensitive, case-insensitive
-        private readonly HashSet<string> csMagicTemplateNames, ciMagicTemplateNames, parserTags, selfClosingOnlyTags;
+
+        private WikitextParserOptions options;
 
         private string fulltext;
         private int position; // Starting index of the string to be consumed.
@@ -39,32 +43,8 @@ namespace MwParserFromScratch
         /// <param name="logger">A logger used to trace the process of parsing.</param>
         public WikitextParser(WikitextParserOptions options, IWikitextParserLogger logger)
         {
-            options = options ?? defaultOptions;
+            this.options = options?.DefensiveCopy() ?? WikitextParserOptions.DefaultOptions;
             this.logger = logger;
-            if ((options?.MagicTemplateNames ?? WikitextParserOptions.DefaultMagicTemplateNames) ==
-                WikitextParserOptions.DefaultMagicTemplateNames)
-            {
-                csMagicTemplateNames = WikitextParserOptions.DefaultCaseSensitiveMagicTemplatesSet;
-                ciMagicTemplateNames = WikitextParserOptions.DefaultCaseInsensitiveMagicTemplatesSet;
-            }
-            else
-            {
-                csMagicTemplateNames = new HashSet<string>();
-                ciMagicTemplateNames = new HashSet<string>();
-                foreach (var tn in options.MagicTemplateNames)
-                {
-                    if (tn.IsCaseSensitive) csMagicTemplateNames.Add(tn.Name);
-                    else ciMagicTemplateNames.Add(tn.Name);
-                }
-            }
-            parserTags = (options?.ParserTags ?? WikitextParserOptions.DefaultParserTags) ==
-                         WikitextParserOptions.DefaultParserTags
-                ? WikitextParserOptions.DefaultParserTagsSet
-                : new HashSet<string>(options.ParserTags, StringComparer.OrdinalIgnoreCase);
-            selfClosingOnlyTags = (options?.SelfClosingOnlyTags ?? WikitextParserOptions.DefaultSelfClosingOnlyTags) ==
-                                  WikitextParserOptions.DefaultSelfClosingOnlyTags
-                ? WikitextParserOptions.DefaultSelfClosingOnlyTagsSet
-                : new HashSet<string>(options.SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>

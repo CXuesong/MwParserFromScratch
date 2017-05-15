@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch
 {
@@ -197,10 +198,7 @@ namespace MwParserFromScratch
                 "DEFAULTCATEGORYSORT",
                 "PAGESINNS"
             };
-#endregion
-
-        internal static readonly HashSet<string> DefaultParserTagsSet = new HashSet<string>(DefaultParserTags, StringComparer.OrdinalIgnoreCase);
-        internal static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet = new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+        #endregion
 
         public static readonly IReadOnlyList<MagicTemplateNameInfo> DefaultMagicTemplateNames
             = new ReadOnlyCollection<MagicTemplateNameInfo>(DefaultCaseSensitiveMagicTemplatesSet
@@ -208,32 +206,159 @@ namespace MwParserFromScratch
                 .Concat(DefaultCaseSensitiveMagicTemplatesSet.Select(n => new MagicTemplateNameInfo(n, true)))
                 .ToArray());
 
+        private static readonly HashSet<string> DefaultParserTagsSet = new HashSet<string>(DefaultParserTags, StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet = new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+
+        internal static WikitextParserOptions DefaultOptions = new WikitextParserOptions().DefensiveCopy();
+
+        private IEnumerable<string> _ParserTags;
+        private IEnumerable<string> _SelfClosingOnlyTags;
+        private IEnumerable<MagicTemplateNameInfo> _MagicTemplateNames;
+        private bool _AllowEmptyTemplateName;
+        private bool _AllowEmptyWikiLinkTarget;
+        private bool _AllowEmptyExternalLinkTarget;
+        private bool _AllowClosingMarkInference;
+        private bool _WithLineInfo;
+        private WikitextParserOptions _DefensiveCopy;
+
         /// <summary>
         /// Names of the parser tags. E.g. gallery .
         /// Tag names are case-insensitive.
         /// </summary>
         /// <value>A list of strings, which are valid tag names. OR <c>null</c> to use the default settings.</value>
-        public IEnumerable<string> ParserTags { get; set; }
-
-        ///// <summary>
-        ///// Names of the parser functions. E.g. #if .
-        ///// Parser function names are case-insensitive.
-        ///// </summary>
-        ///// <value>A list of strings, which are valid parser function names. OR <c>null</c> to use the default settings.</value>
-        //public IEnumerable<string> ParserFunctions { get; set; }
+        public IEnumerable<string> ParserTags
+        {
+            get { return _ParserTags; }
+            set
+            {
+                _ParserTags = value;
+                _DefensiveCopy = null;
+            }
+        }
 
         /// <summary>
         /// Names of tags that can only be used in a self-closing way.
         /// </summary>
         /// <remarks>The default value is "br", "wbr", "hr".</remarks>
-        public IEnumerable<string> SelfClosingOnlyTags { get; set; }
+        public IEnumerable<string> SelfClosingOnlyTags
+        {
+            get { return _SelfClosingOnlyTags; }
+            set
+            {
+                _SelfClosingOnlyTags = value;
+                _DefensiveCopy = null;
+            }
+        }
 
         /// <summary>
         /// Names of the variables and parser functions in Wikitext. E.g. PAGENAME.
         /// </summary>
         /// <value>A list of strings, which are valid variable names. OR <c>null</c> to use the default settings.</value>
         /// <remarks>See https://www.mediawiki.org/wiki/Help:Magic_words#Variables .</remarks>
-        public IEnumerable<MagicTemplateNameInfo> MagicTemplateNames { get; set; }
+        public IEnumerable<MagicTemplateNameInfo> MagicTemplateNames
+        {
+            get { return _MagicTemplateNames; }
+            set
+            {
+                _MagicTemplateNames = value;
+                _DefensiveCopy = null;
+            }
+        }
+
+        /// <summary>
+        /// When parsing for template transclusions, allows empty template names.
+        /// </summary>
+        /// <remarks>For empty template names, the <see cref="Template.Name"/> will be <c>null</c>.</remarks>
+        public bool AllowEmptyTemplateName
+        {
+            get { return _AllowEmptyTemplateName; }
+            set { _AllowEmptyTemplateName = value; _DefensiveCopy = null; }
+        }
+
+        /// <summary>
+        /// When parsing for wikilinks, allows empty link targets.
+        /// </summary>
+        /// <remarks>For empty wikilink targets, the <see cref="WikiLink.Target"/> will be <c>null</c>.</remarks>
+        public bool AllowEmptyWikiLinkTarget
+        {
+            get { return _AllowEmptyWikiLinkTarget; }
+            set { _AllowEmptyWikiLinkTarget = value; _DefensiveCopy = null; }
+        }
+
+        /// <summary>
+        /// When parsing for external links, allows empty link targets.
+        /// </summary>
+        /// <remarks>
+        /// <para>For empty wikilink targets, the <see cref="ExternalLink.Target"/> will be <c>null</c>.</para>
+        /// <para>It's recommended this property set to <c>false</c>.</para>
+        /// </remarks>
+        public bool AllowEmptyExternalLinkTarget
+        {
+            get { return _AllowEmptyExternalLinkTarget; }
+            set { _AllowEmptyExternalLinkTarget = value; _DefensiveCopy = null; }
+        }
+
+        ///// <summary>
+        ///// When parsing for wikilinks, templates, and HTML tags, allows inference of missing close marks.
+        ///// </summary>
+        //public bool AllowClosingMarkInference
+        //{
+        //    get { return _AllowClosingMarkInference; }
+        //    set { _AllowClosingMarkInference = value; _DefensiveCopy = null; }
+        //}
+
+        public bool WithLineInfo
+        {
+            get { return _WithLineInfo; }
+            set { _WithLineInfo = value; _DefensiveCopy = null; }
+        }
+
+        internal ISet<string> ParserTagsSet { get; private set; }
+
+        internal ISet<string> SelfClosingOnlyTagsSet { get; private set; }
+
+        internal ISet<string> CaseSensitiveMagicTemplateNamesSet { get; private set; }
+
+        internal ISet<string> CaseInsensitiveMagicTemplateNamesSet { get; private set; }
+
+        internal WikitextParserOptions DefensiveCopy()
+        {
+            if (_DefensiveCopy != null) return _DefensiveCopy;
+            if (ParserTagsSet == null)
+                ParserTagsSet = ParserTags == null || ReferenceEquals(ParserTags, DefaultParserTags)
+                    ? DefaultParserTagsSet
+                    : new HashSet<string>(ParserTags, StringComparer.OrdinalIgnoreCase);
+            if (SelfClosingOnlyTagsSet == null)
+                SelfClosingOnlyTagsSet = SelfClosingOnlyTags == null ||
+                                         ReferenceEquals(SelfClosingOnlyTags, DefaultSelfClosingOnlyTags)
+                    ? DefaultSelfClosingOnlyTagsSet
+                    : new HashSet<string>(SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+            if (CaseSensitiveMagicTemplateNamesSet == null || CaseInsensitiveMagicTemplateNamesSet == null)
+            {
+                if (MagicTemplateNames == null || ReferenceEquals(MagicTemplateNames, DefaultMagicTemplateNames))
+                {
+                    CaseSensitiveMagicTemplateNamesSet = DefaultCaseSensitiveMagicTemplatesSet;
+                    CaseInsensitiveMagicTemplateNamesSet = DefaultCaseInsensitiveMagicTemplatesSet;
+                }
+                else
+                {
+                    CaseSensitiveMagicTemplateNamesSet = new HashSet<string>();
+                    CaseInsensitiveMagicTemplateNamesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var tn in MagicTemplateNames)
+                    {
+                        if (tn.IsCaseSensitive) CaseSensitiveMagicTemplateNamesSet.Add(tn.Name);
+                        else CaseInsensitiveMagicTemplateNamesSet.Add(tn.Name);
+                    }
+                }
+            }
+            var inst = (WikitextParserOptions) MemberwiseClone();
+            inst._DefensiveCopy = inst;
+            inst._MagicTemplateNames = null;
+            inst._ParserTags = null;
+            inst._SelfClosingOnlyTags = null;
+            return inst;
+        }
+
     }
 
     /// <summary>

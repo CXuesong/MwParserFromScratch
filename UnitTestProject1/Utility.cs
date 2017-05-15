@@ -147,9 +147,9 @@ namespace UnitTestProject1
         /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
         /// 2. Whether the parsed AST is correct.
         /// </summary>
-        public static Wikitext ParseAndAssert(string text, string expectedDump)
+        public static Wikitext ParseAndAssert(string text, string expectedDump, WikitextParserOptions options = null)
         {
-            var parser = new WikitextParser();
+            var parser = new WikitextParser(options);
             var root = parser.Parse(text);
             var parsedText = root.ToString();
             Trace.WriteLine("Original Text\n====================");

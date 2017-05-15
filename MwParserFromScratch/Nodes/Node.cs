@@ -259,6 +259,7 @@ namespace MwParserFromScratch.Nodes
         internal TNode Attach<TNode>(TNode newNode)
             where TNode : Node
         {
+            Debug.Assert(newNode != null);
             // Make a deep copy, if needed.
             if (newNode.ParentNode != null)
                 newNode = (TNode) newNode.Clone();
@@ -270,7 +271,7 @@ namespace MwParserFromScratch.Nodes
             where TNode : Node
         {
             if (newValue == nodeStorge) return;
-            newValue = Attach(newValue);
+            if (newValue != null) newValue = Attach(newValue);
             if (nodeStorge != null) Detach(nodeStorge);
             nodeStorge = newValue;
         }
@@ -364,7 +365,7 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         public abstract string ToPlainText(NodePlainTextOptions options);
 
-        internal class LineInfoAnnotation
+        private class LineInfoAnnotation
         {
             internal readonly int LineNumber;
             internal readonly int LinePosition;

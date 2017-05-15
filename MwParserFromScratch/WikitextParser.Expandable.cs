@@ -104,7 +104,8 @@ namespace MwParserFromScratch
                 if (litName != null)
                 {
                     litName = litName.Trim();
-                    node.IsMagicWord = csMagicTemplateNames.Contains(litName) || ciMagicTemplateNames.Contains(litName);
+                    node.IsMagicWord = options.CaseSensitiveMagicTemplateNamesSet.Contains(litName) ||
+                                       options.CaseInsensitiveMagicTemplateNamesSet.Contains(litName);
                 }
             }
             if (node.IsMagicWord)
@@ -127,7 +128,12 @@ namespace MwParserFromScratch
             else
             {
                 if (!ParseRun(RunParsingMode.ExpandableText, node.Name, true))
-                    return ParseFailed(node);
+                {
+                    if (options.AllowEmptyTemplateName)
+                        node.Name = null;
+                    else
+                        return ParseFailed(node);
+                }
             }
             while (ConsumeToken(@"\|") != null)
             {
@@ -163,7 +169,7 @@ namespace MwParserFromScratch
             if (ConsumeToken("<") == null) return ParseFailed<TagNode>();
             var tagName = ConsumeToken(@"[\w-_:]+");
             if (tagName == null) return ParseFailed<TagNode>();
-            var node = parserTags.Contains(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
+            var node = options.ParserTagsSet.Contains(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
             string rbracket;
             var ws = ConsumeToken(@"\s+");
             // TAG_ATTR
@@ -207,7 +213,7 @@ namespace MwParserFromScratch
             {
                 node.TagStyle = TagStyle.SelfClosing;
                 return ParseSuccessful(node);
-            } else if (selfClosingOnlyTags.Contains(tagName))
+            } else if (options.SelfClosingOnlyTagsSet.Contains(tagName))
             {
                 node.TagStyle = TagStyle.CompactSelfClosing;
                 return ParseSuccessful(node);

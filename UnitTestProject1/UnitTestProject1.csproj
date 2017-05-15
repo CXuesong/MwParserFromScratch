@@ -58,6 +58,7 @@
     <Compile Include="ExpandableParsingTests.cs" />
     <Compile Include="NodeTests.cs" />
     <Compile Include="MwParserUtilityTests.cs" />
+    <Compile Include="ParsingBehaviorTests.cs" />
     <Compile Include="Utility.cs" />
   </ItemGroup>
   <ItemGroup>

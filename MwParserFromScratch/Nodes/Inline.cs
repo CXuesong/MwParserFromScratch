@@ -157,7 +157,7 @@ namespace MwParserFromScratch.Nodes
 
         public override string ToString()
         {
-            var s = Target.ToString();
+            var s = Target?.ToString();
             if (Text != null) s += " " + Text;
             if (Brackets) s = "[" + s + "]";
             return s;
