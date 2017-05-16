@@ -298,14 +298,14 @@ namespace MwParserFromScratch
             set { _AllowEmptyExternalLinkTarget = value; _DefensiveCopy = null; }
         }
 
-        ///// <summary>
-        ///// When parsing for wikilinks, templates, and HTML tags, allows inference of missing close marks.
-        ///// </summary>
-        //public bool AllowClosingMarkInference
-        //{
-        //    get { return _AllowClosingMarkInference; }
-        //    set { _AllowClosingMarkInference = value; _DefensiveCopy = null; }
-        //}
+        /// <summary>
+        /// When parsing for wikilinks, templates, and HTML tags, allows inference of missing close marks.
+        /// </summary>
+        public bool AllowClosingMarkInference
+        {
+            get { return _AllowClosingMarkInference; }
+            set { _AllowClosingMarkInference = value; _DefensiveCopy = null; }
+        }
 
         public bool WithLineInfo
         {

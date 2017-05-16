@@ -163,7 +163,7 @@ namespace UnitTestProject1
             {
                 Assert.Fail("Expect: <{0}>, got: <{1}>.", EscapeString(expectedDump), EscapeString(rootExpr));
             }
-            Assert.AreEqual(text, parsedText);
+            if (!options.AllowClosingMarkInference) Assert.AreEqual(text, parsedText);
             return root;
         }
 

@@ -140,7 +140,13 @@ namespace MwParserFromScratch
                 var arg = ParseTemplateArgument();
                 node.Arguments.Add(arg);
             }
-            if (ConsumeToken(@"\}\}") == null) return ParseFailed(node);
+            if (ConsumeToken(@"\}\}") == null)
+            {
+                if (options.AllowClosingMarkInference)
+                    node.SetInferredClosingMark();
+                else
+                    return ParseFailed(node);
+            }
             return ParseSuccessful(node);
         }
 
@@ -239,8 +245,7 @@ namespace MwParserFromScratch
                 }
             }
             Match closingTagMatch;
-            var pt = tag as ParserTag;
-            if (pt != null)
+            if (tag is ParserTag pt)
             {
                 // For parser tags, we just read to the end.
                 closingTagMatch = matcher.Match(fulltext, position);
@@ -256,7 +261,7 @@ namespace MwParserFromScratch
             // We'll parse into the tag.
             // But before the parsing begins,
             //  do a simple check of whether there will be a possible closing tag ahead.
-            if (!matcher.IsMatch(fulltext, position)) return false;
+            if (!options.AllowClosingMarkInference && !matcher.IsMatch(fulltext, position)) return false;
             var ht = (HtmlTag) tag;
             ParseStart(closingTagExpr, false);
             ht.Content = ParseWikitext();
@@ -264,7 +269,15 @@ namespace MwParserFromScratch
             // Consume the tag closing.
             var closingTag = ConsumeToken(closingTagExpr);
             if (closingTag == null)
+            {
+                if (options.AllowClosingMarkInference)
+                {
+                    tag.SetInferredClosingMark();
+                    tag.ClosingTagName = null;
+                    return true;
+                }
                 return false;
+            }
             closingTagMatch = matcher.Match(closingTag);
             CLOSE_TAG:
             Debug.Assert(closingTagMatch.Success);

@@ -12,7 +12,7 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// Represents the abstract concept of a node in the syntax tree.
     /// </summary>
-    public abstract class Node : IWikitextLineInfo
+    public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     {
         private object _Annotation;
 
@@ -285,8 +285,6 @@ namespace MwParserFromScratch.Nodes
 
         #region IWikitextLineInfo
 
-        // IWikitextLineInfo has been removed.
-
         internal void SetLineInfo(int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
         {
             Debug.Assert(lineNumber1 >= 0);
@@ -320,9 +318,16 @@ namespace MwParserFromScratch.Nodes
             annotation.EndLinePosition = linePosition2;
         }
 
-        #endregion
-
-        #region IWikitextSpanInfo
+        internal void SetInferredClosingMark()
+        {
+            var ext = Annotation<ExtraParsingAnnotation>();
+            if (ext == null)
+            {
+                ext = new ExtraParsingAnnotation();
+                AddAnnotation(ext);
+            }
+            ext.InferredClosingMark = true;
+        }
 
         /// <inheritdoc />
         int IWikitextLineInfo.StartLineNumber => Annotation<LineInfoAnnotation>()?.StartLineNumber ?? 0;
@@ -338,6 +343,9 @@ namespace MwParserFromScratch.Nodes
 
         /// <inheritdoc />
         bool IWikitextLineInfo.HasLineInfo => Annotation<LineInfoAnnotation>() != null;
+
+        /// <inheritdoc />
+        bool IWikitextParsingInfo.InferredClosingMark => Annotation<ExtraParsingAnnotation>()?.InferredClosingMark ?? false;
 
         #endregion
 
@@ -382,6 +390,12 @@ namespace MwParserFromScratch.Nodes
                 EndLinePosition = endLinePosition;
             }
         }
+
+        private class ExtraParsingAnnotation
+        {
+            internal bool InferredClosingMark = false;
+        }
+
     }
 
     /// <summary>
