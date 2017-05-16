@@ -209,7 +209,7 @@ namespace MwParserFromScratch
         private static readonly HashSet<string> DefaultParserTagsSet = new HashSet<string>(DefaultParserTags, StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet = new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
 
-        internal static WikitextParserOptions DefaultOptions = new WikitextParserOptions().DefensiveCopy();
+        internal static WikitextParserOptions DefaultOptionsCopy = new WikitextParserOptions().DefensiveCopy();
 
         private IEnumerable<string> _ParserTags;
         private IEnumerable<string> _SelfClosingOnlyTags;
@@ -219,7 +219,7 @@ namespace MwParserFromScratch
         private bool _AllowEmptyExternalLinkTarget;
         private bool _AllowClosingMarkInference;
         private bool _WithLineInfo;
-        private WikitextParserOptions _DefensiveCopy;
+        private volatile WikitextParserOptions _DefensiveCopy;
 
         /// <summary>
         /// Names of the parser tags. E.g. gallery .
@@ -313,9 +313,9 @@ namespace MwParserFromScratch
             set { _WithLineInfo = value; _DefensiveCopy = null; }
         }
 
-        internal ISet<string> ParserTagsSet { get; private set; }
+        internal ISet<string> ParserTagsSet => (ISet<string>) ParserTags;
 
-        internal ISet<string> SelfClosingOnlyTagsSet { get; private set; }
+        internal ISet<string> SelfClosingOnlyTagsSet => (ISet<string>) SelfClosingOnlyTags;
 
         internal ISet<string> CaseSensitiveMagicTemplateNamesSet { get; private set; }
 
@@ -323,39 +323,34 @@ namespace MwParserFromScratch
 
         internal WikitextParserOptions DefensiveCopy()
         {
+            // This method should be thread-safe when there are concurrent DefensiveCopy calls.
             if (_DefensiveCopy != null) return _DefensiveCopy;
-            if (ParserTagsSet == null)
-                ParserTagsSet = ParserTags == null || ReferenceEquals(ParserTags, DefaultParserTags)
-                    ? DefaultParserTagsSet
-                    : new HashSet<string>(ParserTags, StringComparer.OrdinalIgnoreCase);
-            if (SelfClosingOnlyTagsSet == null)
-                SelfClosingOnlyTagsSet = SelfClosingOnlyTags == null ||
-                                         ReferenceEquals(SelfClosingOnlyTags, DefaultSelfClosingOnlyTags)
-                    ? DefaultSelfClosingOnlyTagsSet
-                    : new HashSet<string>(SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
-            if (CaseSensitiveMagicTemplateNamesSet == null || CaseInsensitiveMagicTemplateNamesSet == null)
-            {
-                if (MagicTemplateNames == null || ReferenceEquals(MagicTemplateNames, DefaultMagicTemplateNames))
-                {
-                    CaseSensitiveMagicTemplateNamesSet = DefaultCaseSensitiveMagicTemplatesSet;
-                    CaseInsensitiveMagicTemplateNamesSet = DefaultCaseInsensitiveMagicTemplatesSet;
-                }
-                else
-                {
-                    CaseSensitiveMagicTemplateNamesSet = new HashSet<string>();
-                    CaseInsensitiveMagicTemplateNamesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    foreach (var tn in MagicTemplateNames)
-                    {
-                        if (tn.IsCaseSensitive) CaseSensitiveMagicTemplateNamesSet.Add(tn.Name);
-                        else CaseInsensitiveMagicTemplateNamesSet.Add(tn.Name);
-                    }
-                }
-            }
             var inst = (WikitextParserOptions) MemberwiseClone();
             inst._DefensiveCopy = inst;
+            inst._ParserTags = ParserTags == null || ReferenceEquals(ParserTags, DefaultParserTags)
+                ? DefaultParserTagsSet
+                : new HashSet<string>(ParserTags, StringComparer.OrdinalIgnoreCase);
+            inst._SelfClosingOnlyTags = SelfClosingOnlyTags == null ||
+                                        ReferenceEquals(SelfClosingOnlyTags, DefaultSelfClosingOnlyTags)
+                ? DefaultSelfClosingOnlyTagsSet
+                : new HashSet<string>(SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+            if (inst.MagicTemplateNames == null || ReferenceEquals(MagicTemplateNames, DefaultMagicTemplateNames))
+            {
+                inst.CaseSensitiveMagicTemplateNamesSet = DefaultCaseSensitiveMagicTemplatesSet;
+                inst.CaseInsensitiveMagicTemplateNamesSet = DefaultCaseInsensitiveMagicTemplatesSet;
+            }
+            else
+            {
+                inst.CaseSensitiveMagicTemplateNamesSet = new HashSet<string>();
+                inst.CaseInsensitiveMagicTemplateNamesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var tn in MagicTemplateNames)
+                {
+                    if (tn.IsCaseSensitive) inst.CaseSensitiveMagicTemplateNamesSet.Add(tn.Name);
+                    else inst.CaseInsensitiveMagicTemplateNamesSet.Add(tn.Name);
+                }
+            }
             inst._MagicTemplateNames = null;
-            inst._ParserTags = null;
-            inst._SelfClosingOnlyTags = null;
+            _DefensiveCopy = inst;
             return inst;
         }
 

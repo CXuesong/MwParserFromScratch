@@ -149,7 +149,7 @@ namespace UnitTestProject1
         /// </summary>
         public static Wikitext ParseAndAssert(string text, string expectedDump, WikitextParserOptions options = null)
         {
-            var parser = new WikitextParser(options);
+            var parser = new WikitextParser {Options = options};
             var root = parser.Parse(text);
             var parsedText = root.ToString();
             Trace.WriteLine("Original Text\n====================");

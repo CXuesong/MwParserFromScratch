@@ -8,7 +8,7 @@ using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch
 {
-    partial class WikitextParser
+    partial class ParserCore
     {
         private static readonly Regex commentSuffixMatcher = new Regex("-->");
         private static readonly Dictionary<string, Regex> closingTagMatcherCache = new Dictionary<string, Regex>();

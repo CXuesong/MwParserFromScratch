@@ -9,7 +9,7 @@ using MwParserFromScratch.Nodes;
 namespace MwParserFromScratch
 {
 
-    partial class WikitextParser
+    partial class ParserCore
     {
         /// <summary>
         /// WIKITEXT

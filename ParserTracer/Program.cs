@@ -46,7 +46,7 @@ where
         private static Wikitext LoadAndParse(string fileName)
         {
             var content = File.ReadAllText(fileName);
-            var parser = new WikitextParser(null, new MyParserLogger());
+            var parser = new WikitextParser {Logger = new MyParserLogger()};
             return parser.Parse(content);
         }
 
