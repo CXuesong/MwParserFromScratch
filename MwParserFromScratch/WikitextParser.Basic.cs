@@ -190,6 +190,10 @@ namespace MwParserFromScratch
         /// </summary>
         private ListItem ParseListItem()
         {
+            // We require all the list item starts at the beginning of a line,
+            // i.e. "item" in {{T|* item}} will be treated as plain-text.
+            // This will esp. prevent the leading whitespace of a template parameter be parsed into <pre>
+            if (!BeginningOfLine()) return null;
             ParseStart();
             var prefix = ConsumeToken("[*#:;]+|-{4,}| ");
             if (prefix == null) return ParseFailed<ListItem>();
