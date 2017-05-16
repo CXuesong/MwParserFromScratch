@@ -20,22 +20,23 @@ namespace UnitTestProject1
             Trace.WriteLine("Descendants Dump:");
             foreach (var node in root.EnumDescendants())
             {
-                var li = (IWikitextLineInfo) node;
-                var si = (IWikitextSpanInfo) node;
-                Assert.IsTrue(li.HasLineInfo());
-                Assert.IsTrue(si.HasSpanInfo);
+                var si = (IWikitextLineInfo) node;
+                Assert.IsTrue(si.HasLineInfo);
                 Trace.WriteLine(
-                    $"{node.GetType().Name}\t({li.LineNumber},{li.LinePosition};{si.Start}+{si.Length})\t[|{node}|]");
+                    $"{node.GetType().Name}\t({si.StartLineNumber},{si.StartLinePosition})-({si.EndLineNumber},{si.EndLinePosition})\t[|{node}|]");
                 if (node is InlineContainer container)
                 {
-                    int pos = -1;
-                    foreach (IWikitextSpanInfo child in container.Inlines)
+                    IWikitextLineInfo lastChild = null;
+                    foreach (IWikitextLineInfo child in container.Inlines)
                     {
-                        if (pos >= 0)
+                        if (lastChild != null)
                         {
-                            Assert.AreEqual(pos, child.Start, "LineInfo of Inline sequence is not consequent.");
+                            if (lastChild.EndLineNumber == child.StartLineNumber)
+                                Assert.AreEqual(lastChild.EndLinePosition, child.StartLinePosition, "LineInfo of Inline sequence is not consequent.");
+                            else
+                                Assert.AreEqual(0, child.StartLinePosition, "LineInfo of Inline sequence is not consequent.");
                         }
-                        pos = child.Start + child.Length;
+                        lastChild = child;
                     }
                 }
             }

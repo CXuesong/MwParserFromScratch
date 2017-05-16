@@ -16,11 +16,9 @@ namespace MwParserFromScratch
     /// <remarks>This class is not thread-safe.</remarks>
     public partial class WikitextParser
     {
-        private static readonly WikitextParserOptions defaultOptions = new WikitextParserOptions();
 
         private readonly IWikitextParserLogger logger;
-
-        private WikitextParserOptions options;
+        private readonly WikitextParserOptions options;
 
         private string fulltext;
         private int position; // Starting index of the string to be consumed.
@@ -73,7 +71,7 @@ namespace MwParserFromScratch
             cancellationToken.ThrowIfCancellationRequested();
             // Initialize
             fulltext = wikitext;
-            lineNumber = linePosition = 1;
+            lineNumber = linePosition = 0;
             position = 0;
             contextStack = new Stack<ParsingContext>();
             this.cancellationToken = cancellationToken;
@@ -91,7 +89,6 @@ namespace MwParserFromScratch
             fulltext = null;
             contextStack = null;
             logger?.NotifyParsingFinished();
-            cancellationToken = CancellationToken.None;
             return root;
         }
 
@@ -151,8 +148,7 @@ namespace MwParserFromScratch
             {
                 value.SetLineInfo(CurrentContext.StartingLineNumber,
                     CurrentContext.StartingLinePosition,
-                    CurrentContext.StartingPosition,
-                    position - CurrentContext.StartingPosition);
+                    lineNumber, linePosition);
             }
             Accept();
             return value;
@@ -179,6 +175,11 @@ namespace MwParserFromScratch
             lineNumber = context.StartingLineNumber;
             linePosition = context.StartingLinePosition;
             return false;
+        }
+
+        private bool BeginningOfLine()
+        {
+            return linePosition == 0;
         }
 
         /// <summary>

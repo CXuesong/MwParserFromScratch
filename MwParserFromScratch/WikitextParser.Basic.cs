@@ -103,13 +103,14 @@ namespace MwParserFromScratch
             {
                 // We're going to consume another \n or TERM to close the paragraph.
                 // Already consumed a \n, attempt to consume another \n
+                var trailingWsEndsAt = linePosition;
                 if (ConsumeToken(@"\n") != null)
                 {
                     // Close the last paragraph.
                     unclosedParagraph.AppendWithLineInfo("\n" + trailingWs,
                         // don't forget the position of leading '\n'
-                        CurrentContext.StartingPosition - 1, position - CurrentContext.StartingPosition,
-                        CurrentContext.StartingLineNumber - 1, lastLinePosition);
+                        CurrentContext.StartingLineNumber - 1, lastLinePosition,
+                        CurrentContext.StartingLineNumber, trailingWsEndsAt);
                     // 2 Line breaks received.
                     // Check for the special case. Note here TERM excludes \n
                     if (NeedsTerminate(Terminator.Get(@"\n")))
@@ -121,7 +122,7 @@ namespace MwParserFromScratch
                         // because a TERM will be received.
                         // We need to correct this.
                         var anotherparagraph = new Paragraph();
-                        anotherparagraph.SetLineInfo(lineNumber, linePosition, position, 0);
+                        anotherparagraph.SetLineInfo(lineNumber, linePosition, lineNumber, linePosition);
                         return ParseSuccessful(anotherparagraph, false);
                     }
                     // The last paragraph will be closed now.
@@ -135,8 +136,8 @@ namespace MwParserFromScratch
                     // If we need to terminate, then close the last paragraph.
                     unclosedParagraph.AppendWithLineInfo("\n" + trailingWs,
                         // don't forget the position of leading '\n'
-                        CurrentContext.StartingPosition - 1, position - CurrentContext.StartingPosition + 1,
-                        CurrentContext.StartingLineNumber - 1, lastLinePosition);
+                        CurrentContext.StartingLineNumber - 1, lastLinePosition,
+                        lineNumber, linePosition);
                     return ParseSuccessful(EMPTY_LINE_NODE, false);
                 }
                 // The last paragraph is still not closed (i.e. compact paragraph).
@@ -144,7 +145,7 @@ namespace MwParserFromScratch
                 // Note here we have still consumed the first '\n', while the last paragraph has no trailing '\n'.
                 // For continued PlainText, we will add a '\n' in ParseCompactParagraph.
                 // Add an empty node so ParseCompactParagraph can add a '\n' with LineInfo.
-                unclosedParagraph.AppendWithLineInfo("", CurrentContext.StartingPosition - 1, 0,
+                unclosedParagraph.AppendWithLineInfo("", CurrentContext.StartingLineNumber - 1, lastLinePosition,
                     CurrentContext.StartingLineNumber - 1, lastLinePosition);
                 // Fallback so we can either continue parsing PlainText,
                 // or discover the next, for example, Heading, and leave the last paragraph compact.
@@ -169,9 +170,10 @@ namespace MwParserFromScratch
                     if (trailingWs != null)
                     {
                         var pt = new PlainText(trailingWs);
-                        // Actually the same as what we do in ParseSuccessful.
+                        // Actually the same as what we do in ParseSuccessful for PlainText.
                         pt.SetLineInfo(CurrentContext.StartingLineNumber, CurrentContext.StartingLinePosition,
-                            CurrentContext.StartingPosition, position - CurrentContext.StartingPosition);
+                            lineNumber, linePosition);
+                        anotherparagraph.Inlines.Add(pt);
                     }
                     return ParseSuccessful(anotherparagraph);
                 }
@@ -267,10 +269,10 @@ namespace MwParserFromScratch
                     node.Inlines.AddFrom(parsedSegments[i].Inlines);
                     if (i < parsedSegments.Count - 1)
                     {
-                        var li = (IWikitextLineInfo)parsedSegments[i + 1];
-                        var si = (IWikitextSpanInfo)parsedSegments[i + 1];
+                        IWikitextLineInfo si = parsedSegments[i + 1];
                         var bar = new PlainText(new string('=', level));
-                        bar.SetLineInfo(li.LineNumber, li.LinePosition - level, si.Start - level, level);
+                        bar.SetLineInfo(si.StartLineNumber, si.StartLinePosition - level,
+                            si.StartLineNumber, si.StartLinePosition);
                         node.Inlines.Add(bar);
                     }
                 }
@@ -304,10 +306,13 @@ namespace MwParserFromScratch
             ParseStart();
             if (mergeTo != null)
             {
+                // This won't throw exception. See (A) in ParseLineEnd.
                 var paraTail = (PlainText) mergeTo.Inlines.LastNode;
                 paraTail.Content += "\n";
-                paraTail.ExtendLineInfo(1);
-                mergeTo.ExtendLineInfo(1);
+                IWikitextLineInfo paraTailSpan = paraTail;
+                Debug.Assert(((IWikitextLineInfo) mergeTo).EndLinePosition == paraTailSpan.EndLinePosition);
+                paraTail.ExtendLineInfo(paraTailSpan.EndLineNumber + 1, 0);
+                mergeTo.ExtendLineInfo(paraTailSpan.EndLineNumber + 1, 0);
             }
             var node = mergeTo ?? new Paragraph();
             // Allows an empty paragraph/line.
@@ -315,7 +320,7 @@ namespace MwParserFromScratch
             if (mergeTo != null)
             {
                 // Amend the line position
-                lastNode.ExtendLineInfo(position - CurrentContext.StartingPosition);
+                lastNode.ExtendLineInfo(lineNumber, linePosition);
                 return ParseSuccessful(EMPTY_LINE_NODE, false);
             }
             return ParseSuccessful(node);
@@ -358,7 +363,7 @@ namespace MwParserFromScratch
                     if (container.Inlines.LastNode is PlainText lastText)
                     {
                         lastText.Content += newtext.Content;
-                        lastText.ExtendLineInfo(((IWikitextSpanInfo) newtext).Length);
+                        lastText.ExtendLineInfo(lineNumber, linePosition);
                         continue;
                     }
                 }
@@ -499,7 +504,7 @@ namespace MwParserFromScratch
                 if (fulltext[i] == '\n')
                 {
                     lineNumber++;
-                    linePosition = 1;
+                    linePosition = 0;
                 }
                 else
                 {

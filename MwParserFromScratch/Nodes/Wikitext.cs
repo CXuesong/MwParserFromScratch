@@ -104,23 +104,27 @@ namespace MwParserFromScratch.Nodes
             return pt;
         }
 
-        internal PlainText AppendWithLineInfo(string text, int position, int length, int lineNumber, int linePosition)
+        internal PlainText AppendWithLineInfo(string text, int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
         {
             Debug.Assert(text != null);
-            Debug.Assert(length == text.Length);
+            Debug.Assert(lineNumber1 >= 0);
+            Debug.Assert(linePosition1 >= 0);
+            Debug.Assert(lineNumber2 >= 0);
+            Debug.Assert(linePosition2 >= 0);
+            Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
             var pt = Inlines.LastNode as PlainText;
             if (pt == null)
             {
                 Inlines.Add(pt = new PlainText(text));
-                pt.SetLineInfo(lineNumber, linePosition, position, length);
+                pt.SetLineInfo(lineNumber1, linePosition1, lineNumber2, linePosition2);
             }
             else
             {
                 if (text.Length == 0) return pt;    // ExtendLineInfo won't accept (0)
                 pt.Content += text;
-                pt.ExtendLineInfo(length);
+                pt.ExtendLineInfo(lineNumber2, linePosition2);
             }
-            if (length > 0) ExtendLineInfo(length);
+            ExtendLineInfo(lineNumber2, linePosition2);
             return pt;
         }
 

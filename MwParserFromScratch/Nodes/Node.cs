@@ -12,7 +12,7 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// Represents the abstract concept of a node in the syntax tree.
     /// </summary>
-    public abstract class Node : IWikitextLineInfo, IWikitextSpanInfo
+    public abstract class Node : IWikitextLineInfo
     {
         private object _Annotation;
 
@@ -285,26 +285,17 @@ namespace MwParserFromScratch.Nodes
 
         #region IWikitextLineInfo
 
-        /// <inheritdoc />
-        int IWikitextLineInfo.LineNumber => Annotation<LineInfoAnnotation>()?.LineNumber ?? 0;
+        // IWikitextLineInfo has been removed.
 
-        /// <inheritdoc />
-        int IWikitextLineInfo.LinePosition => Annotation<LineInfoAnnotation>()?.LinePosition ?? 0;
-
-        /// <inheritdoc />
-        bool IWikitextLineInfo.HasLineInfo() => Annotation<LineInfoAnnotation>() != null;
-
-        internal bool HasLineInfo
-            => Annotation<LineInfoAnnotation>() != null;
-
-        internal void SetLineInfo(int lineNumber, int linePosition, int start, int length)
+        internal void SetLineInfo(int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
         {
-            Debug.Assert(lineNumber > 0);
-            Debug.Assert(linePosition > 0);
-            Debug.Assert(start >= 0);
-            Debug.Assert(length >= 0);
+            Debug.Assert(lineNumber1 >= 0);
+            Debug.Assert(linePosition1 >= 0);
+            Debug.Assert(lineNumber2 >= 0);
+            Debug.Assert(linePosition2 >= 0);
+            Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
             Debug.Assert(Annotation<LineInfoAnnotation>() == null);
-            AddAnnotation(new LineInfoAnnotation(lineNumber, linePosition, start, length));
+            AddAnnotation(new LineInfoAnnotation(lineNumber1, linePosition1, lineNumber2, linePosition2));
         }
 
         internal void SetLineInfo(Node node)
@@ -312,16 +303,21 @@ namespace MwParserFromScratch.Nodes
             Debug.Assert(node != null);
             var source = node.Annotation<LineInfoAnnotation>();
             Debug.Assert(Annotation<LineInfoAnnotation>() == null);
-            AddAnnotation(new LineInfoAnnotation(source.LineNumber, source.LinePosition, source.Start,
-                source.Length));
+            AddAnnotation(new LineInfoAnnotation(source.StartLineNumber, source.StartLinePosition, source.EndLineNumber,
+                source.EndLinePosition));
         }
 
-        internal void ExtendLineInfo(int extendingLength)
+        internal void ExtendLineInfo(int lineNumber2, int linePosition2)
         {
-            Debug.Assert(extendingLength > 0);
-            var lineInfo = Annotation<LineInfoAnnotation>();
-            Debug.Assert(lineInfo != null);
-            lineInfo.Length += extendingLength;
+            var annotation = Annotation<LineInfoAnnotation>();
+            Debug.Assert(annotation != null);
+            Debug.Assert(lineNumber2 >= 0);
+            Debug.Assert(linePosition2 >= 0);
+            // We won't allow the span to shrink.
+            Debug.Assert(annotation.StartLineNumber < lineNumber2
+                         || annotation.StartLineNumber == lineNumber2 && annotation.StartLinePosition <= linePosition2);
+            annotation.EndLineNumber = lineNumber2;
+            annotation.EndLinePosition = linePosition2;
         }
 
         #endregion
@@ -329,13 +325,19 @@ namespace MwParserFromScratch.Nodes
         #region IWikitextSpanInfo
 
         /// <inheritdoc />
-        int IWikitextSpanInfo.Start => Annotation<LineInfoAnnotation>()?.Start ?? 0;
+        int IWikitextLineInfo.StartLineNumber => Annotation<LineInfoAnnotation>()?.StartLineNumber ?? 0;
 
         /// <inheritdoc />
-        int IWikitextSpanInfo.Length => Annotation<LineInfoAnnotation>()?.Length ?? 0;
+        int IWikitextLineInfo.StartLinePosition => Annotation<LineInfoAnnotation>()?.StartLinePosition ?? 0;
 
         /// <inheritdoc />
-        bool IWikitextSpanInfo.HasSpanInfo => Annotation<LineInfoAnnotation>() != null;
+        int IWikitextLineInfo.EndLineNumber => Annotation<LineInfoAnnotation>()?.EndLineNumber ?? 0;
+
+        /// <inheritdoc />
+        int IWikitextLineInfo.EndLinePosition => Annotation<LineInfoAnnotation>()?.EndLinePosition ?? 0;
+
+        /// <inheritdoc />
+        bool IWikitextLineInfo.HasLineInfo => Annotation<LineInfoAnnotation>() != null;
 
         #endregion
 
@@ -367,17 +369,17 @@ namespace MwParserFromScratch.Nodes
 
         private class LineInfoAnnotation
         {
-            internal readonly int LineNumber;
-            internal readonly int LinePosition;
-            internal readonly int Start;
-            internal int Length;        // Changed in ExtendLineInfo()
+            internal readonly int StartLineNumber;
+            internal readonly int StartLinePosition;
+            internal int EndLineNumber;
+            internal int EndLinePosition;        // Changed in ExtendLineInfo()
 
-            public LineInfoAnnotation(int lineNumber, int linePosition, int start, int length)
+            public LineInfoAnnotation(int startLineNumber, int startLinePosition, int endLineNumber, int endLinePosition)
             {
-                LineNumber = lineNumber;
-                LinePosition = linePosition;
-                Start = start;
-                Length = length;
+                StartLineNumber = startLineNumber;
+                StartLinePosition = startLinePosition;
+                EndLineNumber = endLineNumber;
+                EndLinePosition = endLinePosition;
             }
         }
     }
