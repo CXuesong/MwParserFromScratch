@@ -484,7 +484,8 @@ namespace MwParserFromScratch.Nodes
     /// </summary>
     public abstract class TagNode : InlineNode
     {
-        private string _TrailingWhitespace;
+
+        private string _ClosingTagTrailingWhitespace;
         private TagStyle _TagStyle;
 
         public TagNode() : this(null)
@@ -495,7 +496,7 @@ namespace MwParserFromScratch.Nodes
         public TagNode(string name)
         {
             Name = name;
-            Attributes = new NodeCollection<TagAttribute>(this);
+            Attributes = new TagAttributeCollection(this);
         }
 
         /// <summary>
@@ -525,34 +526,20 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <summary>
-        /// The trailing whitespace for the opening tag, before &gt; or /&gt; .
-        /// </summary>
-        /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
-        public string TrailingWhitespace
-        {
-            get { return _TrailingWhitespace; }
-            set
-            {
-                Utility.AssertNullOrWhiteSpace(value);
-                _TrailingWhitespace = value;
-            }
-        }
-
-        /// <summary>
         /// The trailing whitespace for the closing tag.
         /// </summary>
         /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
         public string ClosingTagTrailingWhitespace
         {
-            get { return _TrailingWhitespace; }
+            get { return _ClosingTagTrailingWhitespace; }
             set
             {
                 Utility.AssertNullOrWhiteSpace(value);
-                _TrailingWhitespace = value;
+                _ClosingTagTrailingWhitespace = value;
             }
         }
 
-        public NodeCollection<TagAttribute> Attributes { get; }
+        public TagAttributeCollection Attributes { get; }
 
         protected abstract string GetContentString();
 
@@ -573,8 +560,7 @@ namespace MwParserFromScratch.Nodes
         {
             var sb = new StringBuilder("<");
             sb.Append(Name);
-            sb.Append(string.Join(null, Attributes));
-            sb.Append(TrailingWhitespace);
+            sb.Append(Attributes);
             switch (TagStyle)
             {
                 case TagStyle.Normal:
@@ -641,7 +627,6 @@ namespace MwParserFromScratch.Nodes
                 Name = Name,
                 ClosingTagName = ClosingTagName,
                 Content = Content,
-                TrailingWhitespace = TrailingWhitespace,
                 ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
             };
             n.Attributes.Add(Attributes);
@@ -721,7 +706,6 @@ namespace MwParserFromScratch.Nodes
                 Name = Name,
                 ClosingTagName = ClosingTagName,
                 Content = Content,
-                TrailingWhitespace = TrailingWhitespace,
                 ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
             };
             n.Attributes.Add(Attributes);

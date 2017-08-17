@@ -15,6 +15,8 @@ namespace UnitTestProject1
     {
         private static readonly Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
 
+        private static readonly WikitextParserOptions DefaultParserOptions = new WikitextParserOptions();
+
         private static void RegisterDumpHandler<T>(Func<T, string> handler) where T : Node
         {
             dumpHandlers.Add(typeof(T), n => handler((T) n));
@@ -84,7 +86,7 @@ namespace UnitTestProject1
                 var sb = new StringBuilder("<");
                 sb.Append(n.Name);
                 sb.Append(string.Join(null, n.Attributes.Select(Dump)));
-                sb.Append(n.TrailingWhitespace);
+                sb.Append(n.Attributes.TrailingWhitespace);
                 switch (n.TagStyle)
                 {
                     case TagStyle.Normal:
@@ -147,8 +149,19 @@ namespace UnitTestProject1
         /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
         /// 2. Whether the parsed AST is correct.
         /// </summary>
-        public static Wikitext ParseAndAssert(string text, string expectedDump, WikitextParserOptions options = null)
+        public static Wikitext ParseAndAssert(string text, string expectedDump)
         {
+            return ParseAndAssert(text, expectedDump, DefaultParserOptions);
+        }
+
+        /// <summary>
+        /// Parses wikitext, and asserts
+        /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
+        /// 2. Whether the parsed AST is correct.
+        /// </summary>
+        public static Wikitext ParseAndAssert(string text, string expectedDump, WikitextParserOptions options)
+        {
+            if (options == null) throw new ArgumentNullException(nameof(options));
             var parser = new WikitextParser {Options = options};
             var root = parser.Parse(text);
             var parsedText = root.ToString();

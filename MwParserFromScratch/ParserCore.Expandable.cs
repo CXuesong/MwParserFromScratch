@@ -214,7 +214,7 @@ namespace MwParserFromScratch
                 ParseSuccessful(attr);
                 node.Attributes.Add(attr);
             }
-            node.TrailingWhitespace = ws;
+            node.Attributes.TrailingWhitespace = ws;
             if (rbracket == "/>")
             {
                 node.TagStyle = TagStyle.SelfClosing;
