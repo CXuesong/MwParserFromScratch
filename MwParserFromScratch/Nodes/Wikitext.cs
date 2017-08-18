@@ -16,7 +16,7 @@ namespace MwParserFromScratch.Nodes
 
         public Wikitext(params LineNode[] lines) : this((IEnumerable<LineNode>)lines)
         {
-            
+
         }
 
         public Wikitext(IEnumerable<LineNode> lines)
@@ -57,34 +57,27 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public abstract class InlineContainer : Node
+    public interface IInlineContainer
     {
         /// <summary>
         /// Content of the inline container.
         /// </summary>
-        public NodeCollection<InlineNode> Inlines { get; }
+        NodeCollection<InlineNode> Inlines { get; }
+    }
 
-        public InlineContainer() : this(null)
-        {
-        }
-
-        public InlineContainer(IEnumerable<InlineNode> nodes)
-        {
-            Inlines = new NodeCollection<InlineNode>(this);
-            if (nodes != null) Inlines.Add(nodes);
-        }
-
+    public static class InlineContainerExtensions
+    {
         /// <summary>
         /// Append a <see cref="PlainText"/> node to the beginning of the paragraph.
         /// </summary>
         /// <param name="text">The text to be inserted.</param>
         /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> at the beginning of the paragraph.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
-        public PlainText Prepend(string text)
+        public static PlainText Prepend(this IInlineContainer container, string text)
         {
             if (text == null) throw new ArgumentNullException(nameof(text));
-            var pt = Inlines.FirstNode as PlainText;
-            if (pt == null) Inlines.AddFirst(pt = new PlainText());
+            var pt = container.Inlines.FirstNode as PlainText;
+            if (pt == null) container.Inlines.AddFirst(pt = new PlainText());
             pt.Content = text + pt.Content;
             return pt;
         }
@@ -95,27 +88,28 @@ namespace MwParserFromScratch.Nodes
         /// <param name="text">The text to be inserted.</param>
         /// <returns>Either the new <see cref="PlainText"/> node inserted, or the existing <see cref="PlainText"/> at the end of the paragraph.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
-        public PlainText Append(string text)
+        public static PlainText Append(this IInlineContainer container, string text)
         {
             if (text == null) throw new ArgumentNullException(nameof(text));
-            var pt = Inlines.LastNode as PlainText;
-            if (pt == null) Inlines.Add(pt = new PlainText());
+            var pt = container.Inlines.LastNode as PlainText;
+            if (pt == null) container.Inlines.Add(pt = new PlainText());
             pt.Content += text;
             return pt;
         }
 
-        internal PlainText AppendWithLineInfo(string text, int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
+        internal static PlainText AppendWithLineInfo(this IInlineContainer container, string text, int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
         {
+            Debug.Assert(container != null);
             Debug.Assert(text != null);
             Debug.Assert(lineNumber1 >= 0);
             Debug.Assert(linePosition1 >= 0);
             Debug.Assert(lineNumber2 >= 0);
             Debug.Assert(linePosition2 >= 0);
             Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
-            var pt = Inlines.LastNode as PlainText;
+            var pt = container.Inlines.LastNode as PlainText;
             if (pt == null)
             {
-                Inlines.Add(pt = new PlainText(text));
+                container.Inlines.Add(pt = new PlainText(text));
                 pt.SetLineInfo(lineNumber1, linePosition1, lineNumber2, linePosition2);
             }
             else
@@ -124,41 +118,45 @@ namespace MwParserFromScratch.Nodes
                 pt.Content += text;
                 pt.ExtendLineInfo(lineNumber2, linePosition2);
             }
-            ExtendLineInfo(lineNumber2, linePosition2);
+            ((Node)container).ExtendLineInfo(lineNumber2, linePosition2);
             return pt;
-        }
-
-        /// <summary>
-        /// Enumerates the children of this node.
-        /// </summary>
-        public override IEnumerable<Node> EnumChildren()
-            => Inlines;
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
-        {
-            return string.Join(null, Inlines.Select(i => i.ToPlainText(options))).Trim();
         }
     }
 
     /// <summary>
-    /// A single-line RUN.
+    /// A single-line (or multi-line) RUN.
     /// </summary>
-    public class Run : InlineContainer
+    /// <remarks>
+    /// In some cases (e.g. the text of WIKILINK or the caption of TABLE), line-breaks are
+    /// allowed, but they will not be treated as paragraph breaks.
+    /// </remarks>
+    public class Run : Node, IInlineContainer
     {
-        public Run()
+        public Run() : this((IEnumerable<InlineNode>)null)
         {
         }
 
-        public Run(params InlineNode[] nodes) : base(nodes)
+        public Run(params InlineNode[] nodes) : this((IEnumerable<InlineNode>)nodes)
         {
         }
 
-        public Run(IEnumerable<InlineNode> nodes) : base(nodes)
+        public Run(IEnumerable<InlineNode> nodes)
         {
+            Inlines = new NodeCollection<InlineNode>(this);
+            if (nodes != null) Inlines.Add(nodes);
         }
+
+        public NodeCollection<InlineNode> Inlines { get; }
+
+        public override IEnumerable<Node> EnumChildren() => Inlines;
 
         protected override Node CloneCore() => new Run(Inlines);
+
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return string.Join(null, Inlines.Select(i => i.ToPlainText(options))).Trim();
+
+        }
 
         public override string ToString()
         {
@@ -166,18 +164,54 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public abstract class LineNode : InlineContainer
+    /// <summary>
+    /// Represents nodes that should be written in a stand-alone block of lines in WIKITEXT.
+    /// </summary>
+    public abstract class LineNode : Node
     {
         public LineNode()
         {
         }
 
-        public LineNode(IEnumerable<InlineNode> nodes) : base(nodes)
+        public LineNode(IEnumerable<InlineNode> nodes)
         {
         }
     }
 
-    public class ListItem : LineNode
+    public abstract class InlineContainerLineNode : LineNode, IInlineContainer
+    {
+        public InlineContainerLineNode() : this((IEnumerable<InlineNode>)null)
+        {
+        }
+
+        public InlineContainerLineNode(params InlineNode[] nodes) : this((IEnumerable<InlineNode>)nodes)
+        {
+        }
+
+        public InlineContainerLineNode(IEnumerable<InlineNode> nodes)
+        {
+            Inlines = new NodeCollection<InlineNode>(this);
+            if (nodes != null) Inlines.Add(nodes);
+        }
+
+        public NodeCollection<InlineNode> Inlines { get; }
+
+        public override IEnumerable<Node> EnumChildren() => Inlines;
+
+        protected override Node CloneCore() => new Run(Inlines);
+
+        public override string ToPlainText(NodePlainTextOptions options)
+        {
+            return string.Join(null, Inlines.Select(i => i.ToPlainText(options))).Trim();
+        }
+
+        public override string ToString()
+        {
+            return string.Join(null, Inlines);
+        }
+    }
+    
+    public class ListItem : InlineContainerLineNode
     {
         public ListItem()
         {
@@ -199,7 +233,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new ListItem(Inlines) {Prefix = Prefix};
+            var n = new ListItem(Inlines) { Prefix = Prefix };
             return n;
         }
 
@@ -213,7 +247,7 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public class Heading : LineNode
+    public class Heading : InlineContainerLineNode
     {
         private int _Level;
         private Run _Suffix;
@@ -272,7 +306,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new Heading(Inlines) {Level = Level};
+            var n = new Heading(Inlines) { Level = Level };
             return n;
         }
 
@@ -283,7 +317,7 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public class Paragraph : LineNode
+    public class Paragraph : InlineContainerLineNode
     {
         public Paragraph()
         {

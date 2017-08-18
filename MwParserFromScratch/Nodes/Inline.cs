@@ -630,6 +630,7 @@ namespace MwParserFromScratch.Nodes
                 ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
             };
             n.Attributes.Add(Attributes);
+            n.Attributes.TrailingWhitespace = Attributes.TrailingWhitespace;
             return n;
         }
 
@@ -709,6 +710,7 @@ namespace MwParserFromScratch.Nodes
                 ClosingTagTrailingWhitespace = ClosingTagTrailingWhitespace,
             };
             n.Attributes.Add(Attributes);
+            n.Attributes.TrailingWhitespace = Attributes.TrailingWhitespace;
             return n;
         }
 

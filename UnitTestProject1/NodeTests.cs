@@ -24,7 +24,7 @@ namespace UnitTestProject1
                 Assert.IsTrue(si.HasLineInfo);
                 Trace.WriteLine(
                     $"{node.GetType().Name}\t({si.StartLineNumber},{si.StartLinePosition})-({si.EndLineNumber},{si.EndLinePosition})\t[|{node}|]");
-                if (node is InlineContainer container)
+                if (node is IInlineContainer container)
                 {
                     IWikitextLineInfo lastChild = null;
                     foreach (IWikitextLineInfo child in container.Inlines)

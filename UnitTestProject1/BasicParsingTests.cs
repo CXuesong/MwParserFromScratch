@@ -125,7 +125,7 @@ namespace UnitTestProject1
         public void TestWikiLink1()
         {
             var root = Utility.ParseAndAssert("[[Duck]]\n", "P[[[Duck]]\n]");
-            var link = (WikiLink) root.Lines.First().Inlines.First();
+            var link = (WikiLink) root.Lines.First().EnumChildren().First();
             Assert.AreEqual(link.Target.ToString(), "Duck");
             Assert.AreEqual(link.Text, null);
         }
@@ -134,7 +134,7 @@ namespace UnitTestProject1
         public void TestWikiLink2()
         {
             var root = Utility.ParseAndAssert("[[Duck|ducks]]\n", "P[[[Duck|ducks]]\n]");
-            var link = (WikiLink) root.Lines.First().Inlines.First();
+            var link = (WikiLink) root.Lines.First().EnumChildren().First();
             Assert.AreEqual(link.Target.ToString(), "Duck");
             Assert.AreEqual(link.Text.ToString(), "ducks");
         }
@@ -143,7 +143,7 @@ namespace UnitTestProject1
         public void TestExternalLink1()
         {
             var root = Utility.ParseAndAssert("http://cxuesong.com\n", "P[-[http://cxuesong.com]-\n]");
-            var link = (ExternalLink)root.Lines.First().Inlines.First();
+            var link = (ExternalLink)root.Lines.First().EnumChildren().First();
             Assert.AreEqual(link.Target.ToString(), "http://cxuesong.com");
             Assert.AreEqual(link.Text, null);
             Assert.IsFalse(link.Brackets);
@@ -153,7 +153,7 @@ namespace UnitTestProject1
         public void TestExternalLink2()
         {
             var root = Utility.ParseAndAssert("[http://cxuesong.com]\n", "P[[http://cxuesong.com]\n]");
-            var link = (ExternalLink)root.Lines.First().Inlines.First();
+            var link = (ExternalLink)root.Lines.First().EnumChildren().First();
             Assert.AreEqual(link.Target.ToString(), "http://cxuesong.com");
             Assert.AreEqual(link.Text, null);
             Assert.IsTrue(link.Brackets);
@@ -164,7 +164,7 @@ namespace UnitTestProject1
         {
             var root = Utility.ParseAndAssert("[https://zh.wikipedia.org   Chinese Wikipedia  ]\n",
                 "P[[https://zh.wikipedia.org   Chinese Wikipedia  ]\n]");
-            var link = (ExternalLink) root.Lines.First().Inlines.First();
+            var link = (ExternalLink) root.Lines.First().EnumChildren().First();
             Assert.AreEqual(link.Target.ToString(), "https://zh.wikipedia.org");
             Assert.AreEqual(link.Text.ToString(), "  Chinese Wikipedia  ");
             Assert.IsTrue(link.Brackets);
