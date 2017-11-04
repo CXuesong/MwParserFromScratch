@@ -57,10 +57,13 @@ namespace MwParserFromScratch
             ParseStart(@"\n", false);       // We want to set a terminator, so we need to call ParseStart
             // LIST_ITEM / HEADING automatically closes the previous PARAGRAPH
             var node = ParseListItem() ?? ParseHeading() ?? ParseCompactParagraph(lastLine);
-            if (lastLine?.Inlines.LastNode is PlainText pt && pt.Content.Length == 0)
+            if (lastLine is IInlineContainer lastLineContainer)
             {
-                // This can happen because we appended a PlainText("") at (A) in ParseLineEnd
-                pt.Remove();
+                if (lastLineContainer.Inlines.LastNode is PlainText pt && pt.Content.Length == 0)
+                {
+                    // This can happen because we appended a PlainText("") at (A) in ParseLineEnd
+                    pt.Remove();
+                }
             }
             if (node != null)
                 Accept();
@@ -197,7 +200,7 @@ namespace MwParserFromScratch
             ParseStart();
             var prefix = ConsumeToken("[*#:;]+|-{4,}| ");
             if (prefix == null) return ParseFailed<ListItem>();
-            var node = new ListItem {Prefix = prefix};
+            var node = new ListItem { Prefix = prefix };
             ParseRun(RunParsingMode.Run, node, false); // optional
             return ParseSuccessful(node);
         }
@@ -234,7 +237,7 @@ namespace MwParserFromScratch
                 var temp = ConsumeToken(barExpr);
                 Debug.Assert(temp != null);
                 var node = new Heading();
-                var parsedSegments = new List<InlineContainer>();
+                var parsedSegments = new List<IInlineContainer>();
                 while (true)
                 {
                     ParseStart();                       // <-- B
@@ -273,7 +276,7 @@ namespace MwParserFromScratch
                     node.Inlines.AddFrom(parsedSegments[i].Inlines);
                     if (i < parsedSegments.Count - 1)
                     {
-                        IWikitextLineInfo si = parsedSegments[i + 1];
+                        var si = (IWikitextLineInfo)parsedSegments[i + 1];
                         var bar = new PlainText(new string('=', level));
                         bar.SetLineInfo(si.StartLineNumber, si.StartLinePosition - level,
                             si.StartLineNumber, si.StartLinePosition);
@@ -311,10 +314,10 @@ namespace MwParserFromScratch
             if (mergeTo != null)
             {
                 // This won't throw exception. See (A) in ParseLineEnd.
-                var paraTail = (PlainText) mergeTo.Inlines.LastNode;
+                var paraTail = (PlainText)mergeTo.Inlines.LastNode;
                 paraTail.Content += "\n";
                 IWikitextLineInfo paraTailSpan = paraTail;
-                Debug.Assert(((IWikitextLineInfo) mergeTo).EndLinePosition == paraTailSpan.EndLinePosition);
+                Debug.Assert(((IWikitextLineInfo)mergeTo).EndLinePosition == paraTailSpan.EndLinePosition);
                 paraTail.ExtendLineInfo(paraTailSpan.EndLineNumber + 1, 0);
                 mergeTo.ExtendLineInfo(paraTailSpan.EndLineNumber + 1, 0);
             }
@@ -334,7 +337,7 @@ namespace MwParserFromScratch
         /// RUN
         /// </summary>
         /// <returns><c>true</c> if one or more nodes has been parsed.</returns>
-        private bool ParseRun(RunParsingMode mode, InlineContainer container, bool setLineNumber)
+        private bool ParseRun(RunParsingMode mode, IInlineContainer container, bool setLineNumber)
         {
             ParseStart();
             var parsedAny = false;
@@ -376,7 +379,7 @@ namespace MwParserFromScratch
             // Note that the content of RUN should not be empty.
             if (parsedAny)
             {
-                ParseSuccessful(container, setLineNumber);
+                ParseSuccessful((Node)container, setLineNumber);
                 return true;
             }
             else
@@ -392,7 +395,7 @@ namespace MwParserFromScratch
                    ?? ParseWikiLink()
                    ?? ParseExternalLink()
                    ?? ParseFormatSwitch()
-                   ?? (InlineNode) ParsePartialPlainText();
+                   ?? (InlineNode)ParsePartialPlainText();
         }
 
         private InlineNode ParseExpandable()
@@ -413,7 +416,7 @@ namespace MwParserFromScratch
                 else
                     return ParseFailed<WikiLink>();
             }
-            var node = new WikiLink {Target = target};
+            var node = new WikiLink { Target = target };
             if (ConsumeToken(@"\|") != null)
             {
                 var text = new Run();
@@ -460,7 +463,7 @@ namespace MwParserFromScratch
                     return ParseFailed<ExternalLink>();
                 }
             }
-            var node = new ExternalLink {Target = target, Brackets = brackets};
+            var node = new ExternalLink { Target = target, Brackets = brackets };
             if (brackets)
             {
                 // Parse text
