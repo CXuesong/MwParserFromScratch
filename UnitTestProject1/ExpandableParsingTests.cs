@@ -123,6 +123,14 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
+        public void TestTag5()
+        {
+            var root = Utility.ParseAndAssert(
+                "<div>test</DIV><ref>text</ reF>",
+                "P[<div>P[test]</DIV>$<ref$>text$</ reF$>]");
+        }
+
+        [TestMethod]
         public void TestHeading1()
         {
             var root = Utility.ParseAndAssert(

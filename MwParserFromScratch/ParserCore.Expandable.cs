@@ -233,14 +233,14 @@ namespace MwParserFromScratch
         private bool ParseUntilClosingTag(TagNode tag)
         {
             var normalizedTagName = tag.Name.ToLowerInvariant();
-            var closingTagExpr = "</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
             Regex matcher;
             lock (closingTagMatcherCache)
             {
+                var closingTagExpr = "(?i)</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
                 matcher = closingTagMatcherCache.TryGetValue(normalizedTagName);
                 if (matcher == null)
                 {
-                    matcher = new Regex(closingTagExpr, RegexOptions.IgnoreCase);
+                    matcher = new Regex(closingTagExpr);
                     closingTagMatcherCache.Add(normalizedTagName, matcher);
                 }
             }
@@ -263,11 +263,11 @@ namespace MwParserFromScratch
             //  do a simple check of whether there will be a possible closing tag ahead.
             if (!options.AllowClosingMarkInference && !matcher.IsMatch(fulltext, position)) return false;
             var ht = (HtmlTag) tag;
-            ParseStart(closingTagExpr, false);
+            ParseStart(matcher.ToString(), false);
             ht.Content = ParseWikitext();
             Accept();
             // Consume the tag closing.
-            var closingTag = ConsumeToken(closingTagExpr);
+            var closingTag = ConsumeToken(matcher.ToString());
             if (closingTag == null)
             {
                 if (options.AllowClosingMarkInference)
