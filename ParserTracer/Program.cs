@@ -35,7 +35,7 @@ namespace ParserTracer
 ParserTracer.exe fileName
 
 where
-    fileName        is the path of the plain-text file containning the wikitext
+    fileName        is the path of the plain-text file containing the wikitext
                     to be parsed.
 ");
         }
@@ -57,9 +57,9 @@ where
 
         private static void PrintAst(Node node, int level)
         {
-            var indension = new string('.', level);
+            var indention = new string('.', level);
             var ns = node.ToString();
-            Console.WriteLine("{0,-20} [{1}]", indension + node.GetType().Name,
+            Console.WriteLine("{0,-20} [{1}]", indention + node.GetType().Name,
                 Escapse(ns.Substring(0, Math.Min(20, ns.Length))));
             foreach (var child in node.EnumChildren())
                 PrintAst(child, level + 1);

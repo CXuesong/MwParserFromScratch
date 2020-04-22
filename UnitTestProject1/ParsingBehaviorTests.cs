@@ -2,17 +2,25 @@
 using System.Linq;
 using MwParserFromScratch;
 using MwParserFromScratch.Nodes;
+using UnitTestProject1.Primitive;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace UnitTestProject1
 {
-    public class ParsingBehaviorTests
+    public class ParsingBehaviorTests : ParserTestBase
     {
+
+        /// <inheritdoc />
+        public ParsingBehaviorTests(ITestOutputHelper output) : base(output)
+        {
+        }
+
         [Fact]
         public void TestMethod1()
         {
-            Utility.ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}${${$}$}$[$[$]$]$[$]]");
-            Utility.ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}{{}}[[]][]]", new WikitextParserOptions
+            ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}${${$}$}$[$[$]$]$[$]]");
+            ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}{{}}[[]][]]", new WikitextParserOptions
             {
                 AllowEmptyTemplateName = true,
                 AllowEmptyWikiLinkTarget = true,
@@ -27,20 +35,21 @@ namespace UnitTestProject1
             {
                 AllowClosingMarkInference = true
             };
-            var root = Utility.ParseAndAssert("{{Test{{test|a|b|c}}|def|g=h",
+            var root = ParseAndAssert("{{Test{{test|a|b|c}}|def|g=h",
                 "P[{{Test{{test|a|b|c}}|P[def]|P[g]=P[h]}}]",
                 options);
-            Assert.True(((IWikitextParsingInfo) root.Lines.FirstNode.EnumChildren().First()).InferredClosingMark);
-            root = Utility.ParseAndAssert("<div><a>test</a><tag>def</div>",
+            Assert.True(((IWikitextParsingInfo)root.Lines.FirstNode.EnumChildren().First()).InferredClosingMark);
+            root = ParseAndAssert("<div><a>test</a><tag>def</div>",
                 "P[<div>P[<a>P[test]</a><tag>P[def]</tag>]</div>]",
                 options);
             Assert.True(((IWikitextParsingInfo)root.EnumDescendants().OfType<TagNode>().First(n => n.Name == "tag"))
                 .InferredClosingMark);
-            root = Utility.ParseAndAssert("<div><a>test</a><tag>def{{test|</div>",
+            root = ParseAndAssert("<div><a>test</a><tag>def{{test|</div>",
                 "P[<div>P[<a>P[test]</a><tag>P[def{{test|P[$</div$>]}}]</tag>]</div>]",
                 options);
-            Assert.True(((IWikitextParsingInfo) root.EnumDescendants().OfType<TagNode>().First(n => n.Name == "tag"))
+            Assert.True(((IWikitextParsingInfo)root.EnumDescendants().OfType<TagNode>().First(n => n.Name == "tag"))
                 .InferredClosingMark);
         }
+
     }
 }

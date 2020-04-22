@@ -4,19 +4,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using MwParserFromScratch;
 using MwParserFromScratch.Nodes;
-using Xunit;
 
 namespace UnitTestProject1
 {
     internal static class Utility
     {
         private static readonly Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
-
-        private static readonly WikitextParserOptions DefaultParserOptions = new WikitextParserOptions();
-
+        
         private static void RegisterDumpHandler<T>(Func<T, string> handler) where T : Node
         {
             dumpHandlers.Add(typeof(T), n => handler((T) n));
@@ -135,54 +130,6 @@ namespace UnitTestProject1
                 return n.LeadingWhitespace + n.Name + n.WhitespaceBeforeEqualSign + "="
                        + n.WhitespaceAfterEqualSign + quote + n.Value + quote;
             });
-        }
-
-        public static Wikitext ParseWikitext(string text)
-        {
-            var parser = new WikitextParser();
-            var root = parser.Parse(text);
-            return root;
-        }
-
-        /// <summary>
-        /// Parses wikitext, and asserts
-        /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
-        /// 2. Whether the parsed AST is correct.
-        /// </summary>
-        public static Wikitext ParseAndAssert(string text, string expectedDump)
-        {
-            return ParseAndAssert(text, expectedDump, DefaultParserOptions);
-        }
-
-        /// <summary>
-        /// Parses wikitext, and asserts
-        /// 1. Whether the parsed AST can be converted back to the same wikitext as input.
-        /// 2. Whether the parsed AST is correct.
-        /// </summary>
-        public static Wikitext ParseAndAssert(string text, string expectedDump, WikitextParserOptions options)
-        {
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            var parser = new WikitextParser {Options = options};
-            var root = parser.Parse(text);
-            var parsedText = root.ToString();
-            Trace.WriteLine("Original Text\n====================");
-            Trace.WriteLine(text);
-            Trace.WriteLine("Parsed Text\n====================");
-            Trace.WriteLine(parsedText);
-            var rootExpr = Dump(root);
-            Trace.WriteLine("AST Dump\n====================");
-            Trace.WriteLine(EscapeString(rootExpr));
-            if (expectedDump != rootExpr)
-            {
-                Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
-            }
-            if (!options.AllowClosingMarkInference) Assert.Equal(text, parsedText);
-            return root;
-        }
-
-        public static string EscapeString(string str)
-        {
-            return str.Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
         }
 
         public static string Dump(Node node)
