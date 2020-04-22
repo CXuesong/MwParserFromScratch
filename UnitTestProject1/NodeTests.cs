@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MwParserFromScratch;
 using MwParserFromScratch.Nodes;
+using Xunit;
 
 namespace UnitTestProject1
 {
-    [TestClass]
     public class NodeTests
     {
-        [TestMethod]
+        [Fact]
         public void EnumDescendantsTest()
         {
             // I'm lazy. That's all.
@@ -21,7 +20,7 @@ namespace UnitTestProject1
             foreach (var node in root.EnumDescendants())
             {
                 var si = (IWikitextLineInfo) node;
-                Assert.IsTrue(si.HasLineInfo);
+                Assert.True(si.HasLineInfo);
                 Trace.WriteLine(
                     $"{node.GetType().Name}\t({si.StartLineNumber},{si.StartLinePosition})-({si.EndLineNumber},{si.EndLinePosition})\t[|{node}|]");
                 if (node is IInlineContainer container)
@@ -32,9 +31,9 @@ namespace UnitTestProject1
                         if (lastChild != null)
                         {
                             if (lastChild.EndLineNumber == child.StartLineNumber)
-                                Assert.AreEqual(lastChild.EndLinePosition, child.StartLinePosition, "LineInfo of Inline sequence is not consequent.");
+                                Assert.True(lastChild.EndLinePosition == child.StartLinePosition, "LineInfo of Inline sequence is not consequent.");
                             else
-                                Assert.AreEqual(0, child.StartLinePosition, "LineInfo of Inline sequence is not consequent.");
+                                Assert.True(child.StartLinePosition == 0, "LineInfo of Inline sequence is not consequent.");
                         }
                         lastChild = child;
                     }
@@ -42,29 +41,29 @@ namespace UnitTestProject1
             }
             var nn = root.Lines.FirstNode.NextNode;
             root.Lines.FirstNode.Remove();
-            Assert.AreSame(root.Lines.FirstNode, nn);
+            Assert.Equal(root.Lines.FirstNode, nn);
         }
 
-        [TestMethod]
+        [Fact]
         public void TemplateArgumentsTest1()
         {
             var root = Utility.ParseWikitext("{{test|a|b}}");
             var t = root.EnumDescendants().OfType<Template>().First();
-            Assert.AreEqual("a", t.Arguments[1].ToString());
-            Assert.AreEqual("b", t.Arguments[2].ToString());
+            Assert.Equal("a", t.Arguments[1].ToString());
+            Assert.Equal("b", t.Arguments[2].ToString());
         }
 
-        [TestMethod]
+        [Fact]
         public void TemplateArgumentsTest2()
         {
             var root = Utility.ParseWikitext("{{\ttest_T  |A=1|B=2|  c\n=3}}");
             var t = root.EnumDescendants().OfType<Template>().First();
             var arg2 = t.Arguments.ElementAt(2);
-            Assert.AreEqual("Test T", MwParserUtility.NormalizeTitle(t.Name));
-            Assert.AreEqual("c", MwParserUtility.NormalizeTemplateArgumentName(arg2.Name));
+            Assert.Equal("Test T", MwParserUtility.NormalizeTitle(t.Name));
+            Assert.Equal("c", MwParserUtility.NormalizeTemplateArgumentName(arg2.Name));
             t.Arguments["B"].Remove();
-            Assert.AreEqual(2, t.Arguments.Count);
-            Assert.AreEqual(arg2, t.Arguments.ElementAt(1));
+            Assert.Equal(2, t.Arguments.Count);
+            Assert.Equal(arg2, t.Arguments.ElementAt(1));
         }
     }
 }

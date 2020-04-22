@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MwParserFromScratch;
 using MwParserFromScratch.Nodes;
+using Xunit;
 
 namespace UnitTestProject1
 {
@@ -174,9 +174,9 @@ namespace UnitTestProject1
             Trace.WriteLine(EscapeString(rootExpr));
             if (expectedDump != rootExpr)
             {
-                Assert.Fail("Expect: <{0}>, got: <{1}>.", EscapeString(expectedDump), EscapeString(rootExpr));
+                Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
             }
-            if (!options.AllowClosingMarkInference) Assert.AreEqual(text, parsedText);
+            if (!options.AllowClosingMarkInference) Assert.Equal(text, parsedText);
             return root;
         }
 

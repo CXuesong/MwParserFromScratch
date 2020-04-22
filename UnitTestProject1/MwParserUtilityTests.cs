@@ -1,18 +1,16 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MwParserFromScratch;
+using Xunit;
 
 namespace UnitTestProject1
 {
-    [TestClass]
     public class MwParserUtilityTests
     {
-        [TestMethod]
+        [Fact]
         public void NormalizeTitleTest1()
         {
-            Assert.AreEqual("Test", MwParserUtility.NormalizeTitle(" \r\ntest\r\n "));
-            Assert.AreEqual("Test test", MwParserUtility.NormalizeTitle(" \r\ntest test  _ "));
-
+            Assert.Equal("Test", MwParserUtility.NormalizeTitle(" \r\ntest\r\n "));
+            Assert.Equal("Test test", MwParserUtility.NormalizeTitle(" \r\ntest test  _ "));
         }
     }
 }

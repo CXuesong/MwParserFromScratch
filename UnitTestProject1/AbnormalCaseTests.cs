@@ -1,197 +1,197 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+using Xunit.Sdk;
 
 namespace UnitTestProject1
 {
-    [TestClass]
+
     public class AbnormalCaseTests
     {
-        [TestMethod]
+        [Fact]
         public void TestHeading1()
         {
             var root = Utility.ParseAndAssert("==", "P[==]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading2()
         {
             var root = Utility.ParseAndAssert("===", "H1[=]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading3()
         {
             var root = Utility.ParseAndAssert("====", "H1[==]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading4()
         {
             var root = Utility.ParseAndAssert("=====", "H2[=]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading5()
         {
             var root = Utility.ParseAndAssert("======", "H2[==]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading6()
         {
             var root = Utility.ParseAndAssert("======Heading======", "H6[Heading]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading7()
         {
             var root = Utility.ParseAndAssert("=============", "H6[=]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading8()
         {
             var root = Utility.ParseAndAssert("========Heading========", "H6[==Heading==]");
         }
         
-        [TestMethod]
+        [Fact]
         public void TestHeading9()
         {
             var root = Utility.ParseAndAssert("==Heading== Text", "P[==Heading== Text]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHeading10()
         {
             var root = Utility.ParseAndAssert("==A=<!--abc-->", "H1[=A][<!--abc-->]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHr1()
         {
             var root = Utility.ParseAndAssert("---", "P[---]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHr2()
         {
             var root = Utility.ParseAndAssert("----", "----[]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHr3()
         {
             var root = Utility.ParseAndAssert("---- ", "----[ ]");
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TestHr4()
         {
             var root = Utility.ParseAndAssert("----\n", "----[]P[]");
         }
         
-        [TestMethod]
+        [Fact]
         public void TestHr5()
         {
             var root = Utility.ParseAndAssert("----------", "----------[]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestHr6()
         {
             // Stars will be shown as normal text.
             var root = Utility.ParseAndAssert("----****", "----[****]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestParagraph1()
         {
             var root = Utility.ParseAndAssert("Line1\n    \t    \n    Line2", "P[Line1\n    \t    ] [   Line2]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestWikiLink1()
         {
             var root = Utility.ParseAndAssert("[[Target\nTarget]]", "P[$[$[Target\nTarget$]$]]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestWikiLink2()
         {
             var root = Utility.ParseAndAssert("[[Target|Text1|Text2]]", "P[[[Target|Text1|Text2]]]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestWikiLink3()
         {
             var root = Utility.ParseAndAssert("[[Target[[Text1|Text2]]", "P[$[$[Target[[Text1|Text2]]]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestOverlap1()
         {
             var root = Utility.ParseAndAssert("[[Target/{{T|]]=abc}}|Title]]", "P[[[Target/{{T|P[$]$]]=P[abc]}}|Title]]]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestOverlap2()
         {
             var root = Utility.ParseAndAssert("{{T|a=[[Link}}text]]", "P[${${T|a=[[Link$}$}text]]]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestBraces1()
         {
             var root = Utility.ParseAndAssert("{{{{arg}}}}", "P[${{{{P[arg]}}}$}]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestBraces2()
         {
             var root = Utility.ParseAndAssert("{{{{{arg}}}|test}}", "P[{{{{{arg}}}|P[test]}}]");
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(AssertFailedException))]
+        [Fact]
         public void TestBraces3()
         {
             // This hasn't been solved yet.
-            var root = Utility.ParseAndAssert("{{{{{arg}}", "P[${${${{{arg}}]");
+            Assert.Throws<EqualException>(() => Utility.ParseAndAssert("{{{{{arg}}", "P[${${${{{arg}}]"));
         }
 
-        [TestMethod]
+        [Fact]
         public void TestBraces4()
         {
             var root = Utility.ParseAndAssert("{{{{{arg", "P[${${${${${arg]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestBraces5()
         {
             var root = Utility.ParseAndAssert("{arg", "P[${arg]");
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TestBraces6()
         {
             var root = Utility.ParseAndAssert("{{arg", "P[${${arg]");
         }
         
-        [TestMethod]
+        [Fact]
         public void TestBraces7()
         {
             var root = Utility.ParseAndAssert("{{{arg", "P[${${${arg]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestBraces8()
         {
             var root = Utility.ParseAndAssert("{{{arg}}}}}", "P[{{{P[arg]}}}$}$}]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestTag1()
         {
             var root = Utility.ParseAndAssert("abc<br>def", "P[abc<br>def]");
@@ -199,7 +199,7 @@ namespace UnitTestProject1
             root = Utility.ParseAndAssert("abc<br />def", "P[abc<br />def]");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestTag2()
         {
             var root = Utility.ParseAndAssert("abc<div>def", "P[abc$<div$>def]");

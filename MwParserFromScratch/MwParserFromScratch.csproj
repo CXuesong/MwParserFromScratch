@@ -1,26 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.1;net45;netstandard2.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>portable</DebugType>
     
     <AssemblyName>MwParserFromScratch</AssemblyName>
     <PackageId>CXuesong.MW.MwParserFromScratch</PackageId>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/CXuesong/MwParserFromScratch</PackageProjectUrl>
     <Authors>CXuesong</Authors>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <PackageTags>MediaWiki Wikitext Parser</PackageTags>
     <RepositoryUrl>https://github.com/CXuesong/MwParserFromScratch</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageReleaseNotes>See https://github.com/CXuesong/MwParserFromScratch/releases .</PackageReleaseNotes>
     <Description>A .NET Library for parsing wikitext into AST.</Description>
-    <Copyright>Copyright (C) CXuesong, 2018</Copyright>
-    <AssemblyVersion>0.2.1.0</AssemblyVersion>
+    <Copyright>Copyright (C) CXuesong, 2020</Copyright>
     <NeutralLanguage>en-us</NeutralLanguage>
-    <FileVersion>0.2.1.0</FileVersion>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>
