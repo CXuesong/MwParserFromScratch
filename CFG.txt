@@ -119,7 +119,15 @@ TEMPLATE_MAGIC_ARG1     -> ":" WIKITEXT TEMPLATE_ARGS           # The first argu
                         /  empty
 
 # You cannot transclude templates in parser TAGs
-TAG         -> "<" IDENTIFIER TAG_ATTRS ">" ".*?" "</" IDENTIFIER ">"
+TAG                 -> LI_TAG / OTHER_TAG
+
+LI_TAG              -> "<li" TAG_ATTRS ">" WIKITEXT LI_TAG_TERMINATOR
+                    +| "</?li\s*>" / "\n"                       # line-break will end <li> automatically.
+LI_TAG_TERMINATOR   -> "</li\s*>"
+                    /  LI_TAG                                   # a <li> tag will end the previous <li> tag automatically
+
+OTHER_TAG   -> "<" IDENTIFIER TAG_ATTRS ">" WIKITEXT "</" IDENTIFIER "\s*>"
+            +| "</IDENTIFIER\s*>"
 TAG_ATTRS   -> "\s+" TAG_ATTR TAG_ATTRS / empty
 TAG_ATTR    -> IDENTIFIER "\s*=\s*\"" "[^"]*" "\""              # <tag attr="value">
             /  IDENTIFIER "\s*=\s*'" "[^']*" "'"                # <tag attr='value'>
