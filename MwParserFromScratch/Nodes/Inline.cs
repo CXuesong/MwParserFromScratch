@@ -653,13 +653,12 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        /// <param name="builder"></param>
         /// <inheritdoc />
         protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
 
         private static readonly HashSet<string> plainTextInvisibleTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "ref", "math"
+            "math", "ref", "templatedata", "templatestyles"
         };
 
         /// <inheritdoc />
@@ -737,14 +736,12 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        /// <param name="builder"></param>
         /// <inheritdoc />
         protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
 
         /// <inheritdoc />
         public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            // TODO
             formatter(Content, builder);
         }
 
