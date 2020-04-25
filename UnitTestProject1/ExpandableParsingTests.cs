@@ -138,6 +138,13 @@ namespace UnitTestProject1
         }
 
         [Fact]
+        public void TestTag6()
+        {
+            ParseAndAssert("header<li>item 1\n\ncontent</li>", "P[header<li>P[item 1\n]P[content]</li>]");
+            ParseAndAssert("header<li>item 1<div>content\n\ncontent</div></li>", "P[header<li>P[item 1<div>P[content\n]P[content]</div>]</li>]");
+        }
+
+        [Fact]
         public void TestHeading1()
         {
             var root = ParseAndAssert(

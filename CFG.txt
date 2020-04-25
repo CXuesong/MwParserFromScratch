@@ -32,7 +32,6 @@ Terminator Sepcifications
 >|          There's no terminator for PLAIN_TEXT, and it can stretch to the end of the document.
 +| "text"   The same as >| , except that it also inherits the terminators from the parent derivation.
 -| "text"   Inherits terminators from the parent deriviation, while prevents "text" from terminates PLAIN_TEXT.
-           
 
 # Basic
 IDENTIFIER  -> "[^>\s]"     # Tag identifier
@@ -67,7 +66,7 @@ PARAGRAPH           -> RUN "\n" PARAGRAPH                       #
                     /  RUN                                      # (i.e. RUN \n RUN) Only when PARAGRAPH is compact
                     /  empty                                    # (i.e. RUN \n RUN \n) 
 
-RUN         -> INLINE RUN / INLINE
+RUN         -> INLINE+
 INLINE      -> EXPANDABLE / TAG / FILE_LINK / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
 EXPANDABLE  -> COMMENT / TEMPLATE / ARGUMENT_REF                # COMMENT expands to ""
 
@@ -130,10 +129,10 @@ TEMPLATE_MAGIC_ARG1     -> ":" WIKITEXT TEMPLATE_ARGS           # The first argu
 # You cannot transclude templates in parser TAGs
 TAG                 -> LI_TAG / OTHER_TAG
 
-LI_TAG              -> "<li" TAG_ATTRS ">" RUN? LI_TAG_TERMINATOR   # Use RUN instead of WIKITEXT, as <li> cannot contain multiple lines.
-                    +| "<li\s+>" / "</li\s*>" / "\n"                # line-break will end <li> automatically.
+LI_TAG              -> "<li" TAG_ATTRS ">" WIKITEXT LI_TAG_TERMINATOR   # Use WIKITEXT for parsing, but actually \n in <li> tag is not converted into <p>.
+                    +| "<li\s+>" / "</li\s*>"
 LI_TAG_TERMINATOR   -> "</li\s*>"
-                    /  empty                                        # a <li> tag will end the previous <li> tag automatically
+                    /  empty                                            # a <li> tag will end the previous <li> tag automatically
 
 OTHER_TAG   -> "<" IDENTIFIER TAG_ATTRS ">" WIKITEXT "</" IDENTIFIER "\s*>"
             +| "</IDENTIFIER\s*>"

@@ -227,12 +227,12 @@ namespace UnitTestProject1
         {
             // Unbalanced li tags.
             ParseAndAssert("header<li>item 1", "P[header<li>P[item 1]</li>]");
+            ParseAndAssert("header<li>item 1\nfooter", "P[header<li>P[item 1\nfooter]</li>]");
             ParseAndAssert("header<li>item 1<li>item 2", "P[header<li>P[item 1]</li><li>P[item 2]</li>]");
             ParseAndAssert("header<li>item 1<li >item 2", "P[header<li>P[item 1]</li><li >P[item 2]</li>]");
-            ParseAndAssert("header<li>item 1\nfooter", "P[header<li>P[item 1]</li>\nfooter]");
-            var root = ParseAndAssert("header<li>item 1<li>item 2<li value='100' >item 100\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li value='100' >P[item 100]</li>\nfooter]");
+            var root = ParseAndAssert("header<li>item 1<li>item 2<li value='100' >item 100\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li value='100' >P[item 100\nfooter]</li>]");
             Assert.All(root.EnumDescendants().OfType<HtmlTag>(), t => Assert.Equal(TagStyle.NotClosed, t.TagStyle));
-            root = ParseAndAssert("header<li>item 1<li>item 2<li>item 3\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li>P[item 3]</li>\nfooter]");
+            root = ParseAndAssert("header<li>item 1<li>item 2<li>item 3\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li>P[item 3\nfooter]</li>]");
             Assert.All(root.EnumDescendants().OfType<HtmlTag>(), t => Assert.Equal(TagStyle.NotClosed, t.TagStyle));
         }
 

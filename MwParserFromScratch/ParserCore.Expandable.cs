@@ -175,7 +175,7 @@ namespace MwParserFromScratch
             if (ConsumeToken("<") == null) return ParseFailed<TagNode>();
             var tagName = ConsumeToken(@"[\w-_:]+");
             if (tagName == null) return ParseFailed<TagNode>();
-            var node = options.ParserTagsSet.Contains(tagName) ? (TagNode) new ParserTag(tagName) : new HtmlTag(tagName);
+            var node = options.ParserTagsSet.Contains(tagName) ? (TagNode)new ParserTag(tagName) : new HtmlTag(tagName);
             string rbracket;
             var ws = ConsumeToken(@"\s+");
             // TAG_ATTR
@@ -192,7 +192,7 @@ namespace MwParserFromScratch
                 // If attrName == null, then we have something like <tag =abc >, which is still valid (attributeName = "").
                 ParseStart();
                 var attrName = ParseAttributeName();
-                var attr = new TagAttribute {Name = attrName, LeadingWhitespace = ws};
+                var attr = new TagAttribute { Name = attrName, LeadingWhitespace = ws };
                 ws = ConsumeToken(@"\s+");
                 if (ConsumeToken("=") != null)
                 {
@@ -219,7 +219,8 @@ namespace MwParserFromScratch
             {
                 node.TagStyle = TagStyle.SelfClosing;
                 return ParseSuccessful(node);
-            } else if (options.SelfClosingOnlyTagsSet.Contains(tagName))
+            }
+            else if (options.SelfClosingOnlyTagsSet.Contains(tagName))
             {
                 node.TagStyle = TagStyle.CompactSelfClosing;
                 return ParseSuccessful(node);
@@ -259,26 +260,21 @@ namespace MwParserFromScratch
                 return false;
             }
             // We'll parse into the innerHTML of HTML tag.
-            var ht = (HtmlTag) tag;
+            var ht = (HtmlTag)tag;
             if (normalizedTagName == "li")
             {
                 // LI_TAG
-                // <li> can be closed by </li>, <li ...>, \n or EOF
-                // <li> tags closed by <li ...>, \n, or EOF are using TagStyle.NotClosed .
-                ParseStart(@"</li\s*>|<li(\s*>|\s+)|\n", false);
-                var line = new Paragraph();
-                ht.Content = new Wikitext();
-                if (ParseRun(RunParsingMode.Run, line, true))
-                    ht.Content.Lines.Add(line);
-                ParseSuccessful(ht.Content);
+                // <li> can be closed by </li>, <li ...> or EOF
+                // <li> tags closed by <li ...>, or EOF are using TagStyle.NotClosed .
+                ParseStart(@"</li\s*>|<li(\s*>|\s+)", false);
             }
             else
             {
                 // OTHER_TAG
                 ParseStart(closingTagExpr, false);
-                ht.Content = ParseWikitext();
-                Accept();
             }
+            ht.Content = ParseWikitext();
+            Accept();
             // Try to consume the tag closing.
             var closingTag = ConsumeToken(closingTagExpr);
             if (closingTag == null)

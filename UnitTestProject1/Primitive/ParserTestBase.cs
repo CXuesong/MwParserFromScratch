@@ -47,17 +47,16 @@ namespace UnitTestProject1.Primitive
             var parser = new WikitextParser { Options = options };
             var root = parser.Parse(text);
             var parsedText = root.ToString();
-            Output.WriteLine("Original Text\n====================");
+            Output.WriteLine("=============================");
+            Output.WriteLine("Original Text ---------------");
             Output.WriteLine(text);
-            Output.WriteLine("Parsed Text\n====================");
+            Output.WriteLine("Parsed Text -----------------");
             Output.WriteLine(parsedText);
             var rootExpr = Utility.Dump(root);
-            Output.WriteLine("AST Dump\n====================");
+            Output.WriteLine("AST Dump --------------------");
             Output.WriteLine(EscapeString(rootExpr));
-            if (expectedDump != rootExpr)
-            {
-                Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
-            }
+            Output.WriteLine("=============================");
+            Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
             if (!options.AllowClosingMarkInference) Assert.Equal(text, parsedText);
             return root;
         }
