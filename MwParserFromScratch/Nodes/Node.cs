@@ -362,18 +362,45 @@ namespace MwParserFromScratch.Nodes
             return newInst;
         }
 
-        /// <summary>
-        /// Gets the plain text without the unprintable nodes (e.g. comments, templates).
-        /// </summary>
+        private static void DefaultNodePlainTextFormatter(Node node, StringBuilder builder)
+        {
+            node.ToPlainText(builder, DefaultNodePlainTextFormatter);
+        }
+
+        /// <inheritdoc cref="ToPlainText(NodePlainTextFormatter)"/>
         public string ToPlainText()
         {
-            return ToPlainText(NodePlainTextOptions.None);
+            return ToPlainText(DefaultNodePlainTextFormatter);
         }
 
         /// <summary>
-        /// Gets the plain text without the unprintable nodes (e.g. comments, templates).
+        /// Gets the plain text without the unprintable nodes (e.g. comments, templates), with customized formatter.
         /// </summary>
-        public abstract string ToPlainText(NodePlainTextOptions options);
+        /// <param name="formatter">The formatter delegate used to format the <strong>child</strong> nodes.</param>
+        public string ToPlainText(NodePlainTextFormatter formatter)
+        {
+            var sb = new StringBuilder();
+            ToPlainText(sb, formatter);
+            return sb.ToString();
+        }
+
+        /// <inheritdoc cref="ToPlainText(StringBuilder,NodePlainTextFormatter)"/>
+        public void ToPlainText(StringBuilder builder)
+        {
+            ToPlainText(builder, DefaultNodePlainTextFormatter);
+        }
+
+        /// <summary>
+        /// Gets the plain text without the unprintable nodes (e.g. comments, templates), with customized formatter.
+        /// </summary>
+        /// <param name="builder">The <see cref="StringBuilder"/> used to receive the content.</param>
+        /// <param name="formatter">The formatter delegate used to format the <strong>child</strong> nodes.</param>
+        public virtual void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        {
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
+            // The default implementation is to write nothing.
+        }
 
         private class LineInfoAnnotation
         {
@@ -399,18 +426,10 @@ namespace MwParserFromScratch.Nodes
     }
 
     /// <summary>
-    /// Options used in <see cref="Node.ToPlainText(NodePlainTextOptions)"/>.
+    /// Formats the specified <see cref="Node"/> into <c>string</c>.
     /// </summary>
-    [Flags]
-    public enum NodePlainTextOptions
-    {
-        /// <summary>
-        /// Default behavior.
-        /// </summary>
-        None = 0,
-        /// <summary>
-        /// Remove the content of &lt;ref&gt; parser tags.
-        /// </summary>
-        RemoveRefTags = 1
-    }
+    /// <param name="node">The node to be formatted.</param>
+    /// <param name="builder"><see cref="StringBuilder"/> the formatted plaintext should be appended into.</param>
+    public delegate void NodePlainTextFormatter(Node node, StringBuilder builder);
+
 }

@@ -59,20 +59,20 @@ namespace MwParserFromScratch.Nodes
             return sb.ToString();
         }
 
-        public override string ToPlainText(NodePlainTextOptions options)
+        /// <inheritdoc />
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            var sb = new StringBuilder();
-            if (Caption != null) sb.AppendLine(_Caption.ToPlainText(options));
+            if (Caption != null) 
+                formatter(_Caption, builder);
             var firstRow = true;
             foreach (var r in Rows)
             {
                 if (firstRow)
                     firstRow = false;
                 else
-                    sb.AppendLine();
-                sb.Append(r.ToPlainText(options));
+                    builder.AppendLine();
+                formatter(r, builder);
             }
-            return sb.ToString();
         }
     }
 
@@ -115,9 +115,10 @@ namespace MwParserFromScratch.Nodes
             if (_Content != null) yield return _Content;
         }
 
-        public override string ToPlainText(NodePlainTextOptions options)
+        /// <inheritdoc />
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            return Content?.ToPlainText(options);
+            if (Content != null) formatter(Content, builder);
         }
     }
 
@@ -198,9 +199,18 @@ namespace MwParserFromScratch.Nodes
             return sb.ToString();
         }
 
-        public override string ToPlainText(NodePlainTextOptions options)
+        /// <inheritdoc />
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            return string.Join("\t", Cells.Select(c => c.ToPlainText(options)));
+            var isFirst = true;
+            foreach (var cell in Cells)
+            {
+                if (isFirst)
+                    isFirst = false;
+                else
+                    builder.Append('\t');
+                formatter(cell, builder);
+            }
         }
     }
 

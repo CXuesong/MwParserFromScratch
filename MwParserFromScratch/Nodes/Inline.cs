@@ -46,11 +46,13 @@ namespace MwParserFromScratch.Nodes
             return Content;
         }
 
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             // Unescape HTML entities.
-            return WebUtility.HtmlDecode(Content);
+            builder.Append(WebUtility.HtmlDecode(Content));
         }
     }
 
@@ -89,26 +91,39 @@ namespace MwParserFromScratch.Nodes
 
         private static readonly Regex PipeTrickTitleMatcher = new Regex(@".+?(?=\w*\()");
 
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            if (Text != null)
+            if (Text == null)
             {
-                if (Text.Inlines.Count == 0)
+                formatter(Target, builder);
+                return;
+            }
+            if (Text.Inlines.Count > 0)
+            {
+                formatter(Text, builder);
+                return;
+            }
+            // Pipe trick. E.g.
+            // [[abc (disambiguation)|]] --> [[abc (disambiguation)|abc]]
+            var pos1 = builder.Length;
+            formatter(Target, builder);
+            if (builder.Length - pos1 >= 3 && builder[builder.Length - 1] == ')')
+            {
+                for (var pos2 = pos1 + 1; pos2 < builder.Length - 1; pos2++)
                 {
-                    // Pipe trick. E.g.
-                    // [[abc (disambiguation)|]]
-                    var original = Target.ToPlainText(options);
-                    var match = PipeTrickTitleMatcher.Match(original);
-                    if (match.Success) return match.Value;
-                    return original;
-                }
-                else
-                {
-                    return Text.ToPlainText(options);
+                    if (builder[pos2] == '(')
+                    {
+                        // Pipe trick: Remove DAB suffix.
+                        // Optionally remove 1 whitespace before left bracket.
+                        if (char.IsWhiteSpace(builder[pos2 - 1])) pos2--;
+                        builder.Remove(pos2, builder.Length - pos2);
+                        return;
+                    }
                 }
             }
-            return Target.ToPlainText(options);
         }
     }
 
@@ -163,14 +178,28 @@ namespace MwParserFromScratch.Nodes
             return s;
         }
 
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            if (!Brackets) return Target.ToPlainText(options);
-            var text = Text?.ToPlainText(options);
-            // We should have shown something like [1]
-            if (string.IsNullOrWhiteSpace(text)) return "[#]";
-            return text;
+            if (!Brackets)
+            {
+                formatter( Target, builder);
+            }
+            else
+            {
+                if (Text != null)
+                {
+                    var pos1 = builder.Length;
+                    formatter(Text, builder);
+                    for (var i = pos1; i < builder.Length; i++)
+                        if (!char.IsWhiteSpace(builder[i]))
+                            return;
+                }
+                // We should have shown something like [1]
+                builder.Append("[#]");
+            }
         }
     }
 
@@ -222,12 +251,6 @@ namespace MwParserFromScratch.Nodes
             if (SwitchItalics)
                 return "''";
             return "";
-        }
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
-        {
-            return null;
         }
     }
 
@@ -306,12 +329,6 @@ namespace MwParserFromScratch.Nodes
             sb.Append("}}");
             return sb.ToString();
         }
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
-        {
-            return null;
-        }
     }
 
     public class TemplateArgument : Node
@@ -374,7 +391,9 @@ namespace MwParserFromScratch.Nodes
         /// <summary>
         /// Infrastructure. This function will always throw a <seealso cref="NotSupportedException"/>.
         /// </summary>
-        public override string ToPlainText(NodePlainTextOptions options)
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             throw new NotSupportedException();
         }
@@ -438,12 +457,6 @@ namespace MwParserFromScratch.Nodes
             var s = "{{{" + Name;
             if (DefaultValue != null) s += "|" + DefaultValue;
             return s + "}}}";
-        }
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
-        {
-            return null;
         }
     }
 
@@ -543,14 +556,8 @@ namespace MwParserFromScratch.Nodes
 
         public TagAttributeCollection Attributes { get; }
 
-        protected abstract string GetContentString();
-
-        /// <summary>
-        /// Gets the content inside the tags as plain text without the unprintable nodes
-        /// (e.g. comments, templates).
-        /// </summary>
-        protected abstract string GetContentPlainText(NodePlainTextOptions options);
-
+        protected abstract void BuildContentString(StringBuilder builder);
+        
         /// <summary>
         /// Enumerates the children of this node.
         /// </summary>
@@ -568,7 +575,7 @@ namespace MwParserFromScratch.Nodes
                 case TagStyle.Normal:
                 case TagStyle.NotClosed:
                     sb.Append('>');
-                    sb.Append(GetContentString());
+                    BuildContentString(sb);
                     break;
                 case TagStyle.SelfClosing:
                     sb.Append("/>");
@@ -588,12 +595,6 @@ namespace MwParserFromScratch.Nodes
                 sb.Append('>');
             }
             return sb.ToString();
-        }
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
-        {
-            return GetContentPlainText(options);
         }
     }
 
@@ -652,16 +653,20 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <param name="builder"></param>
         /// <inheritdoc />
-        protected override string GetContentString() => Content;
+        protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
+
+        private static readonly HashSet<string> plainTextInvisibleTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ref", "math"
+        };
 
         /// <inheritdoc />
-        protected override string GetContentPlainText(NodePlainTextOptions options)
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            if ((options & NodePlainTextOptions.RemoveRefTags) == NodePlainTextOptions.RemoveRefTags
-                && string.Equals(Name, "ref", StringComparison.OrdinalIgnoreCase))
-                return null;
-            return Content;
+            if (Name != null && plainTextInvisibleTags.Contains(Name)) return;
+            builder.Append(Content);
         }
     }
 
@@ -732,11 +737,17 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
+        /// <param name="builder"></param>
         /// <inheritdoc />
-        protected override string GetContentString() => Content?.ToString();
+        protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
 
         /// <inheritdoc />
-        protected override string GetContentPlainText(NodePlainTextOptions options) => Content?.ToPlainText(options);
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        {
+            // TODO
+            formatter(Content, builder);
+        }
+
     }
 
     /// <summary>
@@ -867,8 +878,10 @@ namespace MwParserFromScratch.Nodes
                    + WhitespaceAfterEqualSign + quote + Value + quote;
         }
 
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options)
+        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             throw new NotSupportedException();
         }
@@ -903,8 +916,5 @@ namespace MwParserFromScratch.Nodes
 
         /// <inheritdoc />
         public override string ToString() => "<!--" + Content + "-->";
-
-        /// <inheritdoc />
-        public override string ToPlainText(NodePlainTextOptions options) => null;
     }
 }
