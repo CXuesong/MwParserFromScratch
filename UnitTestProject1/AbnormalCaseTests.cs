@@ -210,8 +210,12 @@ namespace UnitTestProject1
         [Fact]
         public void TestTag2()
         {
-            var root = ParseAndAssert("abc<div>def", "P[abc$<div$>def]");
-            root = ParseAndAssert("abc<div />def", "P[abc<div />def]");
+            // Unbalanced tags.
+            ParseAndAssert("abc<div>def", "P[abc<div>P[def]</div>]");
+            ParseAndAssert("abc<div>def<div>ghi", "P[abc<div>P[def<div>P[ghi]</div>]</div>]");
+            // <div> tag is forced to close at the end of {{T}}
+            ParseAndAssert("{{T|abc<div>def}}</div>ghi", "P[{{T|P[abc<div>P[def]</div>]}}$</div$>ghi]");
+            ParseAndAssert("abc<div />def", "P[abc<div />def]");
         }
 
     }

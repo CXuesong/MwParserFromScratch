@@ -181,7 +181,7 @@ namespace MwParserFromScratch
             // TAG_ATTR
             while ((rbracket = ConsumeToken("/?>")) == null)
             {
-                // We need some whitespace to delimit the attrbutes.
+                // We need some whitespace to delimit the attributes.
                 if (ws == null)
                 {
                     // This is a pathological condition.
@@ -259,9 +259,6 @@ namespace MwParserFromScratch
                 return false;
             }
             // We'll parse into the tag.
-            // But before the parsing begins,
-            //  do a simple check of whether there will be a possible closing tag ahead.
-            if (!options.AllowClosingMarkInference && !matcher.IsMatch(fulltext, position)) return false;
             var ht = (HtmlTag) tag;
             ParseStart(matcher.ToString(), false);
             ht.Content = ParseWikitext();
@@ -270,13 +267,12 @@ namespace MwParserFromScratch
             var closingTag = ConsumeToken(matcher.ToString());
             if (closingTag == null)
             {
-                if (options.AllowClosingMarkInference)
-                {
-                    tag.SetInferredClosingMark();
-                    tag.ClosingTagName = null;
-                    return true;
-                }
-                return false;
+                // Unbalanced HTML tag. This is a pathological case.
+                // We won't backtrack here, as this is expensive and MW forces to close tags at EOF.
+                tag.SetInferredClosingMark();
+                tag.ClosingTagName = null;
+                tag.TagStyle = TagStyle.NotClosed;
+                return true;
             }
             closingTagMatch = matcher.Match(closingTag);
             CLOSE_TAG:

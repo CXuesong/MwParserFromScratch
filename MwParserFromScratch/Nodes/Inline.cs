@@ -453,29 +453,31 @@ namespace MwParserFromScratch.Nodes
     public enum TagStyle
     {
         /// <summary>
-        /// &lt;tag&gt;&lt;/tag&gt;
+        /// <c>&lt;tag&gt;&lt;/tag&gt;</c>
         /// </summary>
         Normal,
 
         /// <summary>
-        /// &lt;tag /&gt;
+        /// <c>&lt;tag /&gt;</c>
         /// </summary> 
-        /// <remarks><see cref="SelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
-        /// some tags, such as br, hr, and wbr, is always self-closed so &lt;br /&gt; should be recognized as a
-        /// closed tag.</remarks>
         SelfClosing,
 
         /// <summary>
-        /// &lt;tag&gt;
+        /// <c>&lt;tag&gt;</c>
         /// </summary>
+        /// <remarks><see cref="CompactSelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
+        /// some tags, such as br, hr, and wbr, is always self-closed so &lt;br /&gt; should be recognized as a
+        /// closed tag.</remarks>
         CompactSelfClosing,
 
         /// <summary>
-        /// &lt;tag&gt;...[EOF]
+        /// Unbalanced tags: <c>&lt;tag&gt;...[EOF]</c>.
         /// </summary>
-        /// <remarks><see cref="SelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
-        /// the latter is for the tags that should be closed but actully not. This flag is used to reduce the chance
-        /// of fallbacks during parsing.</remarks>
+        /// <remarks>
+        /// <para><see cref="CompactSelfClosing"/> and <see cref="NotClosed"/> have the same appearance in wikitext, but
+        /// the latter is for the tags that should be closed but actually not.</para>
+        /// <para>MW parser forces to close all the unbalanced HTML tags at the end of the document. Unbalanced parser tags are escaped as plain text.</para>
+        /// </remarks>
         NotClosed,
     }
 

@@ -128,6 +128,10 @@ namespace MwParserFromScratch
             return value;
         }
 
+        /// <summary>
+        /// Accept the characters consumed in the current context.
+        /// You won't be able to backtrack to the position where last <see cref="ParseStart()"/> call takes place.
+        /// </summary>
         private bool Accept()
         {
             contextStack.Pop();
@@ -197,6 +201,7 @@ namespace MwParserFromScratch
             return t;
         }
 
+        [DebuggerDisplay("StartingPosition={StartingPosition}({StartingLineNumber},{StartingLinePosition}), Terminator={Terminator}, OverridesTerminator={OverridesTerminator}")]
         private class ParsingContext
         {
             public Terminator Terminator { get; set; }
