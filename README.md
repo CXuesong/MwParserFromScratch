@@ -1,13 +1,18 @@
+[CXuesong.MW.MwParserFromScratch](https://www.nuget.org/packages/CXuesong.MW.MwParserFromScratch) | ![CXuesong.MW.MwParserFromScratch](https://img.shields.io/nuget/vpre/CXuesong.MW.MwParserFromScratch?style=flat-square) ![NuGet version (CXuesong.MW.WikiClientLibrary)](https://img.shields.io/nuget/dt/CXuesong.MW.MwParserFromScratch.svg?style=flat-square)
+
 # MwParserFromScratch
 
 A .NET Library for parsing wikitext into AST. The repository is still under development, but it can already handle most part of wikitext.
 
 ## Usage
 
-This package is now on NuGet. You may install the package using the following command in the Package Management Console
+This package is now on NuGet. You may install the package using one of the following commands
 
 ```
+#  Package Management Console
 Install-Package CXuesong.MW.MwParserFromScratch -Pre
+#  .NET CLI
+dotnet add package CXuesong.MW.MwParserFromScratch -v 3.0.0-int.2
 ```
 
 After adding reference to this library, import the namespaces
@@ -129,7 +134,7 @@ Wikitext             [==Hello==\r\n* ''Item1]
 
 ## That's fine, but where to get wikitext?
 
-You can use MediaWiki API to acquire the wikitext. For .NET programmers, I've made a client, [WikiClientLibrary](https://github.com/CXuesong/WikiClientLibrary), that lies beside this repository. There're also MediaWiki API clients in [API:Client code](https://www.mediawiki.org/wiki/API:Client_code).
+You can use MediaWiki API to acquire the wikitext. For .NET programmers, I've made a client, [WikiClientLibrary](https://github.com/CXuesong/WikiClientLibrary), that lies beside this repository. There are also MediaWiki API clients in [API:Client code](https://www.mediawiki.org/wiki/API:Client_code).
 
 There's also a simple demo for fetching and parsing without the dependency of WikiClientLibrary in `ConsoleTestApplication1`, like this
 
