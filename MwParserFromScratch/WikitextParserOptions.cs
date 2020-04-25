@@ -29,7 +29,7 @@ namespace MwParserFromScratch
         public static readonly IReadOnlyList<string> DefaultSelfClosingOnlyTags =
             new ReadOnlyCollection<string>(new[]
             {
-                "br", "wbr", "hr"
+                "br", "wbr", "hr", "meta", "link"
             });
 
         internal static readonly HashSet<string> DefaultCaseInsensitiveMagicTemplatesSet =
@@ -239,7 +239,11 @@ namespace MwParserFromScratch
         /// <summary>
         /// Names of tags that can only be used in a self-closing way.
         /// </summary>
-        /// <remarks>The default value is "br", "wbr", "hr".</remarks>
+        /// <remarks>
+        /// The default value is "br", "wbr", "hr", "meta", "link".
+        /// See <a href="https://phabricator.wikimedia.org/source/mediawiki/browse/wmf%252F1.35.0-wmf.28/includes/parser/Sanitizer.php$427"><c>$htmlsingleonly</c> (Sanitizer.php:427)</a>
+        /// For its counterpart in MW source code.
+        /// </remarks>
         public IEnumerable<string> SelfClosingOnlyTags
         {
             get { return _SelfClosingOnlyTags; }
