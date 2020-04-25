@@ -49,7 +49,7 @@ namespace MwParserFromScratch.Nodes
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             // Unescape HTML entities.
             builder.Append(WebUtility.HtmlDecode(Content));
@@ -94,7 +94,7 @@ namespace MwParserFromScratch.Nodes
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             if (Text == null)
             {
@@ -181,7 +181,7 @@ namespace MwParserFromScratch.Nodes
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             if (!Brackets)
             {
@@ -393,7 +393,7 @@ namespace MwParserFromScratch.Nodes
         /// </summary>
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             throw new NotSupportedException();
         }
@@ -662,7 +662,7 @@ namespace MwParserFromScratch.Nodes
         };
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             if (Name != null && plainTextInvisibleTags.Contains(Name)) return;
             builder.Append(Content);
@@ -740,7 +740,7 @@ namespace MwParserFromScratch.Nodes
         protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             formatter(Content, builder);
         }
@@ -878,7 +878,7 @@ namespace MwParserFromScratch.Nodes
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             throw new NotSupportedException();
         }

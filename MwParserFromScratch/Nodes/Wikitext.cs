@@ -51,7 +51,7 @@ namespace MwParserFromScratch.Nodes
         public override string ToString() => string.Join("\n", Lines);
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             var isFirst = true;
             foreach (var line in Lines)
@@ -160,7 +160,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore() => new Run(Inlines);
 
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             foreach (var inline in Inlines)
             {
@@ -210,7 +210,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore() => new Run(Inlines);
 
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             foreach (var inline in Inlines)
             {

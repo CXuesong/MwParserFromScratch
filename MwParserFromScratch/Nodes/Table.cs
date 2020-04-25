@@ -60,7 +60,7 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             if (Caption != null) 
                 formatter(_Caption, builder);
@@ -116,7 +116,7 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             if (Content != null) formatter(Content, builder);
         }
@@ -200,7 +200,7 @@ namespace MwParserFromScratch.Nodes
         }
 
         /// <inheritdoc />
-        public override void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
             var isFirst = true;
             foreach (var cell in Cells)
