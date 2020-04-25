@@ -68,7 +68,7 @@ PARAGRAPH           -> RUN "\n" PARAGRAPH                       #
                     /  empty                                    # (i.e. RUN \n RUN \n) 
 
 RUN         -> INLINE RUN / INLINE
-INLINE      -> EXPANDABLE / TAG / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
+INLINE      -> EXPANDABLE / TAG / FILE_LINK / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
 EXPANDABLE  -> COMMENT / TEMPLATE / ARGUMENT_REF                # COMMENT expands to ""
 
 EXPANDABLE_TEXT -> EXPANDABLE EXPANDABLE_TEXT
@@ -81,6 +81,15 @@ EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
                 /  EXPANDABLE
                 /  URL
                 /  empty
+
+FILE_LINK           -> "[[" FILE_LINK_TARGET FILE_LINK_OPTION* FILE_LINK_CAPTION? "]]"
+                    >| "]]"                                     # FILE_LINK_OPTION and FILE_LINK_CAPTION can have \n inside.
+FILE_LINK_TARGET    -> "[\s_]*(File|Image|<...>)[\s_]*:" EXPANDABLE_TEXT
+                    +| "|"                                      # <...> is customizable File namespace aliases.
+FILE_LINK_OPTION    -> "|" EXPANDABLE_TEXT
+                    +| "|"
+FILE_LINK_CAPTION   -> "|" EXPANDABLE_TEXT                      # FILE_LINK_CAPTION is actually the last FILE_LINK_OPTION
+                    +| "]]"
 
 # Known issue: Current implementation will parse [[http://abc]] as WIKI_LINK,
 # while actually it should be trated as "[" EXTERNAL_LINK "]"
