@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using MwParserFromScratch.Nodes;
 using UnitTestProject1.Primitive;
 using Xunit;
 using Xunit.Abstractions;
@@ -211,11 +213,27 @@ namespace UnitTestProject1
         public void TestTag2()
         {
             // Unbalanced tags.
-            ParseAndAssert("abc<div>def", "P[abc<div>P[def]</div>]");
+            var root = ParseAndAssert("abc<div>def", "P[abc<div>P[def]</div>]");
+            Assert.Equal(TagStyle.NotClosed, root.EnumDescendants().OfType<HtmlTag>().First().TagStyle);
+            Assert.Null(root.EnumDescendants().OfType<HtmlTag>().First().ClosingTagName);
             ParseAndAssert("abc<div>def<div>ghi", "P[abc<div>P[def<div>P[ghi]</div>]</div>]");
             // <div> tag is forced to close at the end of {{T}}
             ParseAndAssert("{{T|abc<div>def}}</div>ghi", "P[{{T|P[abc<div>P[def]</div>]}}$</div$>ghi]");
             ParseAndAssert("abc<div />def", "P[abc<div />def]");
+        }
+
+        [Fact]
+        public void TestTag3()
+        {
+            // Unbalanced li tags.
+            ParseAndAssert("header<li>item 1", "P[header<li>P[item 1]</li>]");
+            ParseAndAssert("header<li>item 1<li>item 2", "P[header<li>P[item 1]</li><li>P[item 2]</li>]");
+            ParseAndAssert("header<li>item 1<li >item 2", "P[header<li>P[item 1]</li><li >P[item 2]</li>]");
+            ParseAndAssert("header<li>item 1\nfooter", "P[header<li>P[item 1]</li>\nfooter]");
+            var root = ParseAndAssert("header<li>item 1<li>item 2<li value='100' >item 100\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li value='100' >P[item 100]</li>\nfooter]");
+            Assert.All(root.EnumDescendants().OfType<HtmlTag>(), t => Assert.Equal(TagStyle.NotClosed, t.TagStyle));
+            root = ParseAndAssert("header<li>item 1<li>item 2<li>item 3\nfooter", "P[header<li>P[item 1]</li><li>P[item 2]</li><li>P[item 3]</li>\nfooter]");
+            Assert.All(root.EnumDescendants().OfType<HtmlTag>(), t => Assert.Equal(TagStyle.NotClosed, t.TagStyle));
         }
 
     }

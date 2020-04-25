@@ -234,9 +234,9 @@ namespace MwParserFromScratch
         {
             var normalizedTagName = tag.Name.ToLowerInvariant();
             Regex matcher;
+            var closingTagExpr = "(?i)</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
             lock (closingTagMatcherCache)
             {
-                var closingTagExpr = "(?i)</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
                 matcher = closingTagMatcherCache.TryGetValue(normalizedTagName);
                 if (matcher == null)
                 {
@@ -258,13 +258,29 @@ namespace MwParserFromScratch
                 // If the parser tag doesn't close, then we fail. Pity.
                 return false;
             }
-            // We'll parse into the tag.
+            // We'll parse into the innerHTML of HTML tag.
             var ht = (HtmlTag) tag;
-            ParseStart(matcher.ToString(), false);
-            ht.Content = ParseWikitext();
-            Accept();
-            // Consume the tag closing.
-            var closingTag = ConsumeToken(matcher.ToString());
+            if (normalizedTagName == "li")
+            {
+                // LI_TAG
+                // <li> can be closed by </li>, <li ...>, \n or EOF
+                // <li> tags closed by <li ...>, \n, or EOF are using TagStyle.NotClosed .
+                ParseStart(@"</li\s*>|<li(\s*>|\s+)|\n", false);
+                var line = new Paragraph();
+                ht.Content = new Wikitext();
+                if (ParseRun(RunParsingMode.Run, line, true))
+                    ht.Content.Lines.Add(line);
+                ParseSuccessful(ht.Content);
+            }
+            else
+            {
+                // OTHER_TAG
+                ParseStart(closingTagExpr, false);
+                ht.Content = ParseWikitext();
+                Accept();
+            }
+            // Try to consume the tag closing.
+            var closingTag = ConsumeToken(closingTagExpr);
             if (closingTag == null)
             {
                 // Unbalanced HTML tag. This is a pathological case.

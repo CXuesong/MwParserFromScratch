@@ -242,3 +242,4 @@ ModelManifest.xml
 .fake/
 
 _private/
+**/Properties/launchSettings.json

@@ -113,6 +113,9 @@ namespace MwParserFromScratch
 
         private ParsingContext CurrentContext => contextStack.Peek();
 
+        /// <summary>
+        /// Accept, and optionally set the line number of the node.
+        /// </summary>
         private T ParseSuccessful<T>(T value, bool setLineNumber = true) where T : Node
         {
             Debug.Assert(value != null);
@@ -132,6 +135,7 @@ namespace MwParserFromScratch
         /// Accept the characters consumed in the current context.
         /// You won't be able to backtrack to the position where last <see cref="ParseStart()"/> call takes place.
         /// </summary>
+        /// <returns></returns>
         private bool Accept()
         {
             contextStack.Pop();

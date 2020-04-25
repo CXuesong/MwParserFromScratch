@@ -337,6 +337,7 @@ namespace MwParserFromScratch
         /// RUN
         /// </summary>
         /// <returns><c>true</c> if one or more nodes has been parsed.</returns>
+        /// <param name="setLineNumber">Whether to set line number information in <paramref name="container" /> after parsing.</param>
         private bool ParseRun(RunParsingMode mode, IInlineContainer container, bool setLineNumber)
         {
             ParseStart();
