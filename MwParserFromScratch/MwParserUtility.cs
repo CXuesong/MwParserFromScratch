@@ -12,12 +12,9 @@ namespace MwParserFromScratch
     /// </summary>
     public static class MwParserUtility
     {
-        /// <summary>
-        /// Normalizes a template argument name.
-        /// </summary>
-        /// <param name="argumentName">The argument name to be normalized.</param>
-        /// <returns>The normalized argument name, with leading and trailing whitespace removed,
-        /// or <c>null</c> if <see cref="argumentName"/> is <c>null</c>.</returns>
+
+        /// <inheritdoc cref="NormalizeTemplateArgumentName(string)"/>
+        /// <param name="argumentName">The argument name to be normalized. The node will be converted into its string representation.</param>
         public static string NormalizeTemplateArgumentName(Node argumentName)
         {
             if (argumentName == null) return null;
@@ -29,23 +26,41 @@ namespace MwParserFromScratch
         /// </summary>
         /// <param name="argumentName">The argument name to be normalized.</param>
         /// <returns>The normalized argument name, with leading and trailing whitespace removed,
-        /// or <c>null</c> if <see cref="argumentName"/> is <c>null</c>.</returns>
+        /// or <c>null</c> if <paramref name="argumentName"/> is <c>null</c>.</returns>
         public static string NormalizeTemplateArgumentName(string argumentName)
         {
             if (string.IsNullOrEmpty(argumentName)) return argumentName;
             return argumentName.Trim();
         }
 
+        /// <inheritdoc cref="NormalizeImageLinkArgumentName(string)"/>
+        /// <param name="argumentName">The argument name to be normalized. The node will be converted into its string representation.</param>
+        public static string NormalizeImageLinkArgumentName(Node argumentName)
+        {
+            if (argumentName == null) return null;
+            return NormalizeImageLinkArgumentName(argumentName.ToString());
+        }
+
         /// <summary>
-        /// Normalizes a page title expression. This is a simple version; it simply treats the part before
-        /// the first colon mark as namesapce name. For a more complete version of title normalization,
-        /// including title validation and namespace / interwiki prefix check,
-        /// see WikiLink class in WikiClientLibrary package.
+        /// Normalizes the argument name used in Image link syntax.
         /// </summary>
-        /// <param name="title">The title to be normalized.</param>
-        /// <returns>The normalized argument name, with leading and trailing whitespace removed,
-        /// underscore replaced with space, starting with an upper-case letter.
-        /// Or <c>null</c> if <see cref="title"/> is <c>null</c>.</returns>
+        /// <param name="argumentName">The argument name to be normalized.</param>
+        /// <returns>The normalized argument name, with leading and trailing whitespace removed, and first letter converted into lowercase
+        /// or <c>null</c> if <paramref name="argumentName"/> is <c>null</c>.</returns>
+        public static string NormalizeImageLinkArgumentName(string argumentName)
+        {
+            if (string.IsNullOrEmpty(argumentName)) return argumentName;
+            argumentName = argumentName.Trim();
+            if (argumentName.Length > 0 && char.IsUpper(argumentName, 0))
+            {
+                return char.ToLowerInvariant(argumentName[0]) + argumentName.Substring(1);
+            }
+            return argumentName;
+        }
+
+
+        /// <inheritdoc cref="NormalizeTitle(string)"/>
+        /// <param name="title">The title to be normalized. The node will be converted into its string representation.</param>
         public static string NormalizeTitle(Node title)
         {
             if (title == null) return null;
@@ -54,14 +69,14 @@ namespace MwParserFromScratch
 
         /// <summary>
         /// Normalizes a page title expression. This is a simple version; it simply treats the part before
-        /// the first colon mark as namesapce name. For a more complete version of title normalization,
+        /// the first colon mark as namespace name. For a more complete version of title normalization,
         /// including title validation and namespace / interwiki prefix check,
         /// see WikiLink class in WikiClientLibrary package.
         /// </summary>
         /// <param name="title">The title to be normalized.</param>
         /// <returns>The normalized argument name, with leading and trailing whitespace removed,
         /// underscore replaced with space, starting with an upper-case letter.
-        /// Or <c>null</c> if <see cref="title"/> is <c>null</c>.</returns>
+        /// Or <c>null</c> if <paramref name="title"/> is <c>null</c>.</returns>
         public static string NormalizeTitle(string title)
         {
             if (string.IsNullOrEmpty(title)) return title;

@@ -55,7 +55,7 @@ namespace MwParserFromScratch.Nodes
         /// The name of argument that will be tested. Can either be a name or 1-based index.
         /// Leading and trailing white spaces will be ignored.
         /// </param>
-        /// <exception cref="ArgumentNullException"><see cref="name"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
         /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
         public TemplateArgument this[string name]
         {
@@ -63,7 +63,7 @@ namespace MwParserFromScratch.Nodes
             {
                 if (name == null) throw new ArgumentNullException(nameof(name));
                 name = name.Trim();
-                // We want to choose the last matching arguments, if there're multiple choices.
+                // We want to choose the last matching arguments, if there are multiple choices.
                 return EnumNameArgumentPairs(true).FirstOrDefault(p => p.Key == name).Value;
             }
         }
@@ -72,12 +72,11 @@ namespace MwParserFromScratch.Nodes
         /// Gets an argument with the specified positional argument index.
         /// </summary>
         /// <param name="name">
-        /// The index of argument that will be tested. Note that this index will not nessarily greater
+        /// The index of argument that will be tested. Note that this index will not necessarily greater
         /// or equal than 1, because there might exist template argument with the name such as "-1", which
         /// can still be matched using this accessor.
         /// </param>
         /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
-        /// <exception cref="ArgumentNullException"><see cref="name"/> is <c>null</c>.</exception>
         public TemplateArgument this[int name] => this[name.ToString()];
 
         /// <summary>
@@ -87,7 +86,7 @@ namespace MwParserFromScratch.Nodes
         /// The name of argument that will be tested. Can either be a name or 1-based index.
         /// Leading and trailing white spaces will be ignored.
         /// </param>
-        /// <exception cref="ArgumentNullException"><see cref="name"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
         public bool Contains(string name)
         {
             if (name == null) throw new ArgumentNullException(nameof(name));
@@ -99,7 +98,7 @@ namespace MwParserFromScratch.Nodes
         /// Determines whether an argument with the specified positional argument index exists.
         /// </summary>
         /// <param name="name">
-        /// The index of argument that will be tested. Note that this index will not nessarily greater
+        /// The index of argument that will be tested. Note that this index will not necessarily greater
         /// or equal than 1, because there might exist template argument with the name such as "-1", which
         /// can still be matched using this accessor.
         /// </param>

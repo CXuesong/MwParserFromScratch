@@ -81,14 +81,15 @@ EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
                 /  URL
                 /  empty
 
-FILE_LINK           -> "[[" FILE_LINK_TARGET FILE_LINK_OPTION* FILE_LINK_CAPTION? "]]"
-                    >| "]]"                                     # FILE_LINK_OPTION and FILE_LINK_CAPTION can have \n inside.
-FILE_LINK_TARGET    -> "[\s_]*(File|Image|<...>)[\s_]*:" EXPANDABLE_TEXT
+# Syntax for inserting an image or thumbnail
+# c.f. https://www.mediawiki.org/wiki/Help:Images#Rendering_a_single_image
+IMAGE_LINK          -> "[[" IMAGE_LINK_TARGET IMAGE_LINK_ARGUMENT* "]]"
+                    >| "]]"                                     # IMAGE_LINK_OPTION and IMAGE_LINK_CAPTION can have \n inside.
+IMAGE_LINK_TARGET   -> "[\s_]*(File|Image|<...>)[\s_]*:" EXPANDABLE_TEXT
                     +| "|"                                      # <...> is customizable File namespace aliases.
-FILE_LINK_OPTION    -> "|" EXPANDABLE_TEXT
-                    +| "|"
-FILE_LINK_CAPTION   -> "|" EXPANDABLE_TEXT                      # FILE_LINK_CAPTION is actually the last FILE_LINK_OPTION
-                    +| "]]"
+IMAGE_LINK_ARGUMENT -> "|" WIKITEXT "=" WIKITEXT
+                    /  "|" WIKITEXT                             # IMAGE_LINK_CAPTION is actually the last IMAGE_LINK_ARGUMENT
+                    +| "|" / "]]"
 
 # Known issue: Current implementation will parse [[http://abc]] as WIKI_LINK,
 # while actually it should be trated as "[" EXTERNAL_LINK "]"

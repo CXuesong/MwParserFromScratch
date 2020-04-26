@@ -127,6 +127,134 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
+    /// <summary>
+    /// <c>[[File:Image.png|arg1|arg2|alt text]]</c>
+    /// </summary>
+    public class WikiImageLink : InlineNode
+    {
+        private Run _Target;
+
+        public WikiImageLink() : this(null)
+        {
+        }
+
+        public WikiImageLink(Run target)
+        {
+            Target = target;
+            Arguments = new WikiImageLinkArgumentCollection(this);
+        }
+        
+        /// <summary>
+        /// Title of the image.
+        /// </summary>
+        public Run Target
+        {
+            get { return _Target; }
+            set { Attach(ref _Target, value); }
+        }
+
+        /// <summary>
+        /// Image rendering arguments.
+        /// </summary>
+        public WikiImageLinkArgumentCollection Arguments { get; }
+
+        /// <inheritdoc />
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Target != null) yield return _Target;
+            foreach (var argument in Arguments) yield return argument;
+        }
+
+        /// <inheritdoc />
+        protected override Node CloneCore()
+        {
+            return new WikiImageLink(Target) { Arguments = { Arguments } };
+        }
+
+        /// <inheritdoc />
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+        {
+            var alt = Arguments.Alt;
+            if (alt != null) formatter(alt, builder);
+            var caption = Arguments.Caption;
+            // delimit alt text and caption with a space.
+            if (alt != null && caption != null) 
+                builder.Append(' ');
+            if (caption != null) formatter(caption, builder);
+        }
+    }
+
+    /// <summary>
+    /// An argument field of <see cref="WikiImageLink"/>.
+    /// </summary>
+    public class WikiImageLinkArgument : Node
+    {
+        private Wikitext _Name;
+        private Wikitext _Value;
+
+        public WikiImageLinkArgument() : this(null, null)
+        {
+        }
+
+        public WikiImageLinkArgument(Wikitext name, Wikitext value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        /// <summary>
+        /// Name of the argument.
+        /// </summary>
+        /// <value>Name of the argument, or <c>null</c> if the argument is anonymous.</value>
+        public Wikitext Name
+        {
+            get { return _Name; }
+            set { Attach(ref _Name, value); }
+        }
+
+        /// <summary>
+        /// Value of the argument.
+        /// </summary>
+        /// <value>Value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</value>
+        public Wikitext Value
+        {
+            get { return _Value; }
+            set { Attach(ref _Value, value); }
+        }
+
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override IEnumerable<Node> EnumChildren()
+        {
+            if (_Name != null) yield return _Name;
+            if (_Value != null) yield return _Value;
+        }
+
+        protected override Node CloneCore()
+        {
+            var n = new TemplateArgument { Name = Name, Value = Value };
+            return n;
+        }
+
+        public override string ToString()
+        {
+            if (Name == null) return Value.ToString();
+            return Name + "=" + Value;
+        }
+
+        /// <summary>
+        /// Infrastructure. This function will always throw a <seealso cref="NotSupportedException"/>.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="formatter"></param>
+        internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
     public class ExternalLink : InlineNode
     {
         private Run _Target;
@@ -400,7 +528,7 @@ namespace MwParserFromScratch.Nodes
     }
 
     /// <summary>
-    /// {{{name|defalut}}}
+    /// {{{name|default}}}
     /// </summary>
     public class ArgumentReference : InlineNode
     {
