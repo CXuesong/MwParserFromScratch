@@ -36,8 +36,8 @@ namespace UnitTestProject1
                 : $"[[{Dump(n.Target)}|{Dump(n.Text)}]]");
             RegisterDumpHandler<WikiImageLink>(n =>
             {
-                if (n.Arguments.Count == 0) return "[[" + Dump(n.Target) + "]]";
-                var sb = new StringBuilder("{{");
+                if (n.Arguments.Count == 0) return "![[" + Dump(n.Target) + "]]";
+                var sb = new StringBuilder("![[");
                 sb.Append(n.Target);
                 foreach (var arg in n.Arguments)
                 {
