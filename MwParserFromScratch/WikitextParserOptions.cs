@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MwParserFromScratch.Nodes;
 
@@ -31,6 +32,11 @@ namespace MwParserFromScratch
             {
                 "br", "wbr", "hr", "meta", "link"
             });
+
+        public static readonly IReadOnlyList<string> DefaultImageNamespaceNames = new ReadOnlyCollection<string>(new[]
+        {
+            "File", "Image"
+        });
 
         internal static readonly HashSet<string> DefaultCaseInsensitiveMagicTemplatesSet =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -198,6 +204,7 @@ namespace MwParserFromScratch
                 "DEFAULTCATEGORYSORT",
                 "PAGESINNS"
             };
+
         #endregion
 
         public static readonly IReadOnlyList<MagicTemplateNameInfo> DefaultMagicTemplateNames
@@ -207,12 +214,20 @@ namespace MwParserFromScratch
                 .ToArray());
 
         private static readonly HashSet<string> DefaultParserTagsSet = new HashSet<string>(DefaultParserTags, StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet = new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+
+        private static readonly HashSet<string> DefaultSelfClosingOnlyTagsSet =
+            new HashSet<string>(DefaultSelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+
+        private static readonly HashSet<string> DefaultImageNamespaceNamesSet =
+            new HashSet<string>(DefaultImageNamespaceNames, StringComparer.OrdinalIgnoreCase);
+
+        private static readonly string DefaultImageNamespaceNameRegexp = string.Join("|", DefaultImageNamespaceNames.Select(Regex.Escape));
 
         internal static WikitextParserOptions DefaultOptionsCopy = new WikitextParserOptions().DefensiveCopy();
 
         private IEnumerable<string> _ParserTags;
         private IEnumerable<string> _SelfClosingOnlyTags;
+        private IEnumerable<string> _ImageNamespaceNames;
         private IEnumerable<MagicTemplateNameInfo> _MagicTemplateNames;
         private bool _AllowEmptyTemplateName;
         private bool _AllowEmptyWikiLinkTarget;
@@ -276,7 +291,11 @@ namespace MwParserFromScratch
         public bool AllowEmptyTemplateName
         {
             get { return _AllowEmptyTemplateName; }
-            set { _AllowEmptyTemplateName = value; _DefensiveCopy = null; }
+            set
+            {
+                _AllowEmptyTemplateName = value;
+                _DefensiveCopy = null;
+            }
         }
 
         /// <summary>
@@ -286,7 +305,11 @@ namespace MwParserFromScratch
         public bool AllowEmptyWikiLinkTarget
         {
             get { return _AllowEmptyWikiLinkTarget; }
-            set { _AllowEmptyWikiLinkTarget = value; _DefensiveCopy = null; }
+            set
+            {
+                _AllowEmptyWikiLinkTarget = value;
+                _DefensiveCopy = null;
+            }
         }
 
         /// <summary>
@@ -299,22 +322,49 @@ namespace MwParserFromScratch
         public bool AllowEmptyExternalLinkTarget
         {
             get { return _AllowEmptyExternalLinkTarget; }
-            set { _AllowEmptyExternalLinkTarget = value; _DefensiveCopy = null; }
+            set
+            {
+                _AllowEmptyExternalLinkTarget = value;
+                _DefensiveCopy = null;
+            }
         }
 
         /// <summary>
-        /// When parsing for wikilinks, templates, and HTML tags, allows inference of missing close marks.
+        /// When parsing for wikilinks and templates, allows inference of missing close marks. Defaults to <c>false</c>.
         /// </summary>
         public bool AllowClosingMarkInference
         {
             get { return _AllowClosingMarkInference; }
-            set { _AllowClosingMarkInference = value; _DefensiveCopy = null; }
+            set
+            {
+                _AllowClosingMarkInference = value;
+                _DefensiveCopy = null;
+            }
+        }
+
+        /// <summary>
+        /// Namespace names that will cause <see cref="WikiLink"/> expression parsed as <see cref="WikiImageLink"/> expression.
+        /// </summary>
+        /// <value>A list of namespace names. OR <c>null</c> to use the default settings. Name comparison is case-insensitive.</value>
+        /// <remarks>Default value is <c>["File", "Image"]</c>.</remarks>
+        public IEnumerable<string> ImageNamespaceNames
+        {
+            get { return _ImageNamespaceNames; }
+            set
+            {
+                _ImageNamespaceNames = value;
+                _DefensiveCopy = null;
+            }
         }
 
         public bool WithLineInfo
         {
             get { return _WithLineInfo; }
-            set { _WithLineInfo = value; _DefensiveCopy = null; }
+            set
+            {
+                _WithLineInfo = value;
+                _DefensiveCopy = null;
+            }
         }
 
         internal ISet<string> ParserTagsSet => (ISet<string>) ParserTags;
@@ -325,6 +375,10 @@ namespace MwParserFromScratch
 
         internal ISet<string> CaseInsensitiveMagicTemplateNamesSet { get; private set; }
 
+        internal ISet<string> ImageNamespaceNamesSet => (ISet<string>) ImageNamespaceNames;
+
+        internal string ImageNamespaceRegexp { get; private set; }
+
         internal WikitextParserOptions DefensiveCopy()
         {
             // This method should be thread-safe when there are concurrent DefensiveCopy calls.
@@ -334,10 +388,21 @@ namespace MwParserFromScratch
             inst._ParserTags = ParserTags == null || ReferenceEquals(ParserTags, DefaultParserTags)
                 ? DefaultParserTagsSet
                 : new HashSet<string>(ParserTags, StringComparer.OrdinalIgnoreCase);
-            inst._SelfClosingOnlyTags = SelfClosingOnlyTags == null ||
-                                        ReferenceEquals(SelfClosingOnlyTags, DefaultSelfClosingOnlyTags)
+            inst._SelfClosingOnlyTags = SelfClosingOnlyTags == null || ReferenceEquals(SelfClosingOnlyTags, DefaultSelfClosingOnlyTags)
                 ? DefaultSelfClosingOnlyTagsSet
                 : new HashSet<string>(SelfClosingOnlyTags, StringComparer.OrdinalIgnoreCase);
+            if (ImageNamespaceNames == null || ReferenceEquals(ImageNamespaceNames, DefaultImageNamespaceNames))
+            {
+                inst._ImageNamespaceNames = DefaultImageNamespaceNamesSet;
+                inst.ImageNamespaceRegexp = DefaultImageNamespaceNameRegexp;
+            }
+            else
+            {
+                var collection = ImageNamespaceNames as ICollection<string> ?? ImageNamespaceNames.ToList();
+                inst.ImageNamespaceRegexp = string.Join("|", collection.Select(Regex.Escape));
+                inst._ImageNamespaceNames = new HashSet<string>(collection, StringComparer.OrdinalIgnoreCase);
+            }
+
             if (inst.MagicTemplateNames == null || ReferenceEquals(MagicTemplateNames, DefaultMagicTemplateNames))
             {
                 inst.CaseSensitiveMagicTemplateNamesSet = DefaultCaseSensitiveMagicTemplatesSet;
@@ -353,6 +418,7 @@ namespace MwParserFromScratch
                     else inst.CaseInsensitiveMagicTemplateNamesSet.Add(tn.Name);
                 }
             }
+
             inst._MagicTemplateNames = null;
             _DefensiveCopy = inst;
             return inst;

@@ -34,6 +34,24 @@ namespace UnitTestProject1
             RegisterDumpHandler<WikiLink>(n => n.Text == null
                 ? $"[[{Dump(n.Target)}]]"
                 : $"[[{Dump(n.Target)}|{Dump(n.Text)}]]");
+            RegisterDumpHandler<WikiImageLink>(n =>
+            {
+                if (n.Arguments.Count == 0) return "[[" + Dump(n.Target) + "]]";
+                var sb = new StringBuilder("{{");
+                sb.Append(n.Target);
+                foreach (var arg in n.Arguments)
+                {
+                    sb.Append('|');
+                    sb.Append(Dump(arg));
+                }
+                sb.Append("]]");
+                return sb.ToString();
+            });
+            RegisterDumpHandler<WikiImageLinkArgument>(n =>
+            {
+                if (n.Name == null) return Dump(n.Value);
+                return Dump(n.Name) + "=" + Dump(n.Value);
+            });
             RegisterDumpHandler<ExternalLink>(el =>
             {
                 var s = el.ToString();

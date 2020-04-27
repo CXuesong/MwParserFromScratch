@@ -148,14 +148,18 @@ namespace UnitTestProject1
         }
 
         [Fact]
-        public void TestWikiLink3()
+        public void TestWikiImageLink()
         {
             var root = ParseAndAssert(
+                "[[File:example.jpg|link=http://wikipedia.org/wiki/Test|thumb|upright|caption|caption2]]",
+                "P[{{File:example.jpg|P[link]=P[-[http://wikipedia.org/wiki/Test]-]|P[thumb]|P[upright]|P[caption]|P[caption2]]]]");
+            Assert.Equal("caption2", root.EnumDescendants().OfType<WikiImageLink>().First().Arguments.Caption.ToString());
+            Assert.Equal("http://wikipedia.org/wiki/Test", root.EnumDescendants().OfType<WikiImageLink>().First().Arguments.Link.ToString());
+            root = ParseAndAssert(
                 "[[Bestand:Bundesarchiv Bild 146III-373, Modell der Neugestaltung Berlins (\"Germania\").jpg|miniatuur|260px|right| Schaalmodel van de [[Welthauptstadt Germania]], 1939]]",
-                "P[[[Duck|ducks]]\n]");
-            //var link = (WikiLink)root.Lines.First().EnumChildren().First();
-            //Assert.Equal("Duck", link.Target.ToString());
-            //Assert.Equal("ducks", link.Text.ToString());
+                "P[{{Bestand:Bundesarchiv Bild 146III-373, Modell der Neugestaltung Berlins (\"Germania\").jpg|P[miniatuur]|P[260px]|P[right]|P[ Schaalmodel van de [[Welthauptstadt Germania]], 1939]]]]",
+                new WikitextParserOptions { ImageNamespaceNames = new[] { "File", "Image", "bestand" } });
+            Assert.Equal(" Schaalmodel van de Welthauptstadt Germania, 1939", root.ToPlainText());
         }
 
         [Fact]

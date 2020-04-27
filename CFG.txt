@@ -67,7 +67,7 @@ PARAGRAPH           -> RUN "\n" PARAGRAPH                       #
                     /  empty                                    # (i.e. RUN \n RUN \n) 
 
 RUN         -> INLINE+
-INLINE      -> EXPANDABLE / TAG / FILE_LINK / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
+INLINE      -> EXPANDABLE / TAG / IMAGE_LINK / WIKI_LINK / EXTERNAL_LINK / FORMAT / PLAIN_TEXT
 EXPANDABLE  -> COMMENT / TEMPLATE / ARGUMENT_REF                # COMMENT expands to ""
 
 EXPANDABLE_TEXT -> EXPANDABLE EXPANDABLE_TEXT
@@ -84,12 +84,11 @@ EXPANDABLE_URL  -> EXPANDABLE EXPANDABLE_URL
 # Syntax for inserting an image or thumbnail
 # c.f. https://www.mediawiki.org/wiki/Help:Images#Rendering_a_single_image
 IMAGE_LINK          -> "[[" IMAGE_LINK_TARGET IMAGE_LINK_ARGUMENT* "]]"
-                    >| "]]"                                     # IMAGE_LINK_OPTION and IMAGE_LINK_CAPTION can have \n inside.
-IMAGE_LINK_TARGET   -> "[\s_]*(File|Image|<...>)[\s_]*:" EXPANDABLE_TEXT
-                    +| "|"                                      # <...> is customizable File namespace aliases.
+                    >| "]]|\|"
+IMAGE_LINK_TARGET   -> "[\s_]*(File|Image|<...>)[\s_]*:" EXPANDABLE_TEXT    # <...> is customizable File namespace aliases.
+# IMAGE_LINK_ARGUMENT can have \n inside.
+# IMAGE_LINK_CAPTION is actually the last IMAGE_LINK_ARGUMENT
 IMAGE_LINK_ARGUMENT -> "|" WIKITEXT "=" WIKITEXT
-                    /  "|" WIKITEXT                             # IMAGE_LINK_CAPTION is actually the last IMAGE_LINK_ARGUMENT
-                    +| "|" / "]]"
 
 # Known issue: Current implementation will parse [[http://abc]] as WIKI_LINK,
 # while actually it should be trated as "[" EXTERNAL_LINK "]"

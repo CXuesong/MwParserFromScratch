@@ -135,11 +135,9 @@ namespace MwParserFromScratch
         /// Accept the characters consumed in the current context.
         /// You won't be able to backtrack to the position where last <see cref="ParseStart()"/> call takes place.
         /// </summary>
-        /// <returns></returns>
-        private bool Accept()
+        private void Accept()
         {
             contextStack.Pop();
-            return true;
         }
 
         private T ParseFailed<T>(T node = default(T)) where T : Node
@@ -148,7 +146,7 @@ namespace MwParserFromScratch
             return default(T);
         }
 
-        private bool Fallback()
+        private void Fallback()
         {
             logger?.NotifyFallback(position, contextStack.Count);
             var context = contextStack.Pop();
@@ -156,7 +154,6 @@ namespace MwParserFromScratch
             position = context.StartingPosition;
             lineNumber = context.StartingLineNumber;
             linePosition = context.StartingLinePosition;
-            return false;
         }
 
         private bool BeginningOfLine()

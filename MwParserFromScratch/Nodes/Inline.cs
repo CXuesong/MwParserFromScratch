@@ -56,6 +56,9 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
+    /// <summary>
+    /// <c>[[Target|text]]</c>
+    /// </summary>
     public class WikiLink : InlineNode
     {
         private Run _Target;
@@ -88,9 +91,7 @@ namespace MwParserFromScratch.Nodes
         }
 
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
-
-        private static readonly Regex PipeTrickTitleMatcher = new Regex(@".+?(?=\w*\()");
-
+        
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
@@ -169,6 +170,25 @@ namespace MwParserFromScratch.Nodes
         protected override Node CloneCore()
         {
             return new WikiImageLink(Target) { Arguments = { Arguments } };
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            var sb = new StringBuilder("[[", 16 + Arguments.Count * 4);
+            sb.Append(_Target);
+            foreach (var arg in Arguments)
+            {
+                sb.Append('|');
+                if (arg.Name != null)
+                {
+                    sb.Append(arg.Name);
+                    sb.Append('=');
+                }
+                sb.Append(arg.Value);
+            }
+            sb.Append("]]");
+            return sb.ToString();
         }
 
         /// <inheritdoc />

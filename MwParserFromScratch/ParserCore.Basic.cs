@@ -393,15 +393,69 @@ namespace MwParserFromScratch
         private InlineNode ParseInline()
         {
             return ParseTag()
+                   ?? ParseImageLink()
                    ?? ParseWikiLink()
                    ?? ParseExternalLink()
                    ?? ParseFormatSwitch()
-                   ?? (InlineNode)ParsePartialPlainText();
+                   ?? (InlineNode) ParsePartialPlainText();
         }
 
         private InlineNode ParseExpandable()
         {
             return ParseComment() ?? ParseBraces();
+        }
+
+        private WikiImageLink ParseImageLink()
+        {
+            if (LookAheadToken(@"\[\[") == null) return null;
+            // Check namespace prefix.
+            if (LookAheadToken(@"\[\[[\s_]*(?i:" + options.ImageNamespaceRegexp + @")[\s_]*:") == null) return null;
+            ParseStart(@"\||\]\]", true);
+            if (ConsumeToken(@"\[\[") == null) return ParseFailed<WikiImageLink>();
+            // IMAGE_LINK_TARGET
+            var target = new Run();
+            // No nested link expression or line break inside IMAGE_LINK_TARGET
+            ParseStart(@"\[\[|\n", false);
+            if (!ParseRun(RunParsingMode.ExpandableText, target, true))
+            {
+                Fallback();
+                return ParseFailed<WikiImageLink>();
+            }
+            Accept();
+            var node = new WikiImageLink(target);
+            // IMAGE_LINK_ARGUMENT
+            while (ConsumeToken(@"\|") != null)
+            {
+                var arg = ParseImageLinkArgument();
+                node.Arguments.Add(arg);
+            }
+            if (ConsumeToken(@"\]\]") == null)
+            {
+                if (options.AllowClosingMarkInference)
+                    node.SetInferredClosingMark();
+                else
+                    return ParseFailed<WikiImageLink>();
+            }
+            return ParseSuccessful(node);
+        }
+
+        /// <summary>
+        /// IMAGE_LINK_ARGUMENT
+        /// </summary>
+        private WikiImageLinkArgument ParseImageLinkArgument()
+        {
+            ParseStart(@"=", false);
+            var a = ParseWikitext();
+            Debug.Assert(a != null);
+            if (ConsumeToken(@"=") != null)
+            {
+                // name=value
+                CurrentContext.Terminator = null;
+                var value = ParseWikitext();
+                Debug.Assert(value != null);
+                return ParseSuccessful(new WikiImageLinkArgument(a, value));
+            }
+            return ParseSuccessful(new WikiImageLinkArgument(null, a));
         }
 
         private WikiLink ParseWikiLink()
@@ -428,7 +482,13 @@ namespace MwParserFromScratch
                 if (ParseRun(RunParsingMode.ExpandableText, text, true))
                     node.Text = text;
             }
-            if (ConsumeToken(@"\]\]") == null) return ParseFailed<WikiLink>();
+            if (ConsumeToken(@"\]\]") == null)
+            {
+                if (options.AllowClosingMarkInference)
+                    node.SetInferredClosingMark();
+                else
+                    return ParseFailed<WikiLink>();
+            }
             return ParseSuccessful(node);
         }
 

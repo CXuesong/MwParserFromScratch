@@ -57,7 +57,8 @@ namespace UnitTestProject1.Primitive
             Output.WriteLine(EscapeString(rootExpr));
             Output.WriteLine("=============================");
             Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
-            if (!options.AllowClosingMarkInference) Assert.Equal(text, parsedText);
+            if (!options.AllowClosingMarkInference) 
+                Assert.Equal(text, parsedText);
             return root;
         }
 
