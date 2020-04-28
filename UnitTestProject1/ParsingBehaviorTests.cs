@@ -20,6 +20,7 @@ namespace UnitTestProject1
         public void TestMethod1()
         {
             ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}${${$}$}$[$[$]$]$[$]]");
+            ParseAndAssert("[[ ]]", "P[[[ ]]]");
             ParseAndAssert("{{Test}}{{}}[[]][]", "P[{{Test}}{{}}[[]][]]", new WikitextParserOptions
             {
                 AllowEmptyTemplateName = true,

@@ -64,12 +64,16 @@ namespace MwParserFromScratch.Nodes
         private Run _Target;
         private Run _Text;
 
+        /// <summary>Wikilink target.</summary>
+        /// <value>Single link expandable text, or <c>null</c> if target is empty and <seealso cref="WikitextParserOptions.AllowEmptyWikiLinkTarget"/> is <c>true</c>.</value>
         public Run Target
         {
             get { return _Target; }
             set { Attach(ref _Target, value); }
         }
 
+        /// <summary>Wikilink display text.</summary>
+        /// <value>Single link expandable text, or <c>null</c> if there is no pipe mark in the Wikilink.</value>
         public Run Text
         {
             get { return _Text; }
@@ -90,6 +94,7 @@ namespace MwParserFromScratch.Nodes
             return new WikiLink { Target = Target, Text = Text };
         }
 
+        /// <inheritdoc />
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
         
         /// <param name="builder"></param>
@@ -97,9 +102,13 @@ namespace MwParserFromScratch.Nodes
         /// <inheritdoc />
         internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
+            // Target == null when parsing `[[]]` with AllowEmptyWikiLinkTarget enabled.
             if (Text == null)
             {
-                formatter(Target, builder);
+                if (Target != null)
+                {
+                    formatter(Target, builder);
+                }
                 return;
             }
             if (Text.Inlines.Count > 0)

@@ -55,6 +55,8 @@ namespace UnitTestProject1.Primitive
             var rootExpr = Utility.Dump(root);
             Output.WriteLine("AST Dump --------------------");
             Output.WriteLine(EscapeString(rootExpr));
+            Output.WriteLine("Plain text --------------------");
+            Output.WriteLine(root.ToPlainText());
             Output.WriteLine("=============================");
             Assert.Equal(EscapeString(expectedDump), EscapeString(rootExpr));
             if (!options.AllowClosingMarkInference) 
