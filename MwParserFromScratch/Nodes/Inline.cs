@@ -890,7 +890,8 @@ namespace MwParserFromScratch.Nodes
         /// <inheritdoc />
         internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            formatter(Content, builder);
+            if (Content != null)
+                formatter(Content, builder);
         }
 
     }
