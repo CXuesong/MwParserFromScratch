@@ -15,6 +15,14 @@ namespace MwParserFromScratch.Nodes
 
     }
 
+    public interface ITextLink
+    {
+        Run Target { get; set; }
+        Run Text { get; set; }
+
+        string ToPlainText();
+    }
+
     public class PlainText : InlineNode
     {
         public PlainText() : this(null)
@@ -59,7 +67,7 @@ namespace MwParserFromScratch.Nodes
     /// <summary>
     /// <c>[[Target|text]]</c>
     /// </summary>
-    public class WikiLink : InlineNode
+    public class WikiLink : InlineNode, ITextLink
     {
         private Run _Target;
         private Run _Text;
@@ -96,7 +104,7 @@ namespace MwParserFromScratch.Nodes
 
         /// <inheritdoc />
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
-        
+
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
@@ -153,7 +161,7 @@ namespace MwParserFromScratch.Nodes
             Target = target;
             Arguments = new WikiImageLinkArgumentCollection(this);
         }
-        
+
         /// <summary>
         /// Title of the image.
         /// </summary>
@@ -207,7 +215,7 @@ namespace MwParserFromScratch.Nodes
             if (alt != null) formatter(alt, builder);
             var caption = Arguments.Caption;
             // delimit alt text and caption with a space.
-            if (alt != null && caption != null) 
+            if (alt != null && caption != null)
                 builder.Append(' ');
             if (caption != null) formatter(caption, builder);
         }
@@ -284,7 +292,7 @@ namespace MwParserFromScratch.Nodes
         }
     }
 
-    public class ExternalLink : InlineNode
+    public class ExternalLink : InlineNode, ITextLink
     {
         private Run _Target;
         private Run _Text;
@@ -342,7 +350,7 @@ namespace MwParserFromScratch.Nodes
         {
             if (!Brackets)
             {
-                formatter( Target, builder);
+                formatter(Target, builder);
             }
             else
             {
@@ -714,7 +722,7 @@ namespace MwParserFromScratch.Nodes
         public TagAttributeCollection Attributes { get; }
 
         protected abstract void BuildContentString(StringBuilder builder);
-        
+
         /// <summary>
         /// Enumerates the children of this node.
         /// </summary>
