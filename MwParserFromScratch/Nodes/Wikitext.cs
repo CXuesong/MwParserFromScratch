@@ -40,8 +40,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new Wikitext();
-            n.Lines.Add(Lines);
+            var n = new Wikitext(Lines);
             return n;
         }
 
@@ -223,7 +222,7 @@ namespace MwParserFromScratch.Nodes
             return string.Join(null, Inlines);
         }
     }
-    
+
     public class ListItem : InlineContainerLineNode
     {
         public ListItem()
@@ -319,7 +318,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new Heading(Inlines) { Level = Level };
+            var n = new Heading(Inlines) { Level = Level, Suffix = Suffix };
             return n;
         }
 

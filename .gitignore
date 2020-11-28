@@ -243,3 +243,6 @@ ModelManifest.xml
 
 _private/
 **/Properties/launchSettings.json
+
+#VSCode
+.vscode/

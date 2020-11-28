@@ -96,7 +96,7 @@ namespace MwParserFromScratch.Nodes
 
         /// <inheritdoc />
         public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
-        
+
         /// <param name="builder"></param>
         /// <param name="formatter"></param>
         /// <inheritdoc />
@@ -153,7 +153,7 @@ namespace MwParserFromScratch.Nodes
             Target = target;
             Arguments = new WikiImageLinkArgumentCollection(this);
         }
-        
+
         /// <summary>
         /// Title of the image.
         /// </summary>
@@ -207,7 +207,7 @@ namespace MwParserFromScratch.Nodes
             if (alt != null) formatter(alt, builder);
             var caption = Arguments.Caption;
             // delimit alt text and caption with a space.
-            if (alt != null && caption != null) 
+            if (alt != null && caption != null)
                 builder.Append(' ');
             if (caption != null) formatter(caption, builder);
         }
@@ -324,7 +324,12 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            return new ExternalLink { Target = Target, Text = Text };
+            return new ExternalLink
+            {
+                Target = Target,
+                Text = Text,
+                Brackets = Brackets
+            };
         }
 
         public override string ToString()
@@ -342,7 +347,7 @@ namespace MwParserFromScratch.Nodes
         {
             if (!Brackets)
             {
-                formatter( Target, builder);
+                formatter(Target, builder);
             }
             else
             {
@@ -459,7 +464,7 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            var n = new Template { Name = Name };
+            var n = new Template { Name = Name, IsMagicWord = IsMagicWord };
             n.Arguments.Add(Arguments);
             return n;
         }
@@ -714,7 +719,7 @@ namespace MwParserFromScratch.Nodes
         public TagAttributeCollection Attributes { get; }
 
         protected abstract void BuildContentString(StringBuilder builder);
-        
+
         /// <summary>
         /// Enumerates the children of this node.
         /// </summary>
@@ -1009,7 +1014,15 @@ namespace MwParserFromScratch.Nodes
 
         protected override Node CloneCore()
         {
-            return new TagAttribute { Name = Name, Value = Value };
+            return new TagAttribute
+            {
+                Name = Name,
+                Value = Value,
+                Quote = Quote,
+                LeadingWhitespace = LeadingWhitespace,
+                WhitespaceAfterEqualSign = WhitespaceAfterEqualSign,
+                WhitespaceBeforeEqualSign = WhitespaceBeforeEqualSign
+            };
         }
 
         public override string ToString()
