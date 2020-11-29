@@ -164,6 +164,9 @@ namespace MwParserFromScratch
                 CurrentContext.Terminator = null;
                 var value = ParseWikitext();
                 Debug.Assert(value != null);
+
+                MwParserUtility.NormalizeTemplateArgumentText(value);
+
                 return ParseSuccessful(new TemplateArgument(a, value));
             }
             return ParseSuccessful(new TemplateArgument(null, a));
@@ -287,7 +290,7 @@ namespace MwParserFromScratch
                 return true;
             }
             closingTagMatch = matcher.Match(closingTag);
-            CLOSE_TAG:
+        CLOSE_TAG:
             Debug.Assert(closingTagMatch.Success);
             Debug.Assert(closingTagMatch.Groups[1].Success);
             Debug.Assert(closingTagMatch.Groups[2].Success);

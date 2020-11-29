@@ -33,6 +33,26 @@ namespace MwParserFromScratch
             return argumentName.Trim();
         }
 
+        /// <summary>
+        /// Normalizes and manipulates a template argument name or value.
+        /// </summary>
+        /// <inheritdoc cref="NormalizeTemplateArgumentText(Wikitext)"/>
+        /// <param name="text">The wikitext to be manipulated.</param>
+        internal static void NormalizeTemplateArgumentText(Wikitext text)
+        {
+            if (text.Lines.First() is Paragraph firstParagraph)
+            {
+                if (firstParagraph.Inlines.First() is PlainText firstPlainText)
+                    firstPlainText.Content = firstPlainText.Content.TrimStart();
+            }
+
+            if (text.Lines.Last() is Paragraph lastParagraph)
+            {
+                if (lastParagraph.Inlines.Last() is PlainText lastPlainText)
+                    lastPlainText.Content = lastPlainText.Content.TrimEnd();
+            }
+        }
+
         /// <inheritdoc cref="NormalizeImageLinkArgumentName(string)"/>
         /// <param name="argumentName">The argument name to be normalized. The node will be converted into its string representation.</param>
         public static string NormalizeImageLinkArgumentName(Node argumentName)
@@ -80,7 +100,7 @@ namespace MwParserFromScratch
         public static string NormalizeTitle(string title)
         {
             if (string.IsNullOrEmpty(title)) return title;
-            var parts = title.Split(new[] {':'}, 2);
+            var parts = title.Split(new[] { ':' }, 2);
             for (int i = 0; i < parts.Length; i++)
                 parts[i] = Utility.NormalizeTitlePart(parts[i], false);
             return string.Join(":", parts);
