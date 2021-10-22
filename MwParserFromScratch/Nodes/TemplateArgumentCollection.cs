@@ -102,32 +102,48 @@ namespace MwParserFromScratch.Nodes
         /// or equal than 1, because there might exist template argument with the name such as "-1", which
         /// can still be matched using this accessor.
         /// </param>
-        /// <exception cref="ArgumentNullException"><see cref="name"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
         public bool Contains(int name) => Contains(name.ToString());
+
+        /// <inheritdoc cref="SetValue(string,Wikitext)"/>
+        public TemplateArgument SetValue(Wikitext argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
 
         /// <summary>
         /// Sets the value of the specified template argument. If the argument doesn't exist,
         /// this function will create a new one and returns it.
         /// </summary>
         /// <param name="argumentName">The name of the argument to set.</param>
-        /// <param name="argumentValue">The new value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</param>
-        /// <returns>The <see cref="TemplateArgument"/> whose value has been set/created.</returns>
+        /// <param name="argumentValue">
+        /// The new value of the argument.
+        /// If the value is empty, it should be an empty <see cref="Wikitext"/> instance.
+        /// If <c>null</c> is specified, the argument will be removed if previously exists.
+        /// </param>
+        /// <returns>The <see cref="TemplateArgument"/> whose value has been set/created; or <c>null</c> if the node has been removed.</returns>
         /// <remarks>If there are multiple arguments sharing the same name, the value of the effective one (often the last one) will be set and returned.</remarks>
-        /// <exception cref="ArgumentNullException">Either <paramref name="argumentName"/> or <paramref name="argumentValue"/> is <c>null</c>.</exception>
-        public TemplateArgument SetValue(Wikitext argumentName, Wikitext argumentValue)
+        /// <exception cref="ArgumentNullException">Either <paramref name="argumentName"/> is <c>null</c>.</exception>
+        public TemplateArgument SetValue(string argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
+
+        private TemplateArgument SetValue(object argumentName, Wikitext argumentValue)
         {
+            Debug.Assert(argumentName is string || argumentName is Wikitext);
             if (argumentName == null) throw new ArgumentNullException(nameof(argumentName));
-            if (argumentValue == null) throw new ArgumentNullException(nameof(argumentValue));
             var arg = this[argumentName.ToString()];
             if (arg == null)
             {
+                if (argumentValue == null) return null;
+                var argNameNode = argumentName is Wikitext w ? w : new Wikitext((string)argumentName);
                 // TODO automatically convert named argument to positional one
                 // E.g. {{T|1=abc}} --> {{T|abc}}
-                arg = new TemplateArgument(argumentName, argumentValue);
+                arg = new TemplateArgument(argNameNode, argumentValue);
                 Add(arg);
             }
             else
             {
+                if (argumentValue == null)
+                {
+                    arg.Remove();
+                    return null;
+                }
                 arg.Value = argumentValue;
             }
             return arg;
