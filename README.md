@@ -4,6 +4,8 @@
 
 A .NET Library for parsing wikitext into AST. The repository is still under development, but it can already handle most part of wikitext.
 
+[FuGet Gallery](https://www.fuget.org/packages/CXuesong.MW.MwParserFromScratch/0.3.0-int.6): See library classes and API documentation.
+
 ## Usage
 
 This package is now on NuGet. You may install the package using one of the following commands
@@ -12,7 +14,7 @@ This package is now on NuGet. You may install the package using one of the follo
 #  Package Management Console
 Install-Package CXuesong.MW.MwParserFromScratch -Pre
 #  .NET CLI
-dotnet add package CXuesong.MW.MwParserFromScratch -v 3.0.0-int.2
+dotnet add package CXuesong.MW.MwParserFromScratch -v 3.0.0-int.6
 ```
 
 After adding reference to this library, import the namespaces
