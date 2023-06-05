@@ -256,7 +256,7 @@ namespace MwParserFromScratch.Nodes
 
         void INodeCollection.InsertAfter(Node node, Node newNode)
         {
-            InsertBefore((TNode) node, (TNode) newNode);
+            InsertAfter((TNode) node, (TNode) newNode);
         }
 
         bool INodeCollection.Remove(Node item)
