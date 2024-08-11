@@ -889,7 +889,7 @@ namespace MwParserFromScratch.Nodes
         {
             set
             {
-                if (value == TagStyle.SelfClosing && value == TagStyle.CompactSelfClosing)
+                if (value is TagStyle.SelfClosing or TagStyle.CompactSelfClosing)
                 {
                     if (Content != null && Content.Lines.Count > 0)
                         throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");
@@ -904,8 +904,30 @@ namespace MwParserFromScratch.Nodes
         /// <inheritdoc />
         internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
         {
-            if (Content != null)
-                formatter(Content, builder);
+            if (string.Equals(Name, "br", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Name, "hr", StringComparison.OrdinalIgnoreCase))
+            {
+                // for <br /> or <hr />, by default, we want to actually render a line break.
+                // Abnormal cases in MW:
+                // <br>abc</br> will be rendered as <br />abc<br />.
+                // <br></br> will be rendered as <br /><br />.
+                // In practice, however, <br>abc</br> won't be parsed correctly, as <br> itself as self-closing.
+                // See WikitextParserOptions.DefaultSelfClosingOnlyTags
+                builder.Append('\n');
+                if (Content != null)
+                {
+                    formatter(Content, builder);
+                    builder.Append('\n');
+                }
+                return;
+            }
+
+            // We are not wrapping other block-style elements, e.g., <div>, with \n,
+            // as these elements could be overridden into inline-style. Inline elements, e.g., <span>
+            // could be otherwise overridden into block-style.
+            // We leave such triaging responsibility to the library consumer (`formatter` arg).
+
+            if (Content != null) formatter(Content, builder);
         }
 
     }

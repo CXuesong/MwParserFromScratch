@@ -364,6 +364,8 @@ namespace MwParserFromScratch.Nodes
 
         private static void DefaultNodePlainTextFormatter(Node node, StringBuilder builder)
         {
+            Debug.Assert(node != null);
+            Debug.Assert(builder != null);
             node.ToPlainTextCore(builder, DefaultNodePlainTextFormatter);
         }
 
