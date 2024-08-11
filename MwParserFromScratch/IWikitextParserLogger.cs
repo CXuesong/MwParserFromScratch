@@ -5,26 +5,25 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MwParserFromScratch
+namespace MwParserFromScratch;
+
+/// <summary>
+/// Exposes methods to trace the behavior of <see cref="WikitextParser"/>.
+/// </summary>
+public interface IWikitextParserLogger
 {
+    void NotifyParsingStarted(string text);
+
     /// <summary>
-    /// Exposes methods to trace the behavior of <see cref="WikitextParser"/>.
+    /// Called when a fallback in parsing has happened during parsing process.
     /// </summary>
-    public interface IWikitextParserLogger
-    {
-        void NotifyParsingStarted(string text);
+    /// <param name="offset">Current character index, before falling back.</param>
+    /// <param name="contextStackSize">The size of context stack. This may reflect the depth of parsing.</param>
+    void NotifyFallback(int offset, int contextStackSize);
 
-        /// <summary>
-        /// Called when a fallback in parsing has happened during parsing process.
-        /// </summary>
-        /// <param name="offset">Current character index, before falling back.</param>
-        /// <param name="contextStackSize">The size of context stack. This may reflect the depth of parsing.</param>
-        void NotifyFallback(int offset, int contextStackSize);
+    void NotifyParsingFinished();
 
-        void NotifyParsingFinished();
+    void NotifyRegexMatchingStarted(int offset, Regex expression);
 
-        void NotifyRegexMatchingStarted(int offset, Regex expression);
-
-        void NotifyRegexMatchingFinished(int offset, Regex expression);
-    }
+    void NotifyRegexMatchingFinished(int offset, Regex expression);
 }

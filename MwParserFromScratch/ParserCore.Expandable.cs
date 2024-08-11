@@ -6,15 +6,15 @@ using System.Text;
 using System.Text.RegularExpressions;
 using MwParserFromScratch.Nodes;
 
-namespace MwParserFromScratch
-{
-    partial class ParserCore
-    {
-        private static readonly Regex commentSuffixMatcher = new Regex("-->");
-        private static readonly Dictionary<string, Regex> closingTagMatcherCache = new Dictionary<string, Regex>();
+namespace MwParserFromScratch;
 
-        private Comment ParseComment()
-        {
+partial class ParserCore
+{
+    private static readonly Regex commentSuffixMatcher = new Regex("-->");
+    private static readonly Dictionary<string, Regex> closingTagMatcherCache = new Dictionary<string, Regex>();
+
+    private Comment ParseComment()
+    {
             ParseStart();
             if (ConsumeToken("<!--") == null) return ParseFailed<Comment>();
             var contentPos = position;
@@ -28,11 +28,11 @@ namespace MwParserFromScratch
             return ParseSuccessful(new Comment(fulltext.Substring(contentPos)));
         }
 
-        /// <summary>
-        /// This function is intended to handle braces.
-        /// </summary>
-        private InlineNode ParseBraces()
-        {
+    /// <summary>
+    /// This function is intended to handle braces.
+    /// </summary>
+    private InlineNode ParseBraces()
+    {
             InlineNode node;
             // Known Issue: The derivation is ambiguous for {{{{T}}}} .
             // Current implementation will treat it as {{{ {T }}} }, where {T is rendered as normal text,
@@ -64,11 +64,11 @@ namespace MwParserFromScratch
             return null;
         }
 
-        /// <summary>
-        /// ARGUMENT_REF
-        /// </summary>
-        private ArgumentReference ParseArgumentReference()
-        {
+    /// <summary>
+    /// ARGUMENT_REF
+    /// </summary>
+    private ArgumentReference ParseArgumentReference()
+    {
             ParseStart(@"\}\}\}|\|", true);
             if (ConsumeToken(@"\{\{\{") == null)
                 return ParseFailed<ArgumentReference>();
@@ -84,11 +84,11 @@ namespace MwParserFromScratch
             return ParseSuccessful(new ArgumentReference(name, defaultValue));
         }
 
-        /// <summary>
-        /// TEMPLATE
-        /// </summary>
-        private Template ParseTemplate()
-        {
+    /// <summary>
+    /// TEMPLATE
+    /// </summary>
+    private Template ParseTemplate()
+    {
             ParseStart(@"\}\}|\|", true);
             if (ConsumeToken(@"\{\{") == null)
                 return ParseFailed<Template>();
@@ -150,11 +150,11 @@ namespace MwParserFromScratch
             return ParseSuccessful(node);
         }
 
-        /// <summary>
-        /// TEMPLATE_ARG
-        /// </summary>
-        private TemplateArgument ParseTemplateArgument()
-        {
+    /// <summary>
+    /// TEMPLATE_ARG
+    /// </summary>
+    private TemplateArgument ParseTemplateArgument()
+    {
             ParseStart(@"=", false);
             var a = ParseWikitext();
             Debug.Assert(a != null);
@@ -169,8 +169,8 @@ namespace MwParserFromScratch
             return ParseSuccessful(new TemplateArgument(null, a));
         }
 
-        private TagNode ParseTag()
-        {
+    private TagNode ParseTag()
+    {
             ParseStart();
             if (ConsumeToken("<") == null) return ParseFailed<TagNode>();
             var tagName = ConsumeToken(@"[\w-_:]+");
@@ -231,8 +231,8 @@ namespace MwParserFromScratch
             return ParseFailed<TagNode>();
         }
 
-        private bool ParseUntilClosingTag(TagNode tag)
-        {
+    private bool ParseUntilClosingTag(TagNode tag)
+    {
             var normalizedTagName = tag.Name.ToLowerInvariant();
             Regex matcher;
             var closingTagExpr = "(?i)</(" + Regex.Escape(normalizedTagName) + @")(\s*)>";
@@ -298,8 +298,8 @@ namespace MwParserFromScratch
             return true;
         }
 
-        private Run ParseAttributeName()
-        {
+    private Run ParseAttributeName()
+    {
             ParseStart(@"/?>|[\s=]", true);
             var node = new Run();
             if (ParseRun(RunParsingMode.Run, node, false))
@@ -307,8 +307,8 @@ namespace MwParserFromScratch
             return ParseFailed<Run>();
         }
 
-        private Wikitext ParseAttributeValue(ValueQuoteType quoteType)
-        {
+    private Wikitext ParseAttributeValue(ValueQuoteType quoteType)
+    {
             Wikitext node;
             ParseStart(null, true);
             switch (quoteType)
@@ -346,5 +346,4 @@ namespace MwParserFromScratch
             }
             return ParseFailed<Wikitext>();
         }
-    }
 }

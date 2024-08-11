@@ -6,54 +6,54 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MwParserFromScratch.Nodes
+namespace MwParserFromScratch.Nodes;
+
+internal interface INodeCollection
 {
-    internal interface INodeCollection
+    void InsertBefore(Node node, Node newNode);
+
+    void InsertAfter(Node node, Node newNode);
+
+    bool Remove(Node node);
+}
+
+/// <summary>
+/// Represents a collection of nodes.
+/// The children are maintained as a bi-directional linked list.
+/// </summary>
+[DebuggerDisplay("Count = {" + nameof(_Count) + "}")]
+[DebuggerTypeProxy(typeof(NodeCollection<>.DebugView))]
+public class NodeCollection<TNode> : ICollection<TNode>, INodeCollection
+    where TNode : Node
+{
+    private readonly Node _Owner;
+    private int _Count;
+
+    internal NodeCollection(Node owner)
     {
-        void InsertBefore(Node node, Node newNode);
-
-        void InsertAfter(Node node, Node newNode);
-
-        bool Remove(Node node);
-    }
-
-    /// <summary>
-    /// Represents a collection of nodes.
-    /// The children are maintained as a bi-directional linked list.
-    /// </summary>
-    [DebuggerDisplay("Count = {" + nameof(_Count) + "}")]
-    [DebuggerTypeProxy(typeof(NodeCollection<>.DebugView))]
-    public class NodeCollection<TNode> : ICollection<TNode>, INodeCollection
-        where TNode : Node
-    {
-        private readonly Node _Owner;
-        private int _Count;
-
-        internal NodeCollection(Node owner)
-        {
             Debug.Assert(owner != null);
             _Owner = owner;
         }
 
-        /// <summary>
-        /// The first node.
-        /// </summary>
-        public TNode FirstNode { get; private set; }
+    /// <summary>
+    /// The first node.
+    /// </summary>
+    public TNode FirstNode { get; private set; }
 
-        /// <summary>
-        /// The last node.
-        /// </summary>
-        public TNode LastNode { get; private set; }
+    /// <summary>
+    /// The last node.
+    /// </summary>
+    public TNode LastNode { get; private set; }
 
-        /// <summary>
-        /// Appends a new node into the children collection.
-        /// </summary>
-        /// <param name="node">The node to be added.</param>
-        /// <remarks>A clone of <paramref name="node"/> will be added into the children collection if the node has already attached to the syntax tree.</remarks>
-        /// <exception cref="ArgumentNullException"><paramref name="node"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">The type of <paramref name="node"/> is invalid for the container.</exception>
-        public void Add(TNode node)
-        {
+    /// <summary>
+    /// Appends a new node into the children collection.
+    /// </summary>
+    /// <param name="node">The node to be added.</param>
+    /// <remarks>A clone of <paramref name="node"/> will be added into the children collection if the node has already attached to the syntax tree.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="node"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The type of <paramref name="node"/> is invalid for the container.</exception>
+    public void Add(TNode node)
+    {
             if (node == null) throw new ArgumentNullException(nameof(node));
             // Attach the child. Copy node if necessary.
             node = _Owner.Attach(node);
@@ -74,21 +74,21 @@ namespace MwParserFromScratch.Nodes
             _Count++;
         }
 
-        /// <summary>
-        /// Appends a node to the head of the collection.
-        /// </summary>
-        /// <param name="node">The node to be added.</param>
-        public void AddFirst(TNode node)
-        {
+    /// <summary>
+    /// Appends a node to the head of the collection.
+    /// </summary>
+    /// <param name="node">The node to be added.</param>
+    public void AddFirst(TNode node)
+    {
             if (FirstNode == null) Add(node);
             else InsertBefore(FirstNode, node);
         }
 
-        /// <summary>
-        /// Adds nodes directly from source collection and clears source collection.
-        /// </summary>
-        internal void AddFrom(NodeCollection<TNode> source)
-        {
+    /// <summary>
+    /// Adds nodes directly from source collection and clears source collection.
+    /// </summary>
+    internal void AddFrom(NodeCollection<TNode> source)
+    {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (source.Count == 0) return;
             foreach (var node in source)
@@ -112,8 +112,8 @@ namespace MwParserFromScratch.Nodes
             source._Count = 0;
         }
 
-        public void Clear()
-        {
+    public void Clear()
+    {
             Node node = FirstNode;
             while (node != null)
             {
@@ -125,14 +125,14 @@ namespace MwParserFromScratch.Nodes
             _Count = 0;
         }
 
-        public bool Contains(TNode item)
-        {
+    public bool Contains(TNode item)
+    {
             if (item == null) return false;
             return ((IEnumerable<TNode>) this).Contains(item);
         }
 
-        public void CopyTo(TNode[] array, int arrayIndex)
-        {
+    public void CopyTo(TNode[] array, int arrayIndex)
+    {
             if (array == null) throw new ArgumentNullException(nameof(array));
             if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
             if (array.Length - arrayIndex < Count) throw new ArgumentException(nameof(arrayIndex));
@@ -143,23 +143,23 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        public int Count => _Count;
+    public int Count => _Count;
 
-        /// <summary>
-        /// Appends new nodes into the children collection.
-        /// </summary>
-        /// <param name="nodes">The nodes to be added.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">The type of a element in <paramref name="nodes"/> is invalid for the container.</exception>
-        public void Add(IEnumerable<TNode> nodes)
-        {
+    /// <summary>
+    /// Appends new nodes into the children collection.
+    /// </summary>
+    /// <param name="nodes">The nodes to be added.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The type of a element in <paramref name="nodes"/> is invalid for the container.</exception>
+    public void Add(IEnumerable<TNode> nodes)
+    {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
             foreach (var n in nodes)
                 Add(n);
         }
 
-        internal void InsertBefore(TNode node, TNode newNode)
-        {
+    internal void InsertBefore(TNode node, TNode newNode)
+    {
             Debug.Assert(node != null);
             Debug.Assert(node.ParentNode == _Owner);
             Debug.Assert(newNode != null);
@@ -181,8 +181,8 @@ namespace MwParserFromScratch.Nodes
             node.PreviousNode = newNode;
         }
 
-        internal void InsertAfter(TNode node, TNode newNode)
-        {
+    internal void InsertAfter(TNode node, TNode newNode)
+    {
             Debug.Assert(node != null);
             Debug.Assert(node.ParentNode == _Owner);
             Debug.Assert(newNode != null);
@@ -204,11 +204,11 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        /// <summary>
-        /// Returns a reversed sequence of the collection items.
-        /// </summary>
-        public IEnumerable<TNode> Reverse()
-        {
+    /// <summary>
+    /// Returns a reversed sequence of the collection items.
+    /// </summary>
+    public IEnumerable<TNode> Reverse()
+    {
             var node = LastNode;
             while (node != null)
             {
@@ -217,50 +217,50 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        /// <summary>
-        /// 返回一个循环访问集合的枚举器。
-        /// </summary>
-        /// <returns>
-        /// 可用于循环访问集合的 <see cref="T:System.Collections.Generic.IEnumerator`1"/>。
-        /// </returns>
-        public IEnumerator<TNode> GetEnumerator()
-        {
+    /// <summary>
+    /// 返回一个循环访问集合的枚举器。
+    /// </summary>
+    /// <returns>
+    /// 可用于循环访问集合的 <see cref="T:System.Collections.Generic.IEnumerator`1"/>。
+    /// </returns>
+    public IEnumerator<TNode> GetEnumerator()
+    {
             return new MyEnumerator(this);
         }
 
-        /// <summary>
-        /// 返回一个循环访问集合的枚举器。
-        /// </summary>
-        /// <returns>
-        /// 可用于循环访问集合的 <see cref="T:System.Collections.IEnumerator"/> 对象。
-        /// </returns>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
+    /// <summary>
+    /// 返回一个循环访问集合的枚举器。
+    /// </summary>
+    /// <returns>
+    /// 可用于循环访问集合的 <see cref="T:System.Collections.IEnumerator"/> 对象。
+    /// </returns>
+    IEnumerator IEnumerable.GetEnumerator()
+    {
             return GetEnumerator();
         }
 
-        /// <summary>
-        /// Please use <see cref="Node.Remove"/> instead.
-        /// </summary>
-        bool ICollection<TNode>.Remove(TNode item)
-        {
+    /// <summary>
+    /// Please use <see cref="Node.Remove"/> instead.
+    /// </summary>
+    bool ICollection<TNode>.Remove(TNode item)
+    {
             return ((INodeCollection) this).Remove(item);
         }
 
-        bool ICollection<TNode>.IsReadOnly => false;
+    bool ICollection<TNode>.IsReadOnly => false;
 
-        void INodeCollection.InsertBefore(Node node, Node newNode)
-        {
+    void INodeCollection.InsertBefore(Node node, Node newNode)
+    {
             InsertBefore((TNode) node, (TNode) newNode);
         }
 
-        void INodeCollection.InsertAfter(Node node, Node newNode)
-        {
+    void INodeCollection.InsertAfter(Node node, Node newNode)
+    {
             InsertAfter((TNode) node, (TNode) newNode);
         }
 
-        bool INodeCollection.Remove(Node item)
-        {
+    bool INodeCollection.Remove(Node item)
+    {
             if (item.ParentCollection != this) return false;
             Debug.Assert(item.ParentNode == _Owner);
             item.ParentCollection = null;
@@ -288,13 +288,13 @@ namespace MwParserFromScratch.Nodes
             return true;
         }
 
-        private sealed class MyEnumerator : IEnumerator<TNode>
-        {
-            private readonly NodeCollection<TNode> _Owner;
-            private bool needsReset = true;
+    private sealed class MyEnumerator : IEnumerator<TNode>
+    {
+        private readonly NodeCollection<TNode> _Owner;
+        private bool needsReset = true;
 
-            public bool MoveNext()
-            {
+        public bool MoveNext()
+        {
                 if (needsReset)
                 {
                     Current = _Owner.FirstNode;
@@ -307,38 +307,37 @@ namespace MwParserFromScratch.Nodes
                 return Current != null;
             }
 
-            public void Reset()
-            {
+        public void Reset()
+        {
                 needsReset = true;
             }
 
-            public TNode Current { get; private set; }
+        public TNode Current { get; private set; }
 
-            object IEnumerator.Current => Current;
+        object IEnumerator.Current => Current;
 
-            public void Dispose()
-            {
+        public void Dispose()
+        {
 
             }
 
-            public MyEnumerator(NodeCollection<TNode> owner)
-            {
+        public MyEnumerator(NodeCollection<TNode> owner)
+        {
                 Debug.Assert(owner != null);
                 _Owner = owner;
             }
-        }
+    }
 
-        internal class DebugView
+    internal class DebugView
+    {
+        private readonly NodeCollection<TNode> owner;
+
+        public DebugView(NodeCollection<TNode> owner)
         {
-            private readonly NodeCollection<TNode> owner;
-
-            public DebugView(NodeCollection<TNode> owner)
-            {
                 this.owner = owner;
             }
 
-            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-            public TNode[] Items => owner.ToArray();
-        }
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public TNode[] Items => owner.ToArray();
     }
 }

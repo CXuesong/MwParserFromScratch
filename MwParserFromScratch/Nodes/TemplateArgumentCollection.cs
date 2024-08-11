@@ -6,31 +6,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MwParserFromScratch.Nodes
-{
-    /// <summary>
-    /// Represents a collection of <see cref="TemplateArgument"/>,
-    /// which can be accessed via argument names.
-    /// </summary>
-    public class TemplateArgumentCollection : NodeCollection<TemplateArgument>
-    {
+namespace MwParserFromScratch.Nodes;
 
-        internal TemplateArgumentCollection(Node owner) : base(owner)
-        {
+/// <summary>
+/// Represents a collection of <see cref="TemplateArgument"/>,
+/// which can be accessed via argument names.
+/// </summary>
+public class TemplateArgumentCollection : NodeCollection<TemplateArgument>
+{
+
+    internal TemplateArgumentCollection(Node owner) : base(owner)
+    {
 
         }
 
-        /// <summary>
-        /// Enumerates the normalized name-<see cref="TemplateArgument"/> pairs in the collection.
-        /// </summary>
-        /// <remarks>If there are arguments with duplicate names, they will nonetheless be included in the sequence.</remarks>
-        public IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs()
-        {
+    /// <summary>
+    /// Enumerates the normalized name-<see cref="TemplateArgument"/> pairs in the collection.
+    /// </summary>
+    /// <remarks>If there are arguments with duplicate names, they will nonetheless be included in the sequence.</remarks>
+    public IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs()
+    {
             return EnumNameArgumentPairs(false);
         }
 
-        private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs(bool reverse)
-        {
+    private IEnumerable<KeyValuePair<string, TemplateArgument>> EnumNameArgumentPairs(bool reverse)
+    {
             int unnamedCounter = reverse ? this.Count(arg => arg.Name == null) : 1; // for positional arguments
             foreach (var arg in reverse ? Reverse() : this)
             {
@@ -48,83 +48,83 @@ namespace MwParserFromScratch.Nodes
             }
         }
 
-        /// <summary>
-        /// Gets an argument with the specified name.
-        /// </summary>
-        /// <param name="name">
-        /// The name of argument that will be tested. Can either be a name or 1-based index.
-        /// Leading and trailing white spaces will be ignored.
-        /// </param>
-        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
-        /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
-        public TemplateArgument this[string name]
+    /// <summary>
+    /// Gets an argument with the specified name.
+    /// </summary>
+    /// <param name="name">
+    /// The name of argument that will be tested. Can either be a name or 1-based index.
+    /// Leading and trailing white spaces will be ignored.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
+    /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
+    public TemplateArgument this[string name]
+    {
+        get
         {
-            get
-            {
                 if (name == null) throw new ArgumentNullException(nameof(name));
                 name = name.Trim();
                 // We want to choose the last matching arguments, if there are multiple choices.
                 return EnumNameArgumentPairs(true).FirstOrDefault(p => p.Key == name).Value;
             }
-        }
+    }
 
-        /// <summary>
-        /// Gets an argument with the specified positional argument index.
-        /// </summary>
-        /// <param name="name">
-        /// The index of argument that will be tested. Note that this index will not necessarily greater
-        /// or equal than 1, because there might exist template argument with the name such as "-1", which
-        /// can still be matched using this accessor.
-        /// </param>
-        /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
-        public TemplateArgument this[int name] => this[name.ToString()];
+    /// <summary>
+    /// Gets an argument with the specified positional argument index.
+    /// </summary>
+    /// <param name="name">
+    /// The index of argument that will be tested. Note that this index will not necessarily greater
+    /// or equal than 1, because there might exist template argument with the name such as "-1", which
+    /// can still be matched using this accessor.
+    /// </param>
+    /// <returns>A matching <see cref="TemplateArgument"/> with the specified name, or <c>null</c> if no matching template is found.</returns>
+    public TemplateArgument this[int name] => this[name.ToString()];
 
-        /// <summary>
-        /// Determines whether an argument with the specified name exists.
-        /// </summary>
-        /// <param name="name">
-        /// The name of argument that will be tested. Can either be a name or 1-based index.
-        /// Leading and trailing white spaces will be ignored.
-        /// </param>
-        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
-        public bool Contains(string name)
-        {
+    /// <summary>
+    /// Determines whether an argument with the specified name exists.
+    /// </summary>
+    /// <param name="name">
+    /// The name of argument that will be tested. Can either be a name or 1-based index.
+    /// Leading and trailing white spaces will be ignored.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
+    public bool Contains(string name)
+    {
             if (name == null) throw new ArgumentNullException(nameof(name));
             name = name.Trim();
             return EnumNameArgumentPairs(false).FirstOrDefault(p => p.Key == name).Value != null;
         }
 
-        /// <summary>
-        /// Determines whether an argument with the specified positional argument index exists.
-        /// </summary>
-        /// <param name="name">
-        /// The index of argument that will be tested. Note that this index will not necessarily greater
-        /// or equal than 1, because there might exist template argument with the name such as "-1", which
-        /// can still be matched using this accessor.
-        /// </param>
-        /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
-        public bool Contains(int name) => Contains(name.ToString());
+    /// <summary>
+    /// Determines whether an argument with the specified positional argument index exists.
+    /// </summary>
+    /// <param name="name">
+    /// The index of argument that will be tested. Note that this index will not necessarily greater
+    /// or equal than 1, because there might exist template argument with the name such as "-1", which
+    /// can still be matched using this accessor.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
+    public bool Contains(int name) => Contains(name.ToString());
 
-        /// <inheritdoc cref="SetValue(string,Wikitext)"/>
-        public TemplateArgument SetValue(Wikitext argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
+    /// <inheritdoc cref="SetValue(string,Wikitext)"/>
+    public TemplateArgument SetValue(Wikitext argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
 
-        /// <summary>
-        /// Sets the value of the specified template argument. If the argument doesn't exist,
-        /// this function will create a new one and returns it.
-        /// </summary>
-        /// <param name="argumentName">The name of the argument to set.</param>
-        /// <param name="argumentValue">
-        /// The new value of the argument.
-        /// If the value is empty, it should be an empty <see cref="Wikitext"/> instance.
-        /// If <c>null</c> is specified, the argument will be removed if previously exists.
-        /// </param>
-        /// <returns>The <see cref="TemplateArgument"/> whose value has been set/created; or <c>null</c> if the node has been removed.</returns>
-        /// <remarks>If there are multiple arguments sharing the same name, the value of the effective one (often the last one) will be set and returned.</remarks>
-        /// <exception cref="ArgumentNullException">Either <paramref name="argumentName"/> is <c>null</c>.</exception>
-        public TemplateArgument SetValue(string argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
+    /// <summary>
+    /// Sets the value of the specified template argument. If the argument doesn't exist,
+    /// this function will create a new one and returns it.
+    /// </summary>
+    /// <param name="argumentName">The name of the argument to set.</param>
+    /// <param name="argumentValue">
+    /// The new value of the argument.
+    /// If the value is empty, it should be an empty <see cref="Wikitext"/> instance.
+    /// If <c>null</c> is specified, the argument will be removed if previously exists.
+    /// </param>
+    /// <returns>The <see cref="TemplateArgument"/> whose value has been set/created; or <c>null</c> if the node has been removed.</returns>
+    /// <remarks>If there are multiple arguments sharing the same name, the value of the effective one (often the last one) will be set and returned.</remarks>
+    /// <exception cref="ArgumentNullException">Either <paramref name="argumentName"/> is <c>null</c>.</exception>
+    public TemplateArgument SetValue(string argumentName, Wikitext argumentValue) => SetValue((object)argumentName, argumentValue);
 
-        private TemplateArgument SetValue(object argumentName, Wikitext argumentValue)
-        {
+    private TemplateArgument SetValue(object argumentName, Wikitext argumentValue)
+    {
             Debug.Assert(argumentName is string || argumentName is Wikitext);
             if (argumentName == null) throw new ArgumentNullException(nameof(argumentName));
             var arg = this[argumentName.ToString()];
@@ -148,5 +148,4 @@ namespace MwParserFromScratch.Nodes
             }
             return arg;
         }
-    }
 }

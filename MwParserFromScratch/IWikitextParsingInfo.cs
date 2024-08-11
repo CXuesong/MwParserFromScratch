@@ -2,19 +2,18 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MwParserFromScratch
+namespace MwParserFromScratch;
+
+/// <summary>
+/// Provides extra information of parsing process.
+/// </summary>
+public interface IWikitextParsingInfo
 {
+
     /// <summary>
-    /// Provides extra information of parsing process.
+    /// Wether the closing mark of a template (}}) or an HTML tag (&lt;/ xxx&gt;) is implicitly
+    /// inferred by the wikitext parser.
     /// </summary>
-    public interface IWikitextParsingInfo
-    {
+    bool InferredClosingMark { get; }
 
-        /// <summary>
-        /// Wether the closing mark of a template (}}) or an HTML tag (&lt;/ xxx&gt;) is implicitly
-        /// inferred by the wikitext parser.
-        /// </summary>
-        bool InferredClosingMark { get; }
-
-    }
 }
