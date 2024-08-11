@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
+    <ImplicitUsings>Enable</ImplicitUsings>
+    <Nullable>Enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\MwParserFromScratch\MwParserFromScratch.csproj" />
