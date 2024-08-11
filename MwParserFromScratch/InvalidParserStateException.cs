@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-#if NET45
-using System.Runtime.Serialization;
-#endif
 
 namespace MwParserFromScratch
 {
@@ -18,9 +11,6 @@ namespace MwParserFromScratch
     /// attaching the original wikitext that suffered from this Exception, and the partial
     /// call stack that raises the exception.
     /// </remarks>
-#if NET45
-        [Serializable]
-#endif
     public class InvalidParserStateException : Exception
     {
         public InvalidParserStateException()
@@ -35,12 +25,5 @@ namespace MwParserFromScratch
         public InvalidParserStateException(string message, Exception inner) : base(message, inner)
         {
         }
-
-#if NET45
-        public InvalidParserStateException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-            
-        }
-#endif
     }
 }
