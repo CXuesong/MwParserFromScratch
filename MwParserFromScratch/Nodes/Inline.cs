@@ -806,7 +806,7 @@ namespace MwParserFromScratch.Nodes
         {
             set
             {
-                if (value == TagStyle.SelfClosing && value == TagStyle.CompactSelfClosing)
+                if (value is TagStyle.SelfClosing or TagStyle.CompactSelfClosing)
                 {
                     if (!string.IsNullOrEmpty(Content))
                         throw new InvalidOperationException("Cannot self-close a tag with non-empty content.");

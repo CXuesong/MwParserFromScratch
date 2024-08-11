@@ -90,10 +90,12 @@ namespace MwParserFromScratch
             if (position + skippedCharacters >= fulltext.Length)
                 return fulltext.Length;
             int index = fulltext.Length;
+
+            // Find the left-most terminator over all the context frames
             foreach (var context in contextStack)
             {
                 var newIndex = context.FindTerminator(fulltext, position + skippedCharacters, logger);
-                if (newIndex >= 0 && (index < 0 || newIndex < index))
+                if (newIndex >= 0 && newIndex < index)
                     index = newIndex;
             }
             return index;
