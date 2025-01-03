@@ -12,7 +12,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/CXuesong/MwParserFromScratch</PackageProjectUrl>
     <Authors>CXuesong</Authors>
-    <Version>0.3.0-int.8</Version>
+    <Version>0.3.0-int.9</Version>
     <PackageTags>MediaWiki Wikitext Parser</PackageTags>
     <RepositoryUrl>https://github.com/CXuesong/MwParserFromScratch</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
