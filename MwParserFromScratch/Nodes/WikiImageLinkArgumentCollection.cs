@@ -11,16 +11,17 @@ namespace MwParserFromScratch.Nodes;
 /// </summary>
 public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgument>
 {
+
     /// <inheritdoc />
     internal WikiImageLinkArgumentCollection(Node owner) : base(owner)
     {
-        }
+    }
 
     private IEnumerable<KeyValuePair<string, WikiImageLinkArgument>> EnumNameArgumentPairs(bool reverse)
     {
-            return (reverse ? Reverse() : this).Select(arg =>
-                new KeyValuePair<string, WikiImageLinkArgument>(MwParserUtility.NormalizeImageLinkArgumentName(arg.Name), arg));
-        }
+        return (reverse ? Reverse() : this).Select(arg =>
+            new KeyValuePair<string, WikiImageLinkArgument>(MwParserUtility.NormalizeImageLinkArgumentName(arg.Name), arg));
+    }
 
     /// <summary>
     /// Enumerates the normalized name-<see cref="WikiImageLinkArgument"/> pairs in the collection.
@@ -28,8 +29,8 @@ public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgum
     /// <remarks>If there are arguments with duplicate names, they will nonetheless be included in the sequence.</remarks>
     public IEnumerable<KeyValuePair<string, WikiImageLinkArgument>> EnumNameArgumentPairs()
     {
-            return EnumNameArgumentPairs(false);
-        }
+        return EnumNameArgumentPairs(false);
+    }
 
     /// <summary>
     /// Gets an named argument (<c>name=value</c>) with the specified name.
@@ -43,11 +44,11 @@ public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgum
     {
         get
         {
-                if (name == null) throw new ArgumentNullException(nameof(name));
-                name = MwParserUtility.NormalizeImageLinkArgumentName(name);
-                // We want to choose the last matching arguments, if there are multiple choices.
-                return EnumNameArgumentPairs(true).FirstOrDefault(p => p.Key == name).Value;
-            }
+            if (name == null) throw new ArgumentNullException(nameof(name));
+            name = MwParserUtility.NormalizeImageLinkArgumentName(name);
+            // We want to choose the last matching arguments, if there are multiple choices.
+            return EnumNameArgumentPairs(true).FirstOrDefault(p => p.Key == name).Value;
+        }
     }
 
     /// <summary>
@@ -83,11 +84,11 @@ public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgum
     {
         get
         {
-                return EnumNameArgumentPairs(true)
-                    .TakeWhile(p => p.Key == null)
-                    .FirstOrDefault()
-                    .Value?.Value;
-            }
+            return EnumNameArgumentPairs(true)
+                .TakeWhile(p => p.Key == null)
+                .FirstOrDefault()
+                .Value?.Value;
+        }
     }
 
 }

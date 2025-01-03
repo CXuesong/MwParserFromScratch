@@ -5,8 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using MwParserFromScratch.Rendering;
 
 namespace MwParserFromScratch.Nodes;
 
@@ -46,13 +45,11 @@ public class PlainText : InlineNode
         return Content;
     }
 
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         // Unescape HTML entities.
-        builder.Append(WebUtility.HtmlDecode(Content));
+        renderer.OutputBuilder.Append(WebUtility.HtmlDecode(Content));
     }
 }
 
@@ -97,29 +94,28 @@ public class WikiLink : InlineNode
     /// <inheritdoc />
     public override string ToString() => Text == null ? $"[[{Target}]]" : $"[[{Target}|{Text}]]";
 
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         // Target == null when parsing `[[]]` with AllowEmptyWikiLinkTarget enabled.
         if (Text == null)
         {
             if (Target != null)
             {
-                formatter(Target, builder);
+                renderer.RenderNode(Target);
             }
             return;
         }
         if (Text.Inlines.Count > 0)
         {
-            formatter(Text, builder);
+            renderer.RenderNode(Text);
             return;
         }
         // Pipe trick. E.g.
         // [[abc (disambiguation)|]] --> [[abc (disambiguation)|abc]]
+        var builder = renderer.OutputBuilder;
         var pos1 = builder.Length;
-        formatter(Target, builder);
+        renderer.RenderNode(Target);
         if (builder.Length - pos1 >= 3 && builder[builder.Length - 1] == ')')
         {
             for (var pos2 = pos1 + 1; pos2 < builder.Length - 1; pos2++)
@@ -201,15 +197,15 @@ public class WikiImageLink : InlineNode
     }
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         var alt = Arguments.Alt;
-        if (alt != null) formatter(alt, builder);
+        if (alt != null) renderer.RenderNode(alt);
         var caption = Arguments.Caption;
         // delimit alt text and caption with a space.
         if (alt != null && caption != null)
-            builder.Append(' ');
-        if (caption != null) formatter(caption, builder);
+            renderer.OutputBuilder.Append(' ');
+        if (caption != null) renderer.RenderNode(caption);
     }
 }
 
@@ -276,9 +272,7 @@ public class WikiImageLinkArgument : Node
     /// <summary>
     /// Infrastructure. This function will always throw a <seealso cref="NotSupportedException"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         throw new NotSupportedException();
     }
@@ -340,21 +334,20 @@ public class ExternalLink : InlineNode
         return s;
     }
 
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         if (!Brackets)
         {
-            formatter(Target, builder);
+            renderer.RenderNode(Target);
         }
         else
         {
+            var builder = renderer.OutputBuilder;
             if (Text != null)
             {
                 var pos1 = builder.Length;
-                formatter(Text, builder);
+                renderer.RenderNode(Text);
                 for (var i = pos1; i < builder.Length; i++)
                     if (!char.IsWhiteSpace(builder[i]))
                         return;
@@ -550,12 +543,11 @@ public class TemplateArgument : Node
         return Name + "=" + Value;
     }
 
+    /// <inheritdoc />
     /// <summary>
     /// Infrastructure. This function will always throw a <seealso cref="NotSupportedException"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         throw new NotSupportedException();
     }
@@ -824,10 +816,10 @@ public class ParserTag : TagNode
     };
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         if (Name != null && plainTextInvisibleTags.Contains(Name)) return;
-        builder.Append(Content);
+        renderer.OutputBuilder.Append(Content);
     }
 }
 
@@ -902,7 +894,7 @@ public class HtmlTag : TagNode
     protected override void BuildContentString(StringBuilder builder) => builder.Append(Content);
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         if (string.Equals(Name, "br", StringComparison.OrdinalIgnoreCase)
             || string.Equals(Name, "hr", StringComparison.OrdinalIgnoreCase))
@@ -913,11 +905,11 @@ public class HtmlTag : TagNode
             // <br></br> will be rendered as <br /><br />.
             // In practice, however, <br>abc</br> won't be parsed correctly, as <br> itself as self-closing.
             // See WikitextParserOptions.DefaultSelfClosingOnlyTags
-            builder.Append('\n');
+            renderer.OutputBuilder.Append('\n');
             if (Content != null)
             {
-                formatter(Content, builder);
-                builder.Append('\n');
+                renderer.RenderNode(Content);
+                renderer.OutputBuilder.Append('\n');
             }
             return;
         }
@@ -927,7 +919,7 @@ public class HtmlTag : TagNode
         // could be otherwise overridden into block-style.
         // We leave such triaging responsibility to the library consumer (`formatter` arg).
 
-        if (Content != null) formatter(Content, builder);
+        if (Content != null) renderer.RenderNode(Content);
     }
 
 }
@@ -1068,10 +1060,8 @@ public class TagAttribute : Node
                + WhitespaceAfterEqualSign + quote + Value + quote;
     }
 
-    /// <param name="builder"></param>
-    /// <param name="formatter"></param>
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         throw new NotSupportedException();
     }

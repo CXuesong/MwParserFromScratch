@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using MwParserFromScratch.Rendering;
 
 namespace MwParserFromScratch.Nodes;
 
@@ -60,18 +61,17 @@ public class Table : LineNode
     }
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
-        if (Caption != null) 
-            formatter(_Caption, builder);
+        if (_Caption != null) renderer.RenderNode(_Caption);
         var firstRow = true;
         foreach (var r in Rows)
         {
             if (firstRow)
                 firstRow = false;
             else
-                builder.AppendLine();
-            formatter(r, builder);
+                renderer.OutputBuilder.AppendLine();
+            renderer.RenderNode(r);
         }
     }
 }
@@ -116,9 +116,9 @@ public abstract class TableContentNode : Node
     }
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
-        if (Content != null) formatter(Content, builder);
+        if (Content != null) renderer.RenderNode(Content);
     }
 }
 
@@ -200,7 +200,7 @@ public class TableRow : Node
     }
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         var isFirst = true;
         foreach (var cell in Cells)
@@ -208,8 +208,8 @@ public class TableRow : Node
             if (isFirst)
                 isFirst = false;
             else
-                builder.Append('\t');
-            formatter(cell, builder);
+                renderer.OutputBuilder.Append('\t');
+            renderer.RenderNode(cell);
         }
     }
 }

@@ -4,8 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Xml.Linq;
+using MwParserFromScratch.Rendering;
 
 namespace MwParserFromScratch.Nodes;
 
@@ -362,55 +363,50 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
         return newInst;
     }
 
-    private static void DefaultNodePlainTextFormatter(Node node, StringBuilder builder)
-    {
-        Debug.Assert(node != null);
-        Debug.Assert(builder != null);
-        node.ToPlainTextCore(builder, DefaultNodePlainTextFormatter);
-    }
+    private static PlainTextNodeRenderer defaultRendererInstCache;
 
-    /// <inheritdoc cref="ToPlainText(NodePlainTextFormatter)"/>
+    /// <inheritdoc cref="ToPlainText(PlainTextNodeRenderer)"/>
     public string ToPlainText()
     {
-        return ToPlainText((NodePlainTextFormatter) null);
+        return ToPlainText(null);
     }
 
     /// <summary>
     /// Gets the plain text without the unprintable nodes (e.g. comments, templates), with customized formatter.
     /// </summary>
-    /// <param name="formatter">The formatter delegate used to format the <strong>child</strong> nodes, or <c>null</c> to use default formatter.</param>
-    public string ToPlainText(NodePlainTextFormatter formatter)
+    /// <param name="renderer">The formatter delegate used to format the <strong>child</strong> nodes, or <c>null</c> to use default formatter.</param>
+    public string ToPlainText(PlainTextNodeRenderer renderer)
     {
         var sb = new StringBuilder();
-        ToPlainText(sb, formatter);
+
+        if (renderer == null)
+        {
+            var render = Interlocked.Exchange(ref defaultRendererInstCache, null) ?? new PlainTextNodeRenderer();
+            try
+            {
+                render.RenderNode(sb, this);
+                return sb.ToString();
+            }
+            finally
+            {
+                Interlocked.CompareExchange(ref defaultRendererInstCache, render, null);
+            }
+        }
+
+        renderer.RenderNode(sb, this);
         return sb.ToString();
     }
 
-    /// <inheritdoc cref="ToPlainTextCore"/>
-    public void ToPlainText(StringBuilder builder)
-    {
-        ToPlainText(builder, null);
-    }
-
     /// <summary>
-    /// Gets the plain text without the unprintable nodes (e.g. comments, templates), with customized formatter.
+    /// Provides the default implementation for <see cref="PlainTextNodeRenderer.RenderNode(Node)"/>.
     /// </summary>
-    /// <param name="builder">The <see cref="StringBuilder"/> used to receive the content.</param>
-    /// <param name="formatter">The formatter delegate used to format the <strong>child</strong> nodes, or <c>null</c> to use default formatter.</param>
-    public void ToPlainText(StringBuilder builder, NodePlainTextFormatter formatter)
-    {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
-        ToPlainTextCore(builder, formatter ?? DefaultNodePlainTextFormatter);
-    }
-
-    internal virtual void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal virtual void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
         // The default implementation is to write nothing.
-        Debug.Assert(builder != null);
-        Debug.Assert(formatter != null);
+        Debug.Assert(renderer != null);
     }
 
-    private class LineInfoAnnotation
+    private sealed class LineInfoAnnotation
     {
         internal readonly int StartLineNumber;
         internal readonly int StartLinePosition;
@@ -426,19 +422,9 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
         }
     }
 
-    private class ExtraParsingAnnotation
+    private sealed class ExtraParsingAnnotation
     {
         internal bool InferredClosingMark = false;
     }
 
 }
-
-/// <summary>
-/// Formats the specified <see cref="Node"/> into <c>string</c>.
-/// </summary>
-/// <param name="node">The node to be formatted.</param>
-/// <param name="builder"><see cref="StringBuilder"/> the formatted plaintext should be appended into.</param>
-/// <remarks>
-/// <param>A default <see cref="NodePlainTextFormatter"/> implementation is to call <c>node.ToPlainText(builder)</c> directly.</param>
-/// </remarks>
-public delegate void NodePlainTextFormatter(Node node, StringBuilder builder);

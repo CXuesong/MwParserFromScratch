@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using MwParserFromScratch.Rendering;
 
 namespace MwParserFromScratch.Nodes;
 
@@ -15,29 +13,29 @@ public class Wikitext : Node
 {
     public Wikitext(string plainTextContent) : this(new Paragraph(new PlainText(plainTextContent)))
     {
-        }
+    }
 
     public Wikitext(params InlineNode[] inlines) : this((IEnumerable<InlineNode>)inlines)
     {
-        }
+    }
 
     public Wikitext(IEnumerable<InlineNode> inlines) : this(new Paragraph(inlines))
     {
-        }
+    }
 
     public Wikitext(params LineNode[] lines) : this((IEnumerable<LineNode>)lines)
     {
-        }
+    }
 
     public Wikitext(IEnumerable<LineNode> lines)
     {
-            Lines = new NodeCollection<LineNode>(this);
-            if (lines != null) Lines.Add(lines);
-        }
+        Lines = new NodeCollection<LineNode>(this);
+        if (lines != null) Lines.Add(lines);
+    }
 
     public Wikitext() : this((IEnumerable<LineNode>)null)
     {
-        }
+    }
 
     public NodeCollection<LineNode> Lines { get; }
 
@@ -49,9 +47,9 @@ public class Wikitext : Node
 
     protected override Node CloneCore()
     {
-            var n = new Wikitext(Lines);
-            return n;
-        }
+        var n = new Wikitext(Lines);
+        return n;
+    }
 
     /// <summary>
     /// Gets the wikitext representation of this node.
@@ -59,18 +57,18 @@ public class Wikitext : Node
     public override string ToString() => string.Join("\n", Lines);
 
     /// <inheritdoc />
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
-            var isFirst = true;
-            foreach (var line in Lines)
-            {
-                if (isFirst)
-                    isFirst = false;
-                else
-                    builder.Append('\n');
-                formatter(line, builder);
-            }
+        var isFirst = true;
+        foreach (var line in Lines)
+        {
+            if (isFirst)
+                isFirst = false;
+            else
+                renderer.OutputBuilder.Append('\n');
+            renderer.RenderNode(line);
         }
+    }
 }
 
 public interface IInlineContainer
@@ -91,12 +89,12 @@ public static class InlineContainerExtensions
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
     public static PlainText Prepend(this IInlineContainer container, string text)
     {
-            if (text == null) throw new ArgumentNullException(nameof(text));
-            var pt = container.Inlines.FirstNode as PlainText;
-            if (pt == null) container.Inlines.AddFirst(pt = new PlainText());
-            pt.Content = text + pt.Content;
-            return pt;
-        }
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        var pt = container.Inlines.FirstNode as PlainText;
+        if (pt == null) container.Inlines.AddFirst(pt = new PlainText());
+        pt.Content = text + pt.Content;
+        return pt;
+    }
 
     /// <summary>
     /// Append a <see cref="PlainText"/> node to the end of the paragraph.
@@ -106,37 +104,37 @@ public static class InlineContainerExtensions
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
     public static PlainText Append(this IInlineContainer container, string text)
     {
-            if (text == null) throw new ArgumentNullException(nameof(text));
-            var pt = container.Inlines.LastNode as PlainText;
-            if (pt == null) container.Inlines.Add(pt = new PlainText());
-            pt.Content += text;
-            return pt;
-        }
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        var pt = container.Inlines.LastNode as PlainText;
+        if (pt == null) container.Inlines.Add(pt = new PlainText());
+        pt.Content += text;
+        return pt;
+    }
 
     internal static PlainText AppendWithLineInfo(this IInlineContainer container, string text, int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
     {
-            Debug.Assert(container != null);
-            Debug.Assert(text != null);
-            Debug.Assert(lineNumber1 >= 0);
-            Debug.Assert(linePosition1 >= 0);
-            Debug.Assert(lineNumber2 >= 0);
-            Debug.Assert(linePosition2 >= 0);
-            Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
-            var pt = container.Inlines.LastNode as PlainText;
-            if (pt == null)
-            {
-                container.Inlines.Add(pt = new PlainText(text));
-                pt.SetLineInfo(lineNumber1, linePosition1, lineNumber2, linePosition2);
-            }
-            else
-            {
-                if (text.Length == 0) return pt;    // ExtendLineInfo won't accept (0)
-                pt.Content += text;
-                pt.ExtendLineInfo(lineNumber2, linePosition2);
-            }
-            ((Node)container).ExtendLineInfo(lineNumber2, linePosition2);
-            return pt;
+        Debug.Assert(container != null);
+        Debug.Assert(text != null);
+        Debug.Assert(lineNumber1 >= 0);
+        Debug.Assert(linePosition1 >= 0);
+        Debug.Assert(lineNumber2 >= 0);
+        Debug.Assert(linePosition2 >= 0);
+        Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
+        var pt = container.Inlines.LastNode as PlainText;
+        if (pt == null)
+        {
+            container.Inlines.Add(pt = new PlainText(text));
+            pt.SetLineInfo(lineNumber1, linePosition1, lineNumber2, linePosition2);
         }
+        else
+        {
+            if (text.Length == 0) return pt;    // ExtendLineInfo won't accept (0)
+            pt.Content += text;
+            pt.ExtendLineInfo(lineNumber2, linePosition2);
+        }
+            ((Node)container).ExtendLineInfo(lineNumber2, linePosition2);
+        return pt;
+    }
 }
 
 /// <summary>
@@ -150,17 +148,17 @@ public class Run : Node, IInlineContainer
 {
     public Run() : this((IEnumerable<InlineNode>)null)
     {
-        }
+    }
 
     public Run(params InlineNode[] nodes) : this((IEnumerable<InlineNode>)nodes)
     {
-        }
+    }
 
     public Run(IEnumerable<InlineNode> nodes)
     {
-            Inlines = new NodeCollection<InlineNode>(this);
-            if (nodes != null) Inlines.Add(nodes);
-        }
+        Inlines = new NodeCollection<InlineNode>(this);
+        if (nodes != null) Inlines.Add(nodes);
+    }
 
     public NodeCollection<InlineNode> Inlines { get; }
 
@@ -168,18 +166,19 @@ public class Run : Node, IInlineContainer
 
     protected override Node CloneCore() => new Run(Inlines);
 
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    /// <inheritdoc />
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
-            foreach (var inline in Inlines)
-            {
-                formatter(inline, builder);
-            }
+        foreach (var inline in Inlines)
+        {
+            renderer.RenderNode(inline);
         }
+    }
 
     public override string ToString()
     {
-            return string.Join(null, Inlines);
-        }
+        return string.Join(null, Inlines);
+    }
 }
 
 /// <summary>
@@ -187,30 +186,32 @@ public class Run : Node, IInlineContainer
 /// </summary>
 public abstract class LineNode : Node
 {
+
     public LineNode()
     {
-        }
+    }
 
     public LineNode(IEnumerable<InlineNode> nodes)
     {
-        }
+    }
+
 }
 
 public abstract class InlineContainerLineNode : LineNode, IInlineContainer
 {
     public InlineContainerLineNode() : this((IEnumerable<InlineNode>)null)
     {
-        }
+    }
 
     public InlineContainerLineNode(params InlineNode[] nodes) : this((IEnumerable<InlineNode>)nodes)
     {
-        }
+    }
 
     public InlineContainerLineNode(IEnumerable<InlineNode> nodes)
     {
-            Inlines = new NodeCollection<InlineNode>(this);
-            if (nodes != null) Inlines.Add(nodes);
-        }
+        Inlines = new NodeCollection<InlineNode>(this);
+        if (nodes != null) Inlines.Add(nodes);
+    }
 
     public NodeCollection<InlineNode> Inlines { get; }
 
@@ -218,33 +219,34 @@ public abstract class InlineContainerLineNode : LineNode, IInlineContainer
 
     protected override Node CloneCore() => new Run(Inlines);
 
-    internal override void ToPlainTextCore(StringBuilder builder, NodePlainTextFormatter formatter)
+    /// <inheritdoc />
+    internal override void RenderAsPlainText(PlainTextNodeRenderer renderer)
     {
-            foreach (var inline in Inlines)
-            {
-                formatter(inline, builder);
-            }
+        foreach (var inline in Inlines)
+        {
+            renderer.RenderNode(inline);
         }
+    }
 
     public override string ToString()
     {
-            return string.Join(null, Inlines);
-        }
+        return string.Join(null, Inlines);
+    }
 }
 
 public class ListItem : InlineContainerLineNode
 {
     public ListItem()
     {
-        }
+    }
 
     public ListItem(params InlineNode[] nodes) : base(nodes)
     {
-        }
+    }
 
     public ListItem(IEnumerable<InlineNode> nodes) : base(nodes)
     {
-        }
+    }
 
     /// <summary>
     /// Prefix of the item.
@@ -254,9 +256,9 @@ public class ListItem : InlineContainerLineNode
 
     protected override Node CloneCore()
     {
-            var n = new ListItem(Inlines) { Prefix = Prefix };
-            return n;
-        }
+        var n = new ListItem(Inlines) { Prefix = Prefix };
+        return n;
+    }
 
     /// <summary>
     /// Gets the wikitext representation of the node.
@@ -264,8 +266,8 @@ public class ListItem : InlineContainerLineNode
 
     public override string ToString()
     {
-            return Prefix + string.Join(null, Inlines);
-        }
+        return Prefix + string.Join(null, Inlines);
+    }
 }
 
 public class Heading : InlineContainerLineNode
@@ -275,15 +277,15 @@ public class Heading : InlineContainerLineNode
 
     public Heading()
     {
-        }
+    }
 
     public Heading(params InlineNode[] nodes) : base(nodes)
     {
-        }
+    }
 
     public Heading(IEnumerable<InlineNode> nodes) : base(nodes)
     {
-        }
+    }
 
 
     /// <summary>
@@ -299,10 +301,10 @@ public class Heading : InlineContainerLineNode
         get { return _Level; }
         set
         {
-                if (value < 1 || value > 6)
-                    throw new ArgumentOutOfRangeException(nameof(value));
-                _Level = value;
-            }
+            if (value < 1 || value > 6)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _Level = value;
+        }
     }
 
     /// <summary>
@@ -318,39 +320,40 @@ public class Heading : InlineContainerLineNode
     /// <inheritdoc />
     public override IEnumerable<Node> EnumChildren()
     {
-            foreach (var il in Inlines)
-            {
-                yield return il;
-            }
-            if (_Suffix != null) yield return _Suffix;
+        foreach (var il in Inlines)
+        {
+            yield return il;
         }
+        if (_Suffix != null) yield return _Suffix;
+    }
 
     protected override Node CloneCore()
     {
-            var n = new Heading(Inlines) { Level = Level, Suffix = Suffix };
-            return n;
-        }
+        var n = new Heading(Inlines) { Level = Level, Suffix = Suffix };
+        return n;
+    }
 
     public override string ToString()
     {
-            var bar = new string('=', Level);
-            return bar + string.Join(null, Inlines) + bar + Suffix;
-        }
+        var bar = new string('=', Level);
+        return bar + string.Join(null, Inlines) + bar + Suffix;
+    }
 }
 
 public class Paragraph : InlineContainerLineNode
 {
+
     public Paragraph()
     {
-        }
+    }
 
     public Paragraph(params InlineNode[] nodes) : base(nodes)
     {
-        }
+    }
 
     public Paragraph(IEnumerable<InlineNode> nodes) : base(nodes)
     {
-        }
+    }
 
     private static readonly Regex paragraphCloseMatcher = new Regex(@"\n\s*$");
 
@@ -369,20 +372,21 @@ public class Paragraph : InlineContainerLineNode
     {
         get
         {
-                var pt = Inlines.LastNode as PlainText;
-                if (pt == null) return true;
-                return !paragraphCloseMatcher.IsMatch(pt.Content);
-            }
+            var pt = Inlines.LastNode as PlainText;
+            if (pt == null) return true;
+            return !paragraphCloseMatcher.IsMatch(pt.Content);
+        }
     }
 
     protected override Node CloneCore()
     {
-            var n = new Paragraph(Inlines);
-            return n;
-        }
+        var n = new Paragraph(Inlines);
+        return n;
+    }
 
     public override string ToString()
     {
-            return string.Join(null, Inlines);
-        }
+        return string.Join(null, Inlines);
+    }
+
 }
