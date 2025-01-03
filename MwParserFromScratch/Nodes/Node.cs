@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
+﻿using System.Diagnostics;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 using MwParserFromScratch.Rendering;
 
@@ -15,7 +10,7 @@ namespace MwParserFromScratch.Nodes;
 /// </summary>
 public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
 {
-    private object _Annotation;
+    private object? _Annotation;
 
     #region Annotations
 
@@ -28,14 +23,13 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
         if (annotation == null) throw new ArgumentNullException(nameof(annotation));
         if (_Annotation == null)
         {
-            if (!(annotation is List<object>))
+            if (annotation is not List<object>)
             {
                 _Annotation = annotation;
                 return;
             }
         }
-        var list = _Annotation as List<object>;
-        if (list == null)
+        if (_Annotation is not List<object> list)
         {
             list = new List<object>(2);
             if (_Annotation != null) list.Add(_Annotation);
@@ -53,14 +47,14 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// The first matching annotation object, or null
     /// if no annotation is the specified type.
     /// </returns>
-    public object Annotation(Type type)
+    public object? Annotation(Type type)
     {
         if (type == null) throw new ArgumentNullException(nameof(type));
         if (_Annotation == null) return null;
-        var ti = type.GetTypeInfo();
+        var ti = type;
         if (_Annotation is List<object> list)
-            return list.FirstOrDefault(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
-        if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
+            return list.FirstOrDefault(i => ti.IsAssignableFrom(i.GetType()));
+        if (ti.IsAssignableFrom(_Annotation.GetType()))
             return _Annotation;
         return null;
     }
@@ -74,12 +68,12 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// The first matching annotation object, or null if no annotation
     /// is the specified type.
     /// </returns>
-    public T Annotation<T>() where T : class
+    public T? Annotation<T>() where T : class
     {
         if (_Annotation == null) return null;
-        var list = _Annotation as List<object>;
-        if (list == null) return _Annotation as T;
-        return list.OfType<T>().FirstOrDefault();
+        if (_Annotation is List<object> list)
+            return list.OfType<T>().FirstOrDefault();
+        return _Annotation as T;
     }
 
     /// <summary>
@@ -91,12 +85,11 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     public IEnumerable<object> Annotations(Type type)
     {
         if (type == null) throw new ArgumentNullException(nameof(type));
-        var ti = type.GetTypeInfo();
         if (_Annotation is List<object> list)
-            return list.Where(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
-        if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
-            return Utility.Singleton(_Annotation);
-        return Enumerable.Empty<object>();
+            return list.Where(i => type.IsAssignableFrom(i.GetType()));
+        if (_Annotation != null && type.IsAssignableFrom(_Annotation.GetType()))
+            return [_Annotation];
+        return [];
     }
 
     /// <summary>
@@ -107,13 +100,12 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// <returns>An enumerable collection of annotations for this XObject.</returns>
     public IEnumerable<T> Annotations<T>() where T : class
     {
-        var list = _Annotation as List<object>;
-        if (list == null)
+        return _Annotation switch
         {
-            var a = _Annotation as T;
-            return a == null ? Enumerable.Empty<T>() : Utility.Singleton(a);
-        }
-        return list.OfType<T>();
+            List<object> list => list.OfType<T>(),
+            T a => [a],
+            _ => [],
+        };
     }
 
     /// <summary>
@@ -123,14 +115,14 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     public void RemoveAnnotations(Type type)
     {
         if (type == null) throw new ArgumentNullException(nameof(type));
-        var ti = type.GetTypeInfo();
+        var ti = type;
         if (_Annotation is List<object> list)
         {
-            list.RemoveAll(i => ti.IsAssignableFrom(i.GetType().GetTypeInfo()));
+            list.RemoveAll(i => ti.IsAssignableFrom(i.GetType()));
         }
         else
         {
-            if (ti.IsAssignableFrom(_Annotation.GetType().GetTypeInfo()))
+            if (_Annotation != null && ti.IsAssignableFrom(_Annotation.GetType()))
                 _Annotation = null;
         }
     }
@@ -157,17 +149,17 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// <summary>
     /// The previous sibling node.
     /// </summary>
-    public Node PreviousNode { get; internal set; }
+    public Node? PreviousNode { get; internal set; }
 
     /// <summary>
     /// The next sibling node.
     /// </summary>
-    public Node NextNode { get; internal set; }
+    public Node? NextNode { get; internal set; }
 
     /// <summary>
     /// The parent node.
     /// </summary>
-    public Node ParentNode { get; internal set; }
+    public Node? ParentNode { get; internal set; }
 
     /// <summary>
     /// Enumerates the sibling nodes after this node.
@@ -213,7 +205,7 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// The parent node.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    internal INodeCollection ParentCollection { get; set; }
+    internal INodeCollection? ParentCollection { get; set; }
 
     /// <summary>
     /// Inserts a sibling node before the current node.
@@ -268,20 +260,35 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
         return newNode;
     }
 
-    internal void Attach<TNode>(ref TNode nodeStorge, TNode newValue)
+    /// <summary>
+    /// Attaches the specified child node to the current node.
+    /// This method allows derived class to specify a field ref where a single child node is stored,
+    /// so that the old node will be properly detached before the new node (or its clone) is attached.
+    /// </summary>
+    internal void Attach<TNode>(ref TNode? nodeStorage, TNode? newValue)
         where TNode : Node
     {
-        if (newValue == nodeStorge) return;
+        if (newValue == nodeStorage) return;
         if (newValue != null) newValue = Attach(newValue);
-        if (nodeStorge != null) Detach(nodeStorge);
-        nodeStorge = newValue;
+        if (nodeStorage != null) Detach(nodeStorage);
+        nodeStorage = newValue;
+    }
+
+    internal void AttachNonNull<TNode>(ref TNode nodeStorage, TNode newValue)
+        where TNode : Node
+    {
+        if (newValue == null) throw new ArgumentNullException(nameof(newValue));
+        Attach(ref nodeStorage!, newValue);
     }
 
     internal void Detach(Node node)
     {
+        Debug.Assert(node != null);
+        Debug.Assert(node.ParentNode == this);
         node.ParentNode = null;
         // Then disconnect the node in caller function.
     }
+
     #endregion
 
     #region IWikitextLineInfo
@@ -301,6 +308,7 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     {
         Debug.Assert(node != null);
         var source = node.Annotation<LineInfoAnnotation>();
+        Debug.Assert(source != null);
         Debug.Assert(Annotation<LineInfoAnnotation>() == null);
         AddAnnotation(new LineInfoAnnotation(source.StartLineNumber, source.StartLinePosition, source.EndLineNumber,
             source.EndLinePosition));
@@ -363,7 +371,7 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
         return newInst;
     }
 
-    private static PlainTextNodeRenderer defaultRendererInstCache;
+    private static PlainTextNodeRenderer? defaultRendererInstCache;
 
     /// <inheritdoc cref="ToPlainText(PlainTextNodeRenderer)"/>
     public string ToPlainText()
@@ -375,7 +383,7 @@ public abstract class Node : IWikitextLineInfo, IWikitextParsingInfo
     /// Gets the plain text without the unprintable nodes (e.g. comments, templates), with customized formatter.
     /// </summary>
     /// <param name="renderer">The formatter delegate used to format the <strong>child</strong> nodes, or <c>null</c> to use default formatter.</param>
-    public string ToPlainText(PlainTextNodeRenderer renderer)
+    public string ToPlainText(PlainTextNodeRenderer? renderer)
     {
         var sb = new StringBuilder();
 

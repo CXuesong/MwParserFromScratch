@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch;
@@ -15,7 +11,8 @@ public static class MwParserUtility
 
     /// <inheritdoc cref="NormalizeTemplateArgumentName(string)"/>
     /// <param name="argumentName">The argument name to be normalized. The node will be converted into its string representation.</param>
-    public static string NormalizeTemplateArgumentName(Node argumentName)
+    [return: NotNullIfNotNull(nameof(argumentName))]
+    public static string? NormalizeTemplateArgumentName(Node? argumentName)
     {
         if (argumentName == null) return null;
         return NormalizeTemplateArgumentName(argumentName.ToString());
@@ -27,7 +24,8 @@ public static class MwParserUtility
     /// <param name="argumentName">The argument name to be normalized.</param>
     /// <returns>The normalized argument name, with leading and trailing whitespace removed,
     /// or <c>null</c> if <paramref name="argumentName"/> is <c>null</c>.</returns>
-    public static string NormalizeTemplateArgumentName(string argumentName)
+    [return: NotNullIfNotNull(nameof(argumentName))]
+    public static string? NormalizeTemplateArgumentName(string? argumentName)
     {
         if (string.IsNullOrEmpty(argumentName)) return argumentName;
         return argumentName.Trim();
@@ -35,10 +33,11 @@ public static class MwParserUtility
 
     /// <inheritdoc cref="NormalizeImageLinkArgumentName(string)"/>
     /// <param name="argumentName">The argument name to be normalized. The node will be converted into its string representation.</param>
-    public static string NormalizeImageLinkArgumentName(Node argumentName)
+    [return: NotNullIfNotNull(nameof(argumentName))]
+    public static string? NormalizeImageLinkArgumentName(Node? argumentName)
     {
         if (argumentName == null) return null;
-        return NormalizeImageLinkArgumentName(argumentName.ToString());
+        return NormalizeImageLinkArgumentName(argumentName.ToString()!);
     }
 
     /// <summary>
@@ -47,7 +46,8 @@ public static class MwParserUtility
     /// <param name="argumentName">The argument name to be normalized.</param>
     /// <returns>The normalized argument name, with leading and trailing whitespace removed, and first letter converted into lowercase
     /// or <c>null</c> if <paramref name="argumentName"/> is <c>null</c>.</returns>
-    public static string NormalizeImageLinkArgumentName(string argumentName)
+    [return: NotNullIfNotNull(nameof(argumentName))]
+    public static string? NormalizeImageLinkArgumentName(string? argumentName)
     {
         if (string.IsNullOrEmpty(argumentName)) return argumentName;
         argumentName = argumentName.Trim();
@@ -61,7 +61,7 @@ public static class MwParserUtility
 
     /// <inheritdoc cref="NormalizeTitle(string)"/>
     /// <param name="title">The title to be normalized. The node will be converted into its string representation.</param>
-    public static string NormalizeTitle(Node title)
+    public static string? NormalizeTitle(Node? title)
     {
         if (title == null) return null;
         return NormalizeTitle(title.ToString());
@@ -77,12 +77,13 @@ public static class MwParserUtility
     /// <returns>The normalized argument name, with leading and trailing whitespace removed,
     /// underscore replaced with space, starting with an upper-case letter.
     /// Or <c>null</c> if <paramref name="title"/> is <c>null</c>.</returns>
-    public static string NormalizeTitle(string title)
+    public static string? NormalizeTitle(string? title)
     {
         if (string.IsNullOrEmpty(title)) return title;
-        var parts = title.Split(new[] {':'}, 2);
+        var parts = title.Split([':'], 2);
         for (int i = 0; i < parts.Length; i++)
             parts[i] = Utility.NormalizeTitlePart(parts[i], false);
         return string.Join(":", parts);
     }
+
 }

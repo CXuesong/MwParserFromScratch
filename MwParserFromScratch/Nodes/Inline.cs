@@ -1,22 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Text;
 using MwParserFromScratch.Rendering;
 
 namespace MwParserFromScratch.Nodes;
 
+/// <summary>
+/// Any single element inside a line element.
+/// Multiple such elements combine into <see cref="Run"/>.
+/// </summary>
 public abstract class InlineNode : Node
 {
 
 }
 
+/// <summary>Represents ordinary plain text.</summary>
 public class PlainText : InlineNode
 {
-    public PlainText() : this(null)
+
+    public PlainText() : this("")
     {
     }
 
@@ -32,8 +35,7 @@ public class PlainText : InlineNode
     /// </summary>
     /// <returns>Always an empty sequence of nodes.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override IEnumerable<Node> EnumChildren()
-        => Enumerable.Empty<Node>();
+    public override IEnumerable<Node> EnumChildren() => [];
 
     protected override Node CloneCore()
     {
@@ -58,23 +60,23 @@ public class PlainText : InlineNode
 /// </summary>
 public class WikiLink : InlineNode
 {
-    private Run _Target;
-    private Run _Text;
+    private Run? _Target;
+    private Run? _Text;
 
     /// <summary>Wikilink target.</summary>
     /// <value>Single link expandable text, or <c>null</c> if target is empty and <seealso cref="WikitextParserOptions.AllowEmptyWikiLinkTarget"/> is <c>true</c>.</value>
-    public Run Target
+    public Run? Target
     {
-        get { return _Target; }
-        set { Attach(ref _Target, value); }
+        get => _Target;
+        set => Attach(ref _Target, value);
     }
 
     /// <summary>Wikilink display text.</summary>
     /// <value>Single link expandable text, or <c>null</c> if there is no pipe mark in the Wikilink.</value>
-    public Run Text
+    public Run? Text
     {
-        get { return _Text; }
-        set { Attach(ref _Text, value); }
+        get => _Text;
+        set => Attach(ref _Text, value);
     }
 
     /// <summary>
@@ -138,25 +140,20 @@ public class WikiLink : InlineNode
 /// </summary>
 public class WikiImageLink : InlineNode
 {
-    private Run _Target;
+    private Run _Target = null!;
 
-    public WikiImageLink() : this(null)
+    public WikiImageLink()
     {
-    }
-
-    public WikiImageLink(Run target)
-    {
-        Target = target;
         Arguments = new WikiImageLinkArgumentCollection(this);
     }
 
     /// <summary>
     /// Title of the image.
     /// </summary>
-    public Run Target
+    public required Run Target
     {
-        get { return _Target; }
-        set { Attach(ref _Target, value); }
+        get => _Target;
+        set => AttachNonNull(ref _Target, value);
     }
 
     /// <summary>
@@ -167,14 +164,14 @@ public class WikiImageLink : InlineNode
     /// <inheritdoc />
     public override IEnumerable<Node> EnumChildren()
     {
-        if (_Target != null) yield return _Target;
+        yield return _Target;
         foreach (var argument in Arguments) yield return argument;
     }
 
     /// <inheritdoc />
     protected override Node CloneCore()
     {
-        return new WikiImageLink(Target) { Arguments = { Arguments } };
+        return new WikiImageLink { Target = Target, Arguments = { Arguments } };
     }
 
     /// <inheritdoc />
@@ -214,37 +211,27 @@ public class WikiImageLink : InlineNode
 /// </summary>
 public class WikiImageLinkArgument : Node
 {
-    private Wikitext _Name;
-    private Wikitext _Value;
-
-    public WikiImageLinkArgument() : this(null, null)
-    {
-    }
-
-    public WikiImageLinkArgument(Wikitext name, Wikitext value)
-    {
-        Name = name;
-        Value = value;
-    }
+    private Wikitext? _Name;
+    private Wikitext _Value = null!;
 
     /// <summary>
     /// Name of the argument.
     /// </summary>
     /// <value>Name of the argument, or <c>null</c> if the argument is anonymous.</value>
-    public Wikitext Name
+    public Wikitext? Name
     {
-        get { return _Name; }
-        set { Attach(ref _Name, value); }
+        get => _Name;
+        set => Attach(ref _Name, value);
     }
 
     /// <summary>
     /// Value of the argument.
     /// </summary>
     /// <value>Value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</value>
-    public Wikitext Value
+    public required Wikitext Value
     {
-        get { return _Value; }
-        set { Attach(ref _Value, value); }
+        get => _Value;
+        set => AttachNonNull(ref _Value, value);
     }
 
     /// <summary>
@@ -259,7 +246,7 @@ public class WikiImageLinkArgument : Node
 
     protected override Node CloneCore()
     {
-        var n = new TemplateArgument { Name = Name, Value = Value };
+        var n = new WikiImageLinkArgument { Name = Name, Value = Value };
         return n;
     }
 
@@ -280,13 +267,16 @@ public class WikiImageLinkArgument : Node
 
 public class ExternalLink : InlineNode
 {
-    private Run _Target;
-    private Run _Text;
+    private Run? _Target;
+    private Run? _Text;
 
-    public Run Target
+    /// <summary>Link target URL.</summary>
+    /// <remarks>This property can be null if <em>empty external link target</em> is allowed
+    /// (<see cref="WikitextParserOptions.AllowEmptyExternalLinkTarget"/> is <c>true</c>).</remarks>
+    public required Run? Target
     {
-        get { return _Target; }
-        set { Attach(ref _Target, value); }
+        get => _Target;
+        set => Attach(ref _Target, value);
     }
 
     /// <summary>
@@ -294,12 +284,13 @@ public class ExternalLink : InlineNode
     /// </summary>
     /// <value>
     /// Display text of the link, or <c>null</c>, if the link url is just surrounded by
-    /// a pair of square brackets. (e.g. <c>[http://abc.def]</c>).
+    /// a pair of square brackets. (e.g. <c>[http://abc.def]</c>). Empty Run instance will
+    /// cause a space being rendered after the URL.
     /// </value>
-    public Run Text
+    public Run? Text
     {
-        get { return _Text; }
-        set { Attach(ref _Text, value); }
+        get => _Text;
+        set => Attach(ref _Text, value);
     }
 
     /// <summary>
@@ -322,7 +313,7 @@ public class ExternalLink : InlineNode
         {
             Target = Target,
             Text = Text,
-            Brackets = Brackets
+            Brackets = Brackets,
         };
     }
 
@@ -389,7 +380,7 @@ public class FormatSwitch : InlineNode
     /// <returns>Always an empty sequence of nodes.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override IEnumerable<Node> EnumChildren()
-        => Enumerable.Empty<Node>();
+        => [];
 
     protected override Node CloneCore()
     {
@@ -431,8 +422,8 @@ public class Template : InlineNode
     /// </summary>
     public Run Name
     {
-        get { return _Name; }
-        set { Attach(ref _Name, value); }
+        get => _Name;
+        set => Attach(ref _Name, value);
     }
 
     /// <summary>
@@ -488,37 +479,27 @@ public class Template : InlineNode
 
 public class TemplateArgument : Node
 {
-    private Wikitext _Name;
+    private Wikitext? _Name;
     private Wikitext _Value;
-
-    public TemplateArgument() : this(null, null)
-    {
-    }
-
-    public TemplateArgument(Wikitext name, Wikitext value)
-    {
-        Name = name;
-        Value = value;
-    }
 
     /// <summary>
     /// Name of the argument.
     /// </summary>
     /// <value>Name of the argument, or <c>null</c> if the argument is anonymous.</value>
-    public Wikitext Name
+    public Wikitext? Name
     {
-        get { return _Name; }
-        set { Attach(ref _Name, value); }
+        get => _Name;
+        set => Attach(ref _Name, value);
     }
 
     /// <summary>
     /// Value of the argument.
     /// </summary>
     /// <value>Value of the argument. If the value is empty, it should be an empty <see cref="Wikitext"/> instance.</value>
-    public Wikitext Value
+    public required Wikitext Value
     {
-        get { return _Value; }
-        set { Attach(ref _Value, value); }
+        get => _Value;
+        set => AttachNonNull(ref _Value, value);
     }
 
     /// <summary>
@@ -554,41 +535,27 @@ public class TemplateArgument : Node
 }
 
 /// <summary>
-/// {{{name|default}}}
+/// <c>{{{name|default}}}</c>
 /// </summary>
 public class ArgumentReference : InlineNode
 {
     private Wikitext _Name;
-    private Wikitext _DefaultValue;
-
-    public ArgumentReference() : this(null, null)
-    {
-    }
-
-    public ArgumentReference(Wikitext name) : this(name, null)
-    {
-    }
-
-    public ArgumentReference(Wikitext name, Wikitext defaultValue)
-    {
-        Name = name;
-        DefaultValue = defaultValue;
-    }
+    private Wikitext? _DefaultValue;
 
     /// <summary>
     /// Name of the argument.
     /// </summary>
     /// <value>Name of the argument.</value>
-    public Wikitext Name
+    public required Wikitext Name
     {
-        get { return _Name; }
-        set { Attach(ref _Name, value); }
+        get => _Name;
+        set => AttachNonNull(ref _Name, value);
     }
 
-    public Wikitext DefaultValue
+    public Wikitext? DefaultValue
     {
-        get { return _DefaultValue; }
-        set { Attach(ref _DefaultValue, value); }
+        get => _DefaultValue;
+        set => Attach(ref _DefaultValue, value);
     }
 
     /// <summary>
@@ -657,34 +624,28 @@ public abstract class TagNode : InlineNode
     private string _ClosingTagTrailingWhitespace;
     private TagStyle _TagStyle;
 
-    public TagNode() : this(null)
+    public TagNode()
     {
-
-    }
-
-    public TagNode(string name)
-    {
-        Name = name;
         Attributes = new TagAttributeCollection(this);
     }
 
     /// <summary>
     /// Name of the tag.
     /// </summary>
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// Name of the closing tag. It may have a different letter-case from <see cref="Name"/>.
     /// </summary>
     /// <value>The name of closing tag. OR <c>null</c> if it shares exactly the same content as <see cref="Name"/>.</value>
-    public string ClosingTagName { get; set; }
+    public string? ClosingTagName { get; set; }
 
     /// <summary>
     /// How a tag is rendered in wikitext.
     /// </summary>
     public virtual TagStyle TagStyle
     {
-        get { return _TagStyle; }
+        get => _TagStyle;
         set
         {
             if (value != TagStyle.Normal && value != TagStyle.SelfClosing
@@ -700,7 +661,7 @@ public abstract class TagNode : InlineNode
     /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
     public string ClosingTagTrailingWhitespace
     {
-        get { return _ClosingTagTrailingWhitespace; }
+        get => _ClosingTagTrailingWhitespace;
         set
         {
             Utility.AssertNullOrWhiteSpace(value);
@@ -761,21 +722,12 @@ public abstract class TagNode : InlineNode
 /// </remarks>
 public class ParserTag : TagNode
 {
-    public ParserTag() : this(null)
-    {
-
-    }
-
-    public ParserTag(string name) : base(name)
-    {
-
-    }
 
     /// <summary>
     /// Raw content of the tag.
     /// </summary>
     /// <value>Content of the tag, as string. If the tag is self-closing, the value is <c>null</c>.</value>
-    public string Content { get; set; }
+    public string? Content { get; set; }
 
     protected override Node CloneCore()
     {
@@ -829,26 +781,16 @@ public class ParserTag : TagNode
 /// <seealso cref="ParserTag"/>
 public class HtmlTag : TagNode
 {
-    private Wikitext _Content;
-
-    public HtmlTag() : this(null)
-    {
-
-    }
-
-    public HtmlTag(string name) : base(name)
-    {
-
-    }
+    private Wikitext? _Content;
 
     /// <summary>
     /// Content of the tag.
     /// </summary>
     /// <value>Content of the tag, as <see cref="Wikitext"/>. If the tag is self-closing, the value is <c>null</c>.</value>
-    public Wikitext Content
+    public Wikitext? Content
     {
-        get { return _Content; }
-        set { Attach(ref _Content, value); }
+        get => _Content;
+        set => Attach(ref _Content, value);
     }
 
     /// <summary>
@@ -949,21 +891,21 @@ public enum ValueQuoteType
 public class TagAttribute : Node
 {
     private string _LeadingWhitespace = " ";
-    private string _WhitespaceBeforeEqualSign;
-    private string _WhitespaceAfterEqualSign;
-    private Run _Name;
-    private Wikitext _Value;
+    private string? _WhitespaceBeforeEqualSign;
+    private string? _WhitespaceAfterEqualSign;
+    private Run? _Name;
+    private Wikitext? _Value;
 
-    public Run Name
+    public Run? Name
     {
-        get { return _Name; }
-        set { Attach(ref _Name, value); }
+        get => _Name;
+        set => Attach(ref _Name, value);
     }
 
-    public Wikitext Value
+    public Wikitext? Value
     {
-        get { return _Value; }
-        set { Attach(ref _Value, value); }
+        get => _Value;
+        set => Attach(ref _Value, value);
     }
 
     /// <summary>
@@ -978,7 +920,7 @@ public class TagAttribute : Node
     /// <exception cref="ArgumentException">The string contains non-white-space characters. OR The string is <c>null</c> or empty.</exception>
     public string LeadingWhitespace
     {
-        get { return _LeadingWhitespace; }
+        get => _LeadingWhitespace;
         set
         {
             if (!string.IsNullOrWhiteSpace(value))
@@ -993,9 +935,9 @@ public class TagAttribute : Node
     /// The whitespace before equal sign.
     /// </summary>
     /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
-    public string WhitespaceBeforeEqualSign
+    public string? WhitespaceBeforeEqualSign
     {
-        get { return _WhitespaceBeforeEqualSign; }
+        get => _WhitespaceBeforeEqualSign;
         set
         {
             Utility.AssertNullOrWhiteSpace(value);
@@ -1007,9 +949,9 @@ public class TagAttribute : Node
     /// The whitespace after equal sign.
     /// </summary>
     /// <exception cref="ArgumentException">The string contains non-white-space characters.</exception>
-    public string WhitespaceAfterEqualSign
+    public string? WhitespaceAfterEqualSign
     {
-        get { return _WhitespaceAfterEqualSign; }
+        get => _WhitespaceAfterEqualSign;
         set
         {
             Utility.AssertNullOrWhiteSpace(value);
@@ -1039,6 +981,7 @@ public class TagAttribute : Node
         };
     }
 
+    /// <inheritdoc/>
     public override string ToString()
     {
         string quote;
@@ -1086,7 +1029,7 @@ public class Comment : InlineNode
     /// <returns>Always an empty sequence of nodes.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override IEnumerable<Node> EnumChildren()
-        => Enumerable.Empty<Node>();
+        => [];
 
     /// <inheritdoc />
     protected override Node CloneCore()

@@ -17,23 +17,23 @@ public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgum
     {
     }
 
-    private IEnumerable<KeyValuePair<string, WikiImageLinkArgument>> EnumNameArgumentPairs(bool reverse)
+    private IEnumerable<KeyValuePair<string?, WikiImageLinkArgument>> EnumNameArgumentPairs(bool reverse)
     {
         return (reverse ? Reverse() : this).Select(arg =>
-            new KeyValuePair<string, WikiImageLinkArgument>(MwParserUtility.NormalizeImageLinkArgumentName(arg.Name), arg));
+            new KeyValuePair<string?, WikiImageLinkArgument>(MwParserUtility.NormalizeImageLinkArgumentName(arg.Name), arg));
     }
 
     /// <summary>
     /// Enumerates the normalized name-<see cref="WikiImageLinkArgument"/> pairs in the collection.
     /// </summary>
     /// <remarks>If there are arguments with duplicate names, they will nonetheless be included in the sequence.</remarks>
-    public IEnumerable<KeyValuePair<string, WikiImageLinkArgument>> EnumNameArgumentPairs()
+    public IEnumerable<KeyValuePair<string?, WikiImageLinkArgument>> EnumNameArgumentPairs()
     {
         return EnumNameArgumentPairs(false);
     }
 
     /// <summary>
-    /// Gets an named argument (<c>name=value</c>) with the specified name.
+    /// Gets a named argument (<c>name=value</c>) with the specified name.
     /// </summary>
     /// <param name="name">
     /// The name of argument that will be tested. Leading and trailing white spaces will be ignored. First letter will be normalized.
@@ -54,33 +54,33 @@ public class WikiImageLinkArgumentCollection : NodeCollection<WikiImageLinkArgum
     /// <summary>
     /// Gets the value of <c>link=</c> option, if available.
     /// </summary>
-    public Wikitext Link => this["link"]?.Value;
+    public Wikitext? Link => this["link"]?.Value;
 
     /// <summary>
     /// Gets the value of <c>alt=</c> option, if available.
     /// </summary>
-    public Wikitext Alt => this["alt"]?.Value;
+    public Wikitext? Alt => this["alt"]?.Value;
 
     /// <summary>
     /// Gets the value of <c>page=</c> option, if available.
     /// </summary>
-    public Wikitext Page => this["page"]?.Value;
+    public Wikitext? Page => this["page"]?.Value;
 
     /// <summary>
     /// Gets the value of <c>class=</c> option, if available.
     /// </summary>
-    public Wikitext ClassName => this["class"]?.Value;
+    public Wikitext? ClassName => this["class"]?.Value;
 
     /// <summary>
     /// Gets the value of <c>lang=</c> option, if available.
     /// </summary>
-    public Wikitext Lang => this["lang"]?.Value;
+    public Wikitext? Lang => this["lang"]?.Value;
 
     /// <summary>
     /// Gets the image caption, if available.
     /// </summary>
     /// <remarks>The caption of the image is the last unnamed argument that is also after the last named argument.</remarks>
-    public Wikitext Caption
+    public Wikitext? Caption
     {
         get
         {

@@ -404,7 +404,7 @@ partial class ParserCore
         return ParseComment() ?? ParseBraces();
     }
 
-    private WikiImageLink ParseImageLink()
+    private WikiImageLink? ParseImageLink()
     {
         if (LookAheadToken(@"\[\[") == null) return null;
         // Check namespace prefix.
@@ -421,7 +421,7 @@ partial class ParserCore
             return ParseFailed<WikiImageLink>();
         }
         Accept();
-        var node = new WikiImageLink(target);
+        var node = new WikiImageLink { Target = target };
         // IMAGE_LINK_ARGUMENT
         while (ConsumeToken(@"\|") != null)
         {
@@ -452,9 +452,9 @@ partial class ParserCore
             CurrentContext.Terminator = null;
             var value = ParseWikitext();
             Debug.Assert(value != null);
-            return ParseSuccessful(new WikiImageLinkArgument(a, value));
+            return ParseSuccessful(new WikiImageLinkArgument { Name = a, Value = value });
         }
-        return ParseSuccessful(new WikiImageLinkArgument(null, a));
+        return ParseSuccessful(new WikiImageLinkArgument { Value = a });
     }
 
     private WikiLink ParseWikiLink()
@@ -500,7 +500,7 @@ partial class ParserCore
         if (brackets)
         {
             target = new Run();
-            // Aggressive
+            // Aggressive: We have already seen an L-bracket [
             if (!ParseRun(RunParsingMode.ExpandableUrl, target, true))
             {
                 if (options.AllowEmptyExternalLinkTarget)

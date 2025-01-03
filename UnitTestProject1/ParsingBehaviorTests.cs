@@ -25,7 +25,7 @@ public class ParsingBehaviorTests : ParserTestBase
         {
             AllowEmptyTemplateName = true,
             AllowEmptyWikiLinkTarget = true,
-            AllowEmptyExternalLinkTarget = true
+            AllowEmptyExternalLinkTarget = true,
         });
     }
 

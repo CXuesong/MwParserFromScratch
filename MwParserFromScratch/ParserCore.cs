@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch;
@@ -21,7 +15,7 @@ internal partial class ParserCore
     private int lineNumber, linePosition;
     private Stack<ParsingContext> contextStack;
     private CancellationToken cancellationToken;
-    private static readonly Dictionary<string, Regex> tokenMatcherCache = new Dictionary<string, Regex>();
+    private static readonly Dictionary<string, Regex> tokenMatcherCache = new();
 
     public ParserCore()
     {
@@ -167,16 +161,16 @@ internal partial class ParserCore
     /// </summary>
     /// <param name="tokenMatcher">A regular expression string used to match the next token.</param>
     /// <returns>The string of token that has been successfully matched. OR <c>null</c> is such attempt failed.</returns>
-    private string LookAheadToken(string tokenMatcher)
+    private string? LookAheadToken(string tokenMatcher)
     {
         Debug.Assert(tokenMatcher[0] != '^');
-        Regex re;
+        Regex? re;
         lock (tokenMatcherCache)
         {
-            re = tokenMatcherCache.TryGetValue(tokenMatcher);
+            re = tokenMatcherCache.GetValueOrDefault(tokenMatcher);
             if (re == null)
             {
-                // The occurance should be starting from current position.
+                // The occurence should be starting from current position.
                 re = new Regex(@"\G(" + tokenMatcher + ")");
                 tokenMatcherCache.Add(tokenMatcher, re);
             }
@@ -194,7 +188,7 @@ internal partial class ParserCore
     /// </summary>
     /// <param name="tokenMatcher">A regular expression string used to match the next token.</param>
     /// <returns>The string of token that has been successfully consumed. OR <c>null</c> is such attempt failed.</returns>
-    private string ConsumeToken(string tokenMatcher)
+    private string? ConsumeToken(string tokenMatcher)
     {
         var t = LookAheadToken(tokenMatcher);
         if (t == null) return null;
@@ -289,7 +283,7 @@ internal partial class ParserCore
         {
             lock (cacheDict)
             {
-                var t = cacheDict.TryGetValue(regularExpr);
+                var t = cacheDict.GetValueOrDefault(regularExpr);
                 if (t == null)
                 {
                     t = new Terminator(regularExpr);

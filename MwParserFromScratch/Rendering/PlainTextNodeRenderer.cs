@@ -1,7 +1,4 @@
-﻿#nullable enable
-
-using System;
-using System.Text;
+﻿using System.Text;
 using MwParserFromScratch.Nodes;
 
 namespace MwParserFromScratch.Rendering;

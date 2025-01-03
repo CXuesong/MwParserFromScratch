@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using MwParserFromScratch.Nodes;
@@ -10,7 +7,8 @@ namespace UnitTestProject1;
 
 internal static class Utility
 {
-    private static readonly Dictionary<Type, Func<Node, string>> dumpHandlers = new Dictionary<Type, Func<Node, string>>();
+
+    private static readonly Dictionary<Type, Func<Node, string>> dumpHandlers = new();
         
     private static void RegisterDumpHandler<T>(Func<T, string> handler) where T : Node
     {

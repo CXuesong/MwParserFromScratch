@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using MwParserFromScratch.Rendering;
 
@@ -42,9 +40,9 @@ public class Wikitext : Node
     /// <summary>
     /// Enumerates the children of this node.
     /// </summary>
-    public override IEnumerable<Node> EnumChildren()
-        => Lines;
+    public override IEnumerable<Node> EnumChildren() => Lines;
 
+    /// <inheritdoc/>
     protected override Node CloneCore()
     {
         var n = new Wikitext(Lines);
@@ -81,6 +79,7 @@ public interface IInlineContainer
 
 public static class InlineContainerExtensions
 {
+
     /// <summary>
     /// Append a <see cref="PlainText"/> node to the beginning of the paragraph.
     /// </summary>
@@ -111,7 +110,8 @@ public static class InlineContainerExtensions
         return pt;
     }
 
-    internal static PlainText AppendWithLineInfo(this IInlineContainer container, string text, int lineNumber1, int linePosition1, int lineNumber2, int linePosition2)
+    internal static PlainText AppendWithLineInfo(this IInlineContainer container, string text, int lineNumber1, int linePosition1,
+        int lineNumber2, int linePosition2)
     {
         Debug.Assert(container != null);
         Debug.Assert(text != null);
@@ -120,21 +120,21 @@ public static class InlineContainerExtensions
         Debug.Assert(lineNumber2 >= 0);
         Debug.Assert(linePosition2 >= 0);
         Debug.Assert(lineNumber1 < lineNumber2 || lineNumber1 == lineNumber2 && linePosition1 <= linePosition2);
-        var pt = container.Inlines.LastNode as PlainText;
-        if (pt == null)
+        if (container.Inlines.LastNode is PlainText pt)
+        {
+            if (text.Length == 0) return pt; // ExtendLineInfo won't accept (0)
+            pt.Content += text;
+            pt.ExtendLineInfo(lineNumber2, linePosition2);
+        }
+        else
         {
             container.Inlines.Add(pt = new PlainText(text));
             pt.SetLineInfo(lineNumber1, linePosition1, lineNumber2, linePosition2);
         }
-        else
-        {
-            if (text.Length == 0) return pt;    // ExtendLineInfo won't accept (0)
-            pt.Content += text;
-            pt.ExtendLineInfo(lineNumber2, linePosition2);
-        }
-            ((Node)container).ExtendLineInfo(lineNumber2, linePosition2);
+        ((Node)container).ExtendLineInfo(lineNumber2, linePosition2);
         return pt;
     }
+
 }
 
 /// <summary>
@@ -146,7 +146,7 @@ public static class InlineContainerExtensions
 /// </remarks>
 public class Run : Node, IInlineContainer
 {
-    public Run() : this((IEnumerable<InlineNode>)null)
+    public Run() : this((IEnumerable<InlineNode>?)null)
     {
     }
 
@@ -154,7 +154,7 @@ public class Run : Node, IInlineContainer
     {
     }
 
-    public Run(IEnumerable<InlineNode> nodes)
+    public Run(IEnumerable<InlineNode>? nodes)
     {
         Inlines = new NodeCollection<InlineNode>(this);
         if (nodes != null) Inlines.Add(nodes);
@@ -199,7 +199,7 @@ public abstract class LineNode : Node
 
 public abstract class InlineContainerLineNode : LineNode, IInlineContainer
 {
-    public InlineContainerLineNode() : this((IEnumerable<InlineNode>)null)
+    public InlineContainerLineNode() : this((IEnumerable<InlineNode>?)null)
     {
     }
 
@@ -252,7 +252,7 @@ public class ListItem : InlineContainerLineNode
     /// Prefix of the item.
     /// </summary>
     /// <remarks>The prefix consists of one or more *#:;, or is simply a space. For HR, the prefix is at least 4 dashes.</remarks>
-    public string Prefix { get; set; }
+    public required string Prefix { get; set; }
 
     protected override Node CloneCore()
     {
@@ -273,7 +273,7 @@ public class ListItem : InlineContainerLineNode
 public class Heading : InlineContainerLineNode
 {
     private int _Level;
-    private Run _Suffix;
+    private Run? _Suffix;
 
     public Heading()
     {
@@ -298,7 +298,7 @@ public class Heading : InlineContainerLineNode
     /// </value>
     public int Level
     {
-        get { return _Level; }
+        get => _Level;
         set
         {
             if (value < 1 || value > 6)
@@ -311,10 +311,10 @@ public class Heading : InlineContainerLineNode
     /// The text after the heading expression.
     /// E.g. <c>&lt;!--comment--&gt;</c> in <c>=== abc === &lt;!--comment--&gt;</c>.
     /// </summary>
-    public Run Suffix
+    public Run? Suffix
     {
-        get { return _Suffix; }
-        set { Attach(ref _Suffix, value); }
+        get => _Suffix;
+        set => Attach(ref _Suffix, value);
     }
 
     /// <inheritdoc />
